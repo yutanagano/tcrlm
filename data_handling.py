@@ -152,10 +152,11 @@ class CDR3Dataset(Dataset):
         a_encoding = self.converter.to_atchley(cdr3)
         oh_encoding = self.converter.to_one_hot(cdr3)
 
-        if self.x_atchley: x = a_encoding
-        else: x = oh_encoding
-
-        if self.y_atchley: y = a_encoding
-        else: y = oh_encoding
+        if self.x_atchley:
+            x = a_encoding
+            y = oh_encoding
+        else:
+            x = oh_encoding
+            y = a_encoding
 
         return x, y
