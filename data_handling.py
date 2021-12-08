@@ -1,7 +1,7 @@
 import os
 import pandas as pd
-import numpy as np
 import torch
+import numpy as np
 from torch.utils.data import Dataset
 
 amino_acids = (
@@ -34,21 +34,21 @@ class SequenceConverter():
         # encodings, and one-hot encodings respectively
 
         # Create two dicts with just null entries (used later for zero-padding if necessary)
-        self.atchley_dict = {'NULL': np.zeros(5,dtype=np.float32)}
-        self.one_hot_dict = {'NULL': np.zeros(20,dtype=np.float32)}
+        self.atchley_dict = {'NULL': torch.zeros(5,dtype=torch.float32)}
+        self.one_hot_dict = {'NULL': torch.zeros(20,dtype=torch.float32)}
 
         # Load atchley factor data, stored in a csv
         path_to_atchley_csv = '/home/yuta/Projects/cdr3encoding/atchley_factors.csv'
         atchley_table = pd.read_csv(path_to_atchley_csv,index_col=0)
 
         # Prepare a 20x20 identity matrix (useful for one-hot encodings)
-        i_matrix = np.eye(20,dtype=np.float32)
+        i_matrix = torch.eye(20,dtype=torch.float32)
 
         # Now loop through all amino acids and populate both dictionaries with
         # their corresponding encodings
         for i, letter in enumerate(amino_acids):
             # Atchley factors
-            self.atchley_dict[letter] = atchley_table.loc[letter].to_numpy(dtype=np.float32)
+            self.atchley_dict[letter] = torch.from_numpy(atchley_table.loc[letter].to_numpy(dtype=np.float32))
 
             # One-hot encodings
             self.one_hot_dict[letter] = i_matrix[i]
@@ -95,14 +95,14 @@ class SequenceConverter():
         for i in range(self.padding - len(aa)):
             factors.append(dct['NULL'])
 
-        return np.stack(factors)
+        return torch.stack(factors)
 
 
-    def to_atchley(self, aa: str) -> np.ndarray:
+    def to_atchley(self, aa: str) -> torch.Tensor:
         return self._produce_encoding(aa, True)
 
 
-    def to_one_hot(self, aa: str) -> np.ndarray:
+    def to_one_hot(self, aa: str) -> torch.Tensor:
         return self._produce_encoding(aa, False)
 
 
@@ -133,7 +133,7 @@ class CDR3Dataset(Dataset):
         return len(self.dataframe)
 
 
-    def __getitem__(self, idx: int) -> (np.ndarray, np.ndarray):
+    def __getitem__(self, idx: int) -> (torch.Tensor, torch.Tensor):
         # Fetch the relevant cdr3 sequence from the dataframe
         cdr3 = self.dataframe.iloc[idx, 0]
 
