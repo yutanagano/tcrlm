@@ -95,7 +95,7 @@ class SequenceConverter():
         for i in range(self.padding - len(aa)):
             factors.append(dct['NULL'])
 
-        return torch.stack(factors)
+        return torch.t(torch.stack(factors))
 
 
     def to_atchley(self, aa: str) -> torch.Tensor:

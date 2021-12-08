@@ -19,11 +19,11 @@ def instantiate_converter_0_padding():
 @pytest.mark.parametrize(
     'aa,encoding',
     (
-        ('A',torch.tensor([[-0.591,-1.302,-0.733,1.570,-0.146]], dtype=torch.float32)),
-        ('H',torch.tensor([[0.336,-0.417,-1.673,-1.474,-0.078]], dtype=torch.float32)),
-        ('M',torch.tensor([[-0.663,-1.524,2.219,-1.005,1.212]], dtype=torch.float32)),
-        ('S',torch.tensor([[-0.228,1.399,-4.760,0.670,-2.647]], dtype=torch.float32)),
-        ('W',torch.tensor([[-0.595,0.009,0.672,-2.128,-0.184]], dtype=torch.float32))
+        ('A',torch.tensor([[-0.591,-1.302,-0.733,1.570,-0.146]], dtype=torch.float32).transpose(0,1)),
+        ('H',torch.tensor([[0.336,-0.417,-1.673,-1.474,-0.078]], dtype=torch.float32).transpose(0,1)),
+        ('M',torch.tensor([[-0.663,-1.524,2.219,-1.005,1.212]], dtype=torch.float32).transpose(0,1)),
+        ('S',torch.tensor([[-0.228,1.399,-4.760,0.670,-2.647]], dtype=torch.float32).transpose(0,1)),
+        ('W',torch.tensor([[-0.595,0.009,0.672,-2.128,-0.184]], dtype=torch.float32).transpose(0,1))
     )
 )
 def test_atchley_encodings(instantiate_converter_0_padding,aa,encoding):
@@ -34,11 +34,11 @@ def test_atchley_encodings(instantiate_converter_0_padding,aa,encoding):
 @pytest.mark.parametrize(
     'aa,encoding',
     (
-        ('A',torch.tensor([[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]],dtype=torch.float32)),
-        ('H',torch.tensor([[0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0]],dtype=torch.float32)),
-        ('M',torch.tensor([[0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0]],dtype=torch.float32)),
-        ('S',torch.tensor([[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0]],dtype=torch.float32)),
-        ('W',torch.tensor([[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0]],dtype=torch.float32))
+        ('A',torch.tensor([[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]],dtype=torch.float32).transpose(0,1)),
+        ('H',torch.tensor([[0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0]],dtype=torch.float32).transpose(0,1)),
+        ('M',torch.tensor([[0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0]],dtype=torch.float32).transpose(0,1)),
+        ('S',torch.tensor([[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0]],dtype=torch.float32).transpose(0,1)),
+        ('W',torch.tensor([[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0]],dtype=torch.float32).transpose(0,1))
     )
 )
 def test_one_hot_encodings(instantiate_converter_0_padding,aa,encoding):
@@ -59,7 +59,7 @@ def test_atchley_sequence(instantiate_converter_0_padding):
             [-0.595,0.009,0.672,-2.128,-0.184]
         ],
         dtype=torch.float32
-    )
+    ).transpose(0,1)
     assert(torch.equal(converter.to_atchley(sequence),expected))
 
 
@@ -76,7 +76,7 @@ def test_onehot_sequence(instantiate_converter_0_padding):
             [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0]
         ],
         dtype=torch.float32
-    )
+    ).transpose(0,1)
     assert(torch.equal(converter.to_one_hot(sequence),expected))
 
 
@@ -120,7 +120,7 @@ def test_atchley_padding(instantiate_converter_32_padding):
             [0,0,0,0,0],
         ],
         dtype=torch.float32
-    )
+    ).transpose(0,1)
     assert(torch.equal(converter.to_atchley(sequence),expected))
 
 
@@ -164,7 +164,7 @@ def test_onehot_padding(instantiate_converter_32_padding):
             [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
         ],
         dtype=torch.float32
-    )
+    ).transpose(0,1)
     assert(torch.equal(converter.to_one_hot(sequence),expected))
 
 
