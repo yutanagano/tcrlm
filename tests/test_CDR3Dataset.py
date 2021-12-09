@@ -1,8 +1,8 @@
 import os
 import random
 from itertools import product
+import torch
 import pandas as pd
-import numpy as np
 import pytest
 from data_handling import SequenceConverter, CDR3Dataset
 
@@ -21,13 +21,13 @@ def get_dataframe(get_path_to_mock_csv):
 @pytest.fixture(scope='module')
 def instantiate_dataset(get_path_to_mock_csv):
     dataset = CDR3Dataset(
-            path_to_csv = get_path_to_mock_csv)
+            path_to_csv=get_path_to_mock_csv)
     yield dataset
 
 
 @pytest.fixture(scope='module')
 def instantiate_converter_0_padding():
-    converter = SequenceConverter(padding=0)
+    converter = SequenceConverter(padding=0,norm_atchley=True)
     yield converter
 
 
@@ -59,8 +59,8 @@ def test_getitem(instantiate_dataset,instantiate_converter_0_padding,get_datafra
         
         x, y = dataset[index]
 
-        assert(np.array_equal(x,atchley_encoding))
-        assert(np.array_equal(y,one_hot_encoding))
+        assert(torch.equal(x,atchley_encoding))
+        assert(torch.equal(y,one_hot_encoding))
 
 
 def test_x_y_form_permutations(instantiate_converter_0_padding,get_dataframe,get_path_to_mock_csv):
@@ -75,11 +75,22 @@ def test_x_y_form_permutations(instantiate_converter_0_padding,get_dataframe,get
         dataset = CDR3Dataset(get_path_to_mock_csv,x_atchley=x_atchley,y_atchley=y_atchley)
         x, y = dataset[0]
         
-        if x_atchley: assert(np.array_equal(x, atchley))
-        else: assert(np.array_equal(x, one_hot))
+        if x_atchley: assert(torch.equal(x, atchley))
+        else: assert(torch.equal(x, one_hot))
 
-        if y_atchley: assert(np.array_equal(y, atchley))
-        else: assert(np.array_equal(y, one_hot))
+        if y_atchley: assert(torch.equal(y, atchley))
+        else: assert(torch.equal(y, one_hot))
+
+
+def test_get_cdr3(instantiate_dataset,get_dataframe):
+    dataset = instantiate_dataset
+    dataframe = get_dataframe
+
+    for i in range(10):
+        index = random.randint(0,len(dataframe)-1)
+        cdr3 = dataset.get_cdr3(index)
+        expected = dataframe['CDR3'].iloc[index]
+        assert(cdr3 == expected)
 
 
 # Negative tests

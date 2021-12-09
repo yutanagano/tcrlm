@@ -29,7 +29,7 @@ amino_acids = (
 
 
 class SequenceConverter():
-    def __init__(self, padding: int):
+    def __init__(self, padding: int, norm_atchley: bool):
         # Create dictionaries mapping amino acids to their atchley factor
         # encodings, and one-hot encodings respectively
 
@@ -40,6 +40,11 @@ class SequenceConverter():
         # Load atchley factor data, stored in a csv
         path_to_atchley_csv = '/home/yuta/Projects/cdr3encoding/atchley_factors.csv'
         atchley_table = pd.read_csv(path_to_atchley_csv,index_col=0)
+
+        if norm_atchley:
+            for col in atchley_table.columns:
+                atchley_table[col] = atchley_table[col] - atchley_table[col].min()
+                atchley_table[col] = atchley_table[col] / atchley_table[col].max() * 2 - 1
 
         # Prepare a 20x20 identity matrix (useful for one-hot encodings)
         i_matrix = torch.eye(20,dtype=torch.float32)
@@ -111,7 +116,8 @@ class CDR3Dataset(Dataset):
                  path_to_csv: str,
                  x_atchley: bool = True,
                  y_atchley: bool = False,
-                 padding: int = 0):
+                 padding: int = 0,
+                 norm_atchley: bool = True):
         # Super init
         super(CDR3Dataset, self).__init__()
 
@@ -125,7 +131,7 @@ class CDR3Dataset(Dataset):
         self.y_atchley = y_atchley
 
         # Create an instance of the atchley converter
-        self.converter = SequenceConverter(padding=padding)
+        self.converter = SequenceConverter(padding=padding,norm_atchley=norm_atchley)
 
 
     def __len__(self) -> int:
@@ -160,3 +166,8 @@ class CDR3Dataset(Dataset):
             y = a_encoding
 
         return x, y
+    
+
+    def get_cdr3(self, idx: int) -> str:
+        # Fetch the string representing the CDR3 at the given index, return it
+        return self.dataframe.iloc[idx, 0]

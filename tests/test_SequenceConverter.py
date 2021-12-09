@@ -5,13 +5,13 @@ from data_handling import SequenceConverter
 
 @pytest.fixture(scope='module')
 def instantiate_converter_32_padding():
-    converter = SequenceConverter(padding=32)
+    converter = SequenceConverter(padding=32,norm_atchley=False)
     yield converter
 
 
 @pytest.fixture(scope='module')
 def instantiate_converter_0_padding():
-    converter = SequenceConverter(padding=0)
+    converter = SequenceConverter(padding=0,norm_atchley=False)
     yield converter
 
 
@@ -166,6 +166,13 @@ def test_onehot_padding(instantiate_converter_32_padding):
         dtype=torch.float32
     ).transpose(0,1)
     assert(torch.equal(converter.to_one_hot(sequence),expected))
+
+
+def test_atchley_norms():
+    converter = SequenceConverter(padding=0, norm_atchley=True)
+    sequence = 'ACDEFGHIKLMNPQRSTVWY'
+    result = converter.to_atchley(sequence)
+    assert(result.max().item() == 1 and result.min().item() == -1)
 
 
 # Negative tests
