@@ -14,7 +14,7 @@ for i in range(rows):
     figure.add_subplot(rows, cols, cols*i+1)
     plt.title(val_set.get_cdr3(sample_idx) + ' (atchley)')
     plt.axis('off')
-    plt.imshow(atchley,vmin=-5,vmax=3)
+    plt.imshow(atchley,vmin=-1,vmax=1)
 
     figure.add_subplot(rows, cols, cols*i+2)
     plt.title(val_set.get_cdr3(sample_idx) + ' (one hot)')

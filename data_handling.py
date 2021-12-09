@@ -1,3 +1,12 @@
+'''
+data_handling.py
+purpose: Python module with classes involved in the loading and preprocessing
+         CDR3 data.
+author: Yuta Nagano
+ver: 1.0.4
+'''
+
+
 import os
 import pandas as pd
 import torch
