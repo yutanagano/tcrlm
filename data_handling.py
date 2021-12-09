@@ -3,7 +3,7 @@ data_handling.py
 purpose: Python module with classes involved in the loading and preprocessing
          CDR3 data.
 author: Yuta Nagano
-ver: 1.0.4
+ver: 1.0.5
 '''
 
 
@@ -52,8 +52,7 @@ class SequenceConverter():
 
         if norm_atchley:
             for col in atchley_table.columns:
-                atchley_table[col] = atchley_table[col] - atchley_table[col].min()
-                atchley_table[col] = atchley_table[col] / atchley_table[col].max() * 2 - 1
+                atchley_table[col] = atchley_table[col] / atchley_table[col].abs().max()
 
         # Prepare a 20x20 identity matrix (useful for one-hot encodings)
         i_matrix = torch.eye(20,dtype=torch.float32)
