@@ -93,6 +93,15 @@ def test_get_cdr3(instantiate_dataset,get_dataframe):
         assert(cdr3 == expected)
 
 
+def test_adjust_data_for_padding(get_path_to_mock_csv,get_dataframe):
+    dataset = CDR3Dataset(path_to_csv=get_path_to_mock_csv,
+                          padding=3)
+    dataframe = get_dataframe
+    dataframe = dataframe[dataframe['CDR3'].map(len) <= 3]
+
+    assert(len(dataset) == len(dataframe))
+
+
 # Negative tests
 def test_bad_csv_path():
     with pytest.raises(RuntimeError):

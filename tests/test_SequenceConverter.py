@@ -194,3 +194,8 @@ def test_overly_long_sequence(instantiate_converter_32_padding):
 
     with pytest.raises(RuntimeError):
         converter.to_one_hot('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+
+
+def test_negative_padding():
+    with pytest.raises(RuntimeError):
+        converter = SequenceConverter(padding=-1, norm_atchley=False)

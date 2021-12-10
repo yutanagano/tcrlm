@@ -3,7 +3,7 @@ data_handling.py
 purpose: Python module with classes involved in the loading and preprocessing
          CDR3 data.
 author: Yuta Nagano
-ver: 1.0.5
+ver: 1.0.6
 '''
 
 
@@ -39,6 +39,10 @@ amino_acids = (
 
 class SequenceConverter():
     def __init__(self, padding: int, norm_atchley: bool):
+        # Ensure that padding >= 0
+        if padding < 0:
+            raise RuntimeError('padding must be an int >= 0.')
+
         # Create dictionaries mapping amino acids to their atchley factor
         # encodings, and one-hot encodings respectively
 
@@ -132,7 +136,14 @@ class CDR3Dataset(Dataset):
         # Check that the specified csv exists, then load it as df
         if not (path_to_csv.endswith('.csv') and os.path.isfile(path_to_csv)):
             raise RuntimeError(f'Bad path to csv file: {path_to_csv}')
-        self.dataframe = pd.read_csv(path_to_csv)
+        dataframe = pd.read_csv(path_to_csv)
+
+        # If padding > 0, remove rows with CDR3s of length greater than padding
+        if padding:
+            dataframe = dataframe[dataframe['CDR3'].map(len) <= padding].reset_index(drop=True)
+
+        # Save the dataframe as an attribute of the object
+        self.dataframe = dataframe
 
         # Save x_atchley and y_atchley values
         self.x_atchley = x_atchley
