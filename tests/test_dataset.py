@@ -2,7 +2,7 @@ import os
 import random
 import pandas as pd
 import pytest
-from source.cdr3dataset import CDR3Dataset
+from source.data_handling import CDR3Dataset
 
 
 @pytest.fixture(scope='module')

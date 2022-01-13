@@ -4,7 +4,7 @@ purpose: Python module with classes that represent the code base for the BERT-
          based neural network models that will be able to learn and process TCR
          beta-chain CDR3 sequences.
 author: Yuta Nagano
-ver: 1.0.0
+ver: 1.0.1
 '''
 
 
@@ -25,7 +25,8 @@ class AaEmbedder(nn.Module):
                                       padding_idx=21)
         self.embedding_dim = embedding_dim
     
-    def forward(self, x: torch.Tensor):
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.embedding(x) * math.sqrt(self.embedding_dim)
 
 
@@ -64,7 +65,8 @@ class PositionEncoder(nn.Module):
         # Create a dropout module
         self.dropout = nn.Dropout(p=dropout)
 
-    def forward(self, x: torch.Tensor):
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.dropout(x + self.position_encoding[:, :x.size(1)])
 
 
@@ -114,11 +116,28 @@ class Cdr3Bert(nn.Module):
         self.position_encoder = PositionEncoder(embedding_dim=d_model,
                                                 dropout=dropout)
 
+
     def forward(self,
                 x: torch.Tensor,
-                padding_mask: torch.Tensor):
+                padding_mask: torch.Tensor) -> torch.Tensor:
+        '''
+        Forward method of the network.
+        Input: Batched, embedded and masked cdr3 sequences (size: N,S,E)*
+        Output: Batched sequences of token probabilities (size: N,S,V)*
+
+        * Dimensions are as follows:
+        N - number of items in batch i.e. batch size
+        S - number of tokens in sequence i.e. sequence length
+        E - number of dimensions in embedding
+        V - vocabulary size (in this case 20 for 20 amino acids)
+        '''
+        # Create an embedding of the input tensor (with positional info)
         x_emb = self.position_encoder(self.embedder(x))
+
+        # Run the embedded input through the bert stack
         x_processed = self.encoder_stack(src=x_emb,
                                          mask=None,
                                          src_key_padding_mask=padding_mask)
+
+        # Run the generator projection of the processed input
         return self.generator(x_processed)
