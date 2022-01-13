@@ -31,4 +31,4 @@ def test_dataloader(instantiate_dataloader):
     assert(src_batch.size() == tgt_batch.size())
     assert(src_batch.size(0) == 5)
     assert(src_batch.size(1) == 3 or src_batch.size(1) == 4)
-    assert(len(src_batch.size()) == 2)
+    assert(src_batch.dim() == 2)

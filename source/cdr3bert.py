@@ -4,7 +4,7 @@ purpose: Python module with classes that represent the code base for the BERT-
          based neural network models that will be able to learn and process TCR
          beta-chain CDR3 sequences.
 author: Yuta Nagano
-ver: 1.0.1
+ver: 1.1.0
 '''
 
 
@@ -115,6 +115,11 @@ class Cdr3Bert(nn.Module):
         # Create an instance of a position encoder
         self.position_encoder = PositionEncoder(embedding_dim=d_model,
                                                 dropout=dropout)
+
+        # Use xavier uniform initialisation for rank-2+ parameter tensors
+        for p in self.parameters():
+            if p.dim() > 1:
+                nn.init.xavier_uniform_(p)
 
 
     def forward(self,
