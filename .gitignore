@@ -3,4 +3,4 @@ __pycache__
 .vscode
 .coverage
 /data
-/train_stats.csv
+/trial_run_train_stats

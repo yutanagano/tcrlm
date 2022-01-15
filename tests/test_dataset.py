@@ -1,5 +1,6 @@
 import os
 import random
+import re
 import pandas as pd
 import pytest
 from source.data_handling import CDR3Dataset
@@ -41,21 +42,30 @@ def test_getitem(instantiate_dataset, get_dataframe):
     dataset = instantiate_dataset
     dataframe = get_dataframe
 
-    for i in range(10):
-        index = random.randint(0,len(dataframe)-1)
-        cdr3 = dataframe['CDR3'].iloc[index]
+    for i in range(len(dataframe)):
+        cdr3 = dataframe['CDR3'].iloc[i]
+        x, y = dataset[i]
 
-        x, y = dataset[index]
-
+        # Ensure x and y are the same length
         assert(len(x) == len(y))
-        assert('?' in x)
-        assert('-' in y)
 
-        masked_index = x.index('?')
+        # Ensure that there is an unmaked residue in y
+        match = re.search(r'[^-]',y)
+        assert(match)
+
+        # Ensure there is only one match
+        assert(len(re.findall(r'[^-]',y)) == 1)
+
+        # Ensure that that unmaked residue is a valid token/amino acid
+        a_idx = match.start()
+        a_a = match[0]
+        assert(a_a in 'ACDEFGHIKLMNPQRSTVWY')
+
+        # Ensure that combining the masked token from y wth the rest of x is a
+        # reconstruction of the original cdr3
         reconstructed = list(x)
-        reconstructed[masked_index] = y[masked_index]
-        reconstructed = ''.join(reconstructed)
-        assert(reconstructed == cdr3)
+        reconstructed[a_idx] = a_a
+        assert(''.join(reconstructed) == cdr3)
 
 
 # Negative tests

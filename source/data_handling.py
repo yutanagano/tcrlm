@@ -3,7 +3,7 @@ data_handling.py
 purpose: Python module with classes involved in the loading and preprocessing
          CDR3 data.
 author: Yuta Nagano
-ver: 2.2.0
+ver: 2.3.0
 '''
 
 
@@ -64,9 +64,15 @@ class CDR3Dataset(Dataset):
     # Custom dataset class to load CDR3 sequence data into memory and access it.
     def __init__(self,
                  path_to_csv: str,
-                 p_masked: float = 0.1):
-        # Ensure that p_masked is in a well-defined range as a probability
-        assert(p_masked > 0 and p_masked < 1)
+                 p_mask: float = 0.15,
+                 p_mask_random: float = 0.1,
+                 p_mask_keep: float = 0.1):
+        # Ensure that p_mask, p_mask_random and p_mask_keep values lie in a
+        # well-defined range as probabilities
+        assert(p_mask > 0 and p_mask < 1)
+        assert(p_mask_random > 0 and p_mask_random < 1)
+        assert(p_mask_keep > 0 and p_mask_keep < 1)
+        assert(p_mask_random + p_mask_keep < 1)
 
         super(CDR3Dataset, self).__init__()
 
@@ -78,8 +84,14 @@ class CDR3Dataset(Dataset):
         # Save the dataframe as an attribute of the object
         self.dataframe = dataframe
 
-        # Save the p_masked value as an attribute of the object
-        self.p_masked = p_masked
+        # Save the p_mask and related values as attributes of the object
+        self.p_mask = p_mask
+        self.p_random_threshold = p_mask_random
+        self.p_keep_threshold = 1 - p_mask_keep
+
+        # Save a set of all amino acid residues for use in __generate_x
+        self.aas = {'A','C','D','E','F','G','H','I','K','L',
+                    'M','N','P','Q','R','S','T','V','W','Y'}
 
 
     def __len__(self) -> int:
@@ -91,25 +103,67 @@ class CDR3Dataset(Dataset):
         # Fetch the relevant cdr3 sequence from the dataframe
         cdr3 = self.dataframe.iloc[idx, 0]
 
-        # Mask a proportion (p_masked) of the amino acids
+        # Mask a proportion (p_mask) of the amino acids
 
         # 1) decide on which residues to mask
-        num_residues = len(cdr3)
-        num_masked = max(1, int(num_residues * self.p_masked))
-        i_to_mask = random.sample(range(num_residues), num_masked)
+        i_to_mask = self._pick_masking_indices(len(cdr3))
 
-        # 2) mask those residues in the input
-        cdr3_masked = list(cdr3) # convert cdr3 str into a list of chars
-        for i in i_to_mask: cdr3_masked[i] = '?' # mask chars
-        cdr3_masked = ''.join(cdr3_masked) # convert back to str
+        # 2) Based on the cdr3 sequence and the residue indices to mask,
+        #    generate the input sequence
+        x = self._generate_x(cdr3, i_to_mask)
 
-        # 3) hide/'pad' everything other than those residues in the target
-        # Create a list of padding characters the same length as the cdr3
-        cdr3_target = ['-'] * len(cdr3)
-        for i in i_to_mask: cdr3_target[i] = cdr3[i]
-        cdr3_target = ''.join(cdr3_target)
+        # 3) Based on the cdr3 sequence and the residue indices to mask,
+        #    generate the target sequence
+        y = self._generate_y(cdr3, i_to_mask)
 
-        return (cdr3_masked, cdr3_target)
+        return (x, y)
+
+
+    def _pick_masking_indices(self, cdr3_len: int) -> list:
+        '''
+        Given a particular length of cdr3, pick some residue indices at random
+        to be masked.
+        '''
+        num_to_be_masked = max(1, int(cdr3_len * self.p_mask))
+        return random.sample(range(cdr3_len), num_to_be_masked)
+    
+
+    def _generate_x(self, cdr3: str, indices: list) -> str:
+        '''
+        Given a cdr3 and a list of indices to be masked, generate an input
+        sequence of tokens for model training, following the below convention:
+
+        If an index i is chosen for masking, the residue at i is:
+        - replaced with a random distinct token | self.p_mask_random of the time
+        - kept as the original token            | self.p_mask_keep of the time
+        - replaced with the mask token          | the rest of the time
+        '''
+        x = list(cdr3) # convert cdr3 str into a list of chars
+
+        for i in indices: # for each residue to be replaced
+            r = random.random() # generate a random float in range [0,1)
+
+            if r < self.p_random_threshold: # opt. 1: random (distinct) replacement
+                x[i] = random.sample(tuple(self.aas - {x[i]}),1)[0]
+
+            elif r > self.p_keep_threshold: # opt. 2: no replacement
+                pass
+
+            else: # opt. 3: masking
+                x[i] = '?'
+        
+        return ''.join(x) # convert back to str
+    
+
+    def _generate_y(self, cdr3: str, indices: list) -> str:
+        '''
+        Given a cdr3 and a list of indices to be masked, generate the target
+        sequence, which will contain empty (padding) tokens for all indices
+        except those that are masked in the input.
+        '''
+        y = ['-'] * len(cdr3)
+        for i in indices: y[i] = cdr3[i]
+        return ''.join(y)
 
 
 class CDR3DataLoader(DataLoader):
