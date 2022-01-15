@@ -3,7 +3,7 @@ main.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 1.1.0
+ver: 1.1.1
 '''
 
 
@@ -19,8 +19,6 @@ from source.training import create_padding_mask, ScheduledOptimiser
 # Outline hyperparameters and settings
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-print(f'Training will commence on device: {DEVICE}.')
-
 BERT_NUM_ENCODER_LAYERS = 8
 BERT_D_MODEL = 16
 BERT_NHEAD = 4
@@ -31,38 +29,6 @@ BATCH_SIZE = 512
 OPTIM_WARMUP = 10_000
 
 NUM_EPOCHS = 2
-
-
-# Instantiate model, dataloader and any other objects required for training
-print('Instantiating cdr3bert model...')
-
-model = Cdr3Bert(num_encoder_layers=BERT_NUM_ENCODER_LAYERS,
-                 d_model=BERT_D_MODEL,
-                 nhead=BERT_NHEAD,
-                 dim_feedforward=BERT_DIM_FEEDFORWARD)
-model.to(DEVICE)
-
-print('Loading cdr3 data into memory...')
-
-train_dataset = CDR3Dataset(path_to_csv='data/train.csv')
-train_dataloader = CDR3DataLoader(dataset=train_dataset,
-                                  batch_size=BATCH_SIZE)
-
-val_dataset = CDR3Dataset(path_to_csv='data/val.csv')
-val_dataloader = CDR3DataLoader(dataset=val_dataset,
-                                batch_size=BATCH_SIZE)
-
-print('Instantiating other misc. objects for training...')
-
-optimiser = ScheduledOptimiser(optimiser=torch.optim.Adam(
-                                            params=model.parameters(),
-                                            lr=0,
-                                            betas=(0.9, 0.98),
-                                            eps=1e-9),
-                               lr_multiplier=1,
-                               d_model=BERT_D_MODEL,
-                               n_warmup_steps=OPTIM_WARMUP)
-loss_fn = torch.nn.CrossEntropyLoss(ignore_index=21,label_smoothing=0.1)
 
 
 # Helper functions for training
@@ -169,6 +135,42 @@ def validate(model: torch.nn.Module,
 
 
 if __name__ == '__main__':
+    print(f'Training will commence on device: {DEVICE}.')
+
+    # Instantiate model, dataloader and any other objects required for training
+    print('Instantiating cdr3bert model...')
+
+    model = Cdr3Bert(num_encoder_layers=BERT_NUM_ENCODER_LAYERS,
+                     d_model=BERT_D_MODEL,
+                     nhead=BERT_NHEAD,
+                     dim_feedforward=BERT_DIM_FEEDFORWARD)
+    model.to(DEVICE)
+
+    print('Loading cdr3 data into memory...')
+
+    train_dataset = CDR3Dataset(path_to_csv='data/train.csv')
+    train_dataloader = CDR3DataLoader(dataset=train_dataset,
+                                      batch_size=BATCH_SIZE)
+
+    val_dataset = CDR3Dataset(path_to_csv='data/val.csv',
+                              p_mask_random=0,
+                              p_mask_keep=0)
+    val_dataloader = CDR3DataLoader(dataset=val_dataset,
+                                    batch_size=BATCH_SIZE)
+
+    print('Instantiating other misc. objects for training...')
+
+    optimiser = ScheduledOptimiser(optimiser=torch.optim.Adam(
+                                                params=model.parameters(),
+                                                lr=0,
+                                                betas=(0.9, 0.98),
+                                                eps=1e-9),
+                                   lr_multiplier=1,
+                                   d_model=BERT_D_MODEL,
+                                   n_warmup_steps=OPTIM_WARMUP)
+    loss_fn = torch.nn.CrossEntropyLoss(ignore_index=21,label_smoothing=0.1)
+
+
     # Train model for NUM_EPOCHS epochs
     print('Commencing training.')
 
@@ -198,6 +200,9 @@ if __name__ == '__main__':
 
     print('Training finished.')
     print(f'Total time taken: {int(time.time() - start_time)}s')
+
+    print('Saving model...')
+    torch.save(model, 'trained_model.ptnn')
 
     # Convert log to dataframe
     log_df = pd.DataFrame.from_dict(data=stats_log,

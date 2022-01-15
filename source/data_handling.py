@@ -3,7 +3,7 @@ data_handling.py
 purpose: Python module with classes involved in the loading and preprocessing
          CDR3 data.
 author: Yuta Nagano
-ver: 2.3.1
+ver: 2.3.2
 '''
 
 
@@ -70,9 +70,9 @@ class CDR3Dataset(Dataset):
         # Ensure that p_mask, p_mask_random and p_mask_keep values lie in a
         # well-defined range as probabilities
         assert(p_mask > 0 and p_mask < 1)
-        assert(p_mask_random > 0 and p_mask_random < 1)
-        assert(p_mask_keep > 0 and p_mask_keep < 1)
-        assert(p_mask_random + p_mask_keep < 1)
+        assert(p_mask_random >= 0 and p_mask_random < 1)
+        assert(p_mask_keep >= 0 and p_mask_keep < 1)
+        assert(p_mask_random + p_mask_keep <= 1)
 
         super(CDR3Dataset, self).__init__()
 
