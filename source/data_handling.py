@@ -3,7 +3,7 @@ data_handling.py
 purpose: Python module with classes involved in the loading and preprocessing
          CDR3 data.
 author: Yuta Nagano
-ver: 2.3.0
+ver: 2.3.1
 '''
 
 
@@ -23,10 +23,10 @@ class CDR3Tokeniser:
     def __init__(self):
         # Create and save token-to-index dictionaries for both input and output
         tokens_in = (
-            '?', # mask token
             'A','C','D','E','F','G','H','I','K','L', # amino acids
             'M','N','P','Q','R','S','T','V','W','Y',
-            '-' # padding token
+            '?', # mask token
+            '-'  # padding token
         )
         self.token_dict_in = dict()
         for t, i in zip(tokens_in, range(len(tokens_in))):
@@ -99,7 +99,7 @@ class CDR3Dataset(Dataset):
         return len(self.dataframe)
 
 
-    def __getitem__(self, idx: int) -> (str, str):
+    def __getitem__(self, idx: int) -> (list, list):
         # Fetch the relevant cdr3 sequence from the dataframe
         cdr3 = self.dataframe.iloc[idx, 0]
 
@@ -128,7 +128,7 @@ class CDR3Dataset(Dataset):
         return random.sample(range(cdr3_len), num_to_be_masked)
     
 
-    def _generate_x(self, cdr3: str, indices: list) -> str:
+    def _generate_x(self, cdr3: str, indices: list) -> list:
         '''
         Given a cdr3 and a list of indices to be masked, generate an input
         sequence of tokens for model training, following the below convention:
@@ -152,10 +152,10 @@ class CDR3Dataset(Dataset):
             else: # opt. 3: masking
                 x[i] = '?'
         
-        return ''.join(x) # convert back to str
+        return x
     
 
-    def _generate_y(self, cdr3: str, indices: list) -> str:
+    def _generate_y(self, cdr3: str, indices: list) -> list:
         '''
         Given a cdr3 and a list of indices to be masked, generate the target
         sequence, which will contain empty (padding) tokens for all indices
@@ -163,7 +163,7 @@ class CDR3Dataset(Dataset):
         '''
         y = ['-'] * len(cdr3)
         for i in indices: y[i] = cdr3[i]
-        return ''.join(y)
+        return y
 
 
 class CDR3DataLoader(DataLoader):
@@ -179,7 +179,7 @@ class CDR3DataLoader(DataLoader):
         self.tokeniser = CDR3Tokeniser()
     
 
-    def collate_fn(self, batch: (str, str)) -> (torch.Tensor, torch.Tensor):
+    def collate_fn(self, batch) -> (torch.Tensor, torch.Tensor):
         '''
         Helper collation function to be passed to the dataloader when loading
         batches from the CDR3Dataset.

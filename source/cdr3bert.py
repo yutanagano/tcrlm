@@ -127,7 +127,7 @@ class Cdr3Bert(nn.Module):
                 padding_mask: torch.Tensor) -> torch.Tensor:
         '''
         Forward method of the network.
-        Input: Batched, embedded and masked cdr3 sequences (size: N,S,E)*
+        Input: Batched, tokenised and masked cdr3 sequences (size: N,S,E)*
         Output: Batched sequences of token probabilities (size: N,S,V)*
 
         * Dimensions are as follows:

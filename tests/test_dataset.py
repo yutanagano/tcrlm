@@ -46,6 +46,11 @@ def test_getitem(instantiate_dataset, get_dataframe):
         cdr3 = dataframe['CDR3'].iloc[i]
         x, y = dataset[i]
 
+        assert(type(x) == type(y) == list)
+
+        x = ''.join(x)
+        y = ''.join(y)
+
         # Ensure x and y are the same length
         assert(len(x) == len(y))
 

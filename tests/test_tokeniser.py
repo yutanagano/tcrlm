@@ -12,15 +12,15 @@ def instantiate_tokeniser():
 # Positive tests
 def test_tokenise_in(instantiate_tokeniser):
     tokeniser = instantiate_tokeniser
-    tokenised = tokeniser.tokenise_in('?ACDEF-')
-    expected = torch.tensor([0,1,2,3,4,5,21], dtype=torch.long)
+    tokenised = tokeniser.tokenise_in(['?','A','C','D','E','F','-'])
+    expected = torch.tensor([20,0,1,2,3,4,21], dtype=torch.long)
 
     assert(torch.equal(tokenised, expected))
 
 
 def test_tokenise_out(instantiate_tokeniser):
     tokeniser = instantiate_tokeniser
-    tokenised = tokeniser.tokenise_out('ACDEF-')
+    tokenised = tokeniser.tokenise_out(['A','C','D','E','F','-'])
     expected = torch.tensor([0,1,2,3,4,21], dtype=torch.long)
 
     assert(torch.equal(tokenised, expected))
