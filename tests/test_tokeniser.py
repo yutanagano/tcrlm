@@ -24,3 +24,11 @@ def test_tokenise_out(instantiate_tokeniser):
     expected = torch.tensor([0,1,2,3,4,21], dtype=torch.long)
 
     assert(torch.equal(tokenised, expected))
+
+
+def test_lookup(instantiate_tokeniser):
+    tokeniser = instantiate_tokeniser
+    expected = ['A','C','D','E','F']
+    for i in range(5):
+        amino_acid = tokeniser.lookup(i)
+        assert(amino_acid == expected[i])

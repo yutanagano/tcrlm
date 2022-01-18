@@ -3,10 +3,11 @@ main.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 1.1.1
+ver: 1.2.0
 '''
 
 
+import os
 import pandas as pd
 import time
 import torch
@@ -17,18 +18,21 @@ from source.training import create_padding_mask, ScheduledOptimiser
 
 
 # Outline hyperparameters and settings
+RUN_ID = 'idtest'
+
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+PATH_TRAIN_DATA = 'tests/data/mock_data.csv'
+PATH_VALID_DATA = 'tests/data/mock_data.csv'
 
-BERT_NUM_ENCODER_LAYERS = 8
-BERT_D_MODEL = 16
-BERT_NHEAD = 4
-BERT_DIM_FEEDFORWARD = 128
-
-BATCH_SIZE = 512
-
-OPTIM_WARMUP = 10_000
-
-NUM_EPOCHS = 2
+hyperparams = {
+    'num_encoder_layers': 16,
+    'd_model': 16,
+    'nhead': 4,
+    'dim_feedforward': 128,
+    'batch_size': 512,
+    'optim_warmup': 10_000,
+    'num_epochs': 20,
+}
 
 
 # Helper functions for training
@@ -135,28 +139,34 @@ def validate(model: torch.nn.Module,
 
 
 if __name__ == '__main__':
+    # Claim space to store results of training run by creating a new directory
+    # based on the training id specified above
+    dirpath = os.path.join('training_runs',RUN_ID)
+    os.mkdir(dirpath)
+
+
     print(f'Training will commence on device: {DEVICE}.')
+
 
     # Instantiate model, dataloader and any other objects required for training
     print('Instantiating cdr3bert model...')
 
-    model = Cdr3Bert(num_encoder_layers=BERT_NUM_ENCODER_LAYERS,
-                     d_model=BERT_D_MODEL,
-                     nhead=BERT_NHEAD,
-                     dim_feedforward=BERT_DIM_FEEDFORWARD)
-    model.to(DEVICE)
+    model = Cdr3Bert(num_encoder_layers=hyperparams['num_encoder_layers'],
+                     d_model=hyperparams['d_model'],
+                     nhead=hyperparams['nhead'],
+                     dim_feedforward=hyperparams['dim_feedforward']).to(DEVICE)
 
     print('Loading cdr3 data into memory...')
 
-    train_dataset = CDR3Dataset(path_to_csv='data/train.csv')
+    train_dataset = CDR3Dataset(path_to_csv=PATH_TRAIN_DATA)
     train_dataloader = CDR3DataLoader(dataset=train_dataset,
-                                      batch_size=BATCH_SIZE)
+                                      batch_size=hyperparams['batch_size'])
 
-    val_dataset = CDR3Dataset(path_to_csv='data/val.csv',
+    val_dataset = CDR3Dataset(path_to_csv=PATH_VALID_DATA,
                               p_mask_random=0,
                               p_mask_keep=0)
     val_dataloader = CDR3DataLoader(dataset=val_dataset,
-                                    batch_size=BATCH_SIZE)
+                                    batch_size=hyperparams['batch_size'])
 
     print('Instantiating other misc. objects for training...')
 
@@ -166,12 +176,12 @@ if __name__ == '__main__':
                                                 betas=(0.9, 0.98),
                                                 eps=1e-9),
                                    lr_multiplier=1,
-                                   d_model=BERT_D_MODEL,
-                                   n_warmup_steps=OPTIM_WARMUP)
+                                   d_model=hyperparams['d_model'],
+                                   n_warmup_steps=hyperparams['optim_warmup'])
     loss_fn = torch.nn.CrossEntropyLoss(ignore_index=21,label_smoothing=0.1)
 
 
-    # Train model for NUM_EPOCHS epochs
+    # Train model for a set number of epochs
     print('Commencing training.')
 
     # 1) Create dictionaries to keep a lof of training stats
@@ -181,12 +191,13 @@ if __name__ == '__main__':
     start_time = time.time()
 
     # 2) Begin training loop
-    for epoch in range(1, NUM_EPOCHS+1):
-        print(f'Beginning epoch {epoch}...')
+    for epoch in range(1, hyperparams['num_epochs']+1):
         # Do an epoch through the training data
+        print(f'Beginning epoch {epoch}...')
         train_stats = train_epoch(model,train_dataloader,optimiser)
-        print('Validating model...')
+
         # Validate model performance
+        print('Validating model...')
         valid_stats = validate(model,val_dataloader)
 
         # Quick feedback
@@ -199,14 +210,21 @@ if __name__ == '__main__':
         stats_log[epoch] = {**train_stats, **valid_stats}
 
     print('Training finished.')
-    print(f'Total time taken: {int(time.time() - start_time)}s')
 
-    print('Saving model...')
-    torch.save(model, 'trained_model.ptnn')
+    time_taken = int(time.time() - start_time)
+    print(f'Total time taken: {time_taken}s ({time_taken / 60} min)')
 
-    # Convert log to dataframe
-    log_df = pd.DataFrame.from_dict(data=stats_log,
-                                    orient='index')
+
+    # Save hyperparameters as csv
+    print('Saving hyperparameters...')
+    with open(os.path.join(dirpath, 'hyperparams.txt'), 'w') as f:
+        f.writelines([f'{k}: {hyperparams[k]}\n' for k in hyperparams])
 
     # Save log as csv
-    log_df.to_csv('train_stats.csv',index_label='epoch')
+    print('Saving training log...')
+    log_df = pd.DataFrame.from_dict(data=stats_log, orient='index')
+    log_df.to_csv(os.path.join(dirpath, 'train_stats.csv'),index_label='epoch')
+
+    # Save trained model
+    print('Saving model...')
+    torch.save(model.cpu(), os.path.join(dirpath, 'trained_model.ptnn'))

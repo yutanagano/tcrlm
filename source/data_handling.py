@@ -3,7 +3,7 @@ data_handling.py
 purpose: Python module with classes involved in the loading and preprocessing
          CDR3 data.
 author: Yuta Nagano
-ver: 2.3.2
+ver: 2.4.0
 '''
 
 
@@ -21,7 +21,7 @@ class CDR3Tokeniser:
     representations and their tokenised tensor representations.
     '''
     def __init__(self):
-        # Create and save token-to-index dictionaries for both input and output
+        # Create and save token-to-index dictionaries for input, output & lookup
         tokens_in = (
             'A','C','D','E','F','G','H','I','K','L', # amino acids
             'M','N','P','Q','R','S','T','V','W','Y',
@@ -37,12 +37,14 @@ class CDR3Tokeniser:
             'M','N','P','Q','R','S','T','V','W','Y'
         )
         self.token_dict_out = dict()
+        self.lookup_dict = dict()
         for t, i in zip(tokens_out, range(20)):
             self.token_dict_out[t] = i
+            self.lookup_dict[i] = t
         self.token_dict_out['-'] = 21 # add padding token at its correct index
     
 
-    def tokenise_in(self, cdr3: str) -> torch.Tensor:
+    def tokenise_in(self, cdr3: list) -> torch.Tensor:
         '''
         Turn a cdr3 sequence from string form to tokenised tensor form (input
         version).
@@ -51,13 +53,20 @@ class CDR3Tokeniser:
         return torch.tensor(list(cdr3), dtype=torch.long)
     
 
-    def tokenise_out(self, cdr3: str) -> torch.Tensor:
+    def tokenise_out(self, cdr3: list) -> torch.Tensor:
         '''
         Turn a cdr3 sequence from string form to tokenised tensor form (output
         version).
         '''
         cdr3 = map(lambda x: self.token_dict_out[x], cdr3)
         return torch.tensor(list(cdr3), dtype=torch.long)
+
+
+    def lookup(self, token_index: int) -> str:
+        '''
+        Return the amino acid corresponding to the given token index.
+        '''
+        return self.lookup_dict[token_index]
 
 
 class CDR3Dataset(Dataset):
