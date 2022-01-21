@@ -42,6 +42,8 @@ def test_getitem(instantiate_dataset, get_dataframe):
     dataset = instantiate_dataset
     dataframe = get_dataframe
 
+    random.seed(42)
+
     for i in range(len(dataframe)):
         cdr3 = dataframe['CDR3'].iloc[i]
         x, y = dataset[i]

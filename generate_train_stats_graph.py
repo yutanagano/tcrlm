@@ -3,7 +3,7 @@ import os
 import pandas as pd
 
 
-RUN_ID = 'training_run_220117'
+RUN_ID = 'test'
 
 
 stats = pd.read_csv(os.path.join('training_runs',RUN_ID,'train_stats.csv'),

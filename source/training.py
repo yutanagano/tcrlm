@@ -2,7 +2,7 @@
 training.py
 purpose: Python module with helper classes for training CDR3Bert.
 author: Yuta Nagano
-ver: 1.1.0
+ver: 2.0.0
 '''
 
 
@@ -13,19 +13,30 @@ def create_padding_mask(x: torch.Tensor) -> torch.Tensor:
     return x == 21
 
 
-class ScheduledOptimiser:
+class AdamWithScheduling:
     # Wrapper around optimiser to implement custom learning rate scheduling.
     def __init__(self,
-                 optimiser: torch.optim.Optimizer,
+                 params,
+                 lr: float,
+                 betas: (float, float),
+                 eps: float,
                  lr_multiplier: float,
                  d_model: int,
-                 n_warmup_steps: int):
-        self.optimiser = optimiser
+                 n_warmup_steps: int,
+                 scheduling: bool = True):
+        self.optimiser = torch.optim.Adam(
+            params=params,
+            lr=lr,
+            betas=betas,
+            eps=eps
+        )
         self.lr_multiplier = lr_multiplier
         self.d_model = d_model
         self.n_warmup_steps = n_warmup_steps
+        self.scheduling = scheduling
 
         self._step_num = 1
+        self._lr_explicit = lr
 
 
     @property
@@ -35,12 +46,15 @@ class ScheduledOptimiser:
 
     @property
     def lr(self) -> float:
-        return self.calculate_lr(self._step_num)
+        if self.scheduling:
+            return self.calculate_lr(self._step_num)
+        else:
+            return self._lr_explicit
 
 
     def step(self) -> None:
         # Update learning rate and step with the inner optimiser
-        self._update_lr()
+        if self.scheduling: self._update_lr()
         self.optimiser.step()
         self._step_num += 1
 

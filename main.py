@@ -3,7 +3,7 @@ main.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 1.2.0
+ver: 1.3.0
 '''
 
 
@@ -14,11 +14,11 @@ import torch
 from tqdm import tqdm
 from source.cdr3bert import Cdr3Bert
 from source.data_handling import CDR3Dataset, CDR3DataLoader
-from source.training import create_padding_mask, ScheduledOptimiser
+from source.training import create_padding_mask, AdamWithScheduling
 
 
 # Outline hyperparameters and settings
-RUN_ID = 'idtest'
+RUN_ID = 'test'
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 PATH_TRAIN_DATA = 'tests/data/mock_data.csv'
@@ -26,11 +26,13 @@ PATH_VALID_DATA = 'tests/data/mock_data.csv'
 
 hyperparams = {
     'num_encoder_layers': 16,
-    'd_model': 16,
-    'nhead': 4,
-    'dim_feedforward': 128,
+    'd_model': 64,
+    'nhead': 8,
+    'dim_feedforward': 512,
     'batch_size': 512,
-    'optim_warmup': 10_000,
+    'lr_scheduling': False,
+    'lr': 0.002,
+    'optim_warmup': 2_000,
     'num_epochs': 20,
 }
 
@@ -170,14 +172,14 @@ if __name__ == '__main__':
 
     print('Instantiating other misc. objects for training...')
 
-    optimiser = ScheduledOptimiser(optimiser=torch.optim.Adam(
-                                                params=model.parameters(),
-                                                lr=0,
-                                                betas=(0.9, 0.98),
-                                                eps=1e-9),
+    optimiser = AdamWithScheduling(params=model.parameters(),
+                                   lr=hyperparams['lr'],
+                                   betas=(0.9,0.999),
+                                   eps=1e-08,
                                    lr_multiplier=1,
                                    d_model=hyperparams['d_model'],
-                                   n_warmup_steps=hyperparams['optim_warmup'])
+                                   n_warmup_steps=hyperparams['optim_warmup'],
+                                   scheduling=hyperparams['lr_scheduling'])
     loss_fn = torch.nn.CrossEntropyLoss(ignore_index=21,label_smoothing=0.1)
 
 

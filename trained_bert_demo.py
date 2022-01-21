@@ -16,12 +16,11 @@ random.seed(42)
 
 
 model = torch.load(os.path.join('training_runs',RUN_ID,'trained_model.ptnn'))
-model.to(torch.device('cpu'))
-ds = pd.read_csv('data/val.csv')
+ds = pd.read_csv('data/test.csv')
 tokeniser = CDR3Tokeniser()
 
 
-cdr3s = random.sample(ds['CDR3'].to_list(),3)
+cdr3s = random.sample(ds['CDR3'].to_list(),5)
 
 
 @torch.no_grad()
