@@ -4,5 +4,6 @@ __pycache__
 .vscode
 .coverage
 *.ipynb
+SearchTable-2022-01-20\ 14\ 24\ 51.19.tsv
 /data
 /training_runs
