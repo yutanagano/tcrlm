@@ -7,6 +7,8 @@ ver: 1.3.0
 '''
 
 
+import argparse
+from hyperparams import hyperparams
 import os
 import pandas as pd
 import time
@@ -17,24 +19,10 @@ from source.data_handling import CDR3Dataset, CDR3DataLoader
 from source.training import create_padding_mask, AdamWithScheduling
 
 
-# Outline hyperparameters and settings
-RUN_ID = 'test'
-
+# Outline some settings
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-PATH_TRAIN_DATA = 'tests/data/mock_data.csv'
-PATH_VALID_DATA = 'tests/data/mock_data.csv'
-
-hyperparams = {
-    'num_encoder_layers': 16,
-    'd_model': 64,
-    'nhead': 8,
-    'dim_feedforward': 512,
-    'batch_size': 512,
-    'lr_scheduling': False,
-    'lr': 0.002,
-    'optim_warmup': 2_000,
-    'num_epochs': 20,
-}
+PATH_TRAIN_DATA = 'data/train.csv'
+PATH_VALID_DATA = 'data/test.csv'
 
 
 # Helper functions for training
@@ -141,6 +129,21 @@ def validate(model: torch.nn.Module,
 
 
 if __name__ == '__main__':
+    # Create argparser, add arguments
+    parser = argparse.ArgumentParser(
+        description='Main training loop script for CDR3 BERT pre-training.'
+    )
+    parser.add_argument(
+        'run_id',
+        help='Give this particular training run a unique ID.'
+    )
+    args = parser.parse_args()
+
+
+    # Set run ID
+    RUN_ID = args.run_id
+
+
     # Claim space to store results of training run by creating a new directory
     # based on the training id specified above
     dirpath = os.path.join('training_runs',RUN_ID)
