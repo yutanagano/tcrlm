@@ -3,7 +3,7 @@ data_handling.py
 purpose: Python module with classes involved in the loading and preprocessing
          CDR3 data.
 author: Yuta Nagano
-ver: 2.5.0
+ver: 2.5.1
 '''
 
 
@@ -15,58 +15,34 @@ from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
 
 
-class CDR3Tokeniser:
-    '''
-    Helper class that can translate CDR3 sequences between their string
-    representations and their tokenised tensor representations.
-    '''
-    def __init__(self):
-        # Create and save token-to-index dictionaries for input, output & lookup
-        tokens_in = (
-            'A','C','D','E','F','G','H','I','K','L', # amino acids
-            'M','N','P','Q','R','S','T','V','W','Y',
-            '?', # mask token
-            '-'  # padding token
-        )
-        self.token_dict_in = dict()
-        for t, i in zip(tokens_in, range(len(tokens_in))):
-            self.token_dict_in[t] = i
-
-        tokens_out = (
-            'A','C','D','E','F','G','H','I','K','L', # amino acids
-            'M','N','P','Q','R','S','T','V','W','Y'
-        )
-        self.token_dict_out = dict()
-        self.lookup_dict = dict()
-        for t, i in zip(tokens_out, range(20)):
-            self.token_dict_out[t] = i
-            self.lookup_dict[i] = t
-        self.token_dict_out['-'] = 21 # add padding token at its correct index
-    
-
-    def tokenise_in(self, cdr3: list) -> torch.Tensor:
-        '''
-        Turn a cdr3 sequence from string form to tokenised tensor form (input
-        version).
-        '''
-        cdr3 = map(lambda x: self.token_dict_in[x], cdr3)
-        return torch.tensor(list(cdr3), dtype=torch.long)
-    
-
-    def tokenise_out(self, cdr3: list) -> torch.Tensor:
-        '''
-        Turn a cdr3 sequence from string form to tokenised tensor form (output
-        version).
-        '''
-        cdr3 = map(lambda x: self.token_dict_out[x], cdr3)
-        return torch.tensor(list(cdr3), dtype=torch.long)
+amino_acids = {
+    'A','C','D','E','F','G','H','I','K','L',
+    'M','N','P','Q','R','S','T','V','W','Y'
+}
 
 
-    def lookup(self, token_index: int) -> str:
-        '''
-        Return the amino acid corresponding to the given token index.
-        '''
-        return self.lookup_dict[token_index]
+tokens = (
+    'A','C','D','E','F','G','H','I','K','L', # amino acids
+    'M','N','P','Q','R','S','T','V','W','Y', # (0-19)
+    '?', # mask token (20)
+    '-'  # padding token (21)
+)
+token_to_index = dict()
+index_to_token = dict()
+for t, i in zip(tokens, range(len(tokens))):
+    token_to_index[t] = i
+    index_to_token[i] = t
+
+
+def tokenise(cdr3: list) -> torch.Tensor:
+    # Turn a cdr3 sequence from string form to tokenised tensor form.
+    cdr3 = map(lambda x: token_to_index[x], cdr3)
+    return torch.tensor(list(cdr3), dtype=torch.long)
+
+
+def lookup(i: int) -> str:
+    # Return the amino acid corresponding to the given token index.
+    return index_to_token[i]
 
 
 class CDR3Dataset(Dataset):
@@ -98,10 +74,6 @@ class CDR3Dataset(Dataset):
         self._p_mask = p_mask
         self._p_random_threshold = p_mask_random
         self._p_keep_threshold = 1 - p_mask_keep
-
-        # Save a set of all amino acid residues for use in __generate_x
-        self.aas = {'A','C','D','E','F','G','H','I','K','L',
-                    'M','N','P','Q','R','S','T','V','W','Y'}
 
         # Enable/disable jumble mode
         self._jumble = jumble
@@ -173,13 +145,13 @@ class CDR3Dataset(Dataset):
         for i in indices: # for each residue to be replaced
             r = random.random() # generate a random float in range [0,1)
 
-            if r < self._p_random_threshold: # opt. 1: random (distinct) replacement
-                x[i] = random.sample(tuple(self.aas - {x[i]}),1)[0]
+            if r < self._p_random_threshold: # opt.1:random distinct replacement
+                x[i] = random.sample(tuple(amino_acids - {x[i]}),1)[0]
 
-            elif r > self._p_keep_threshold: # opt. 2: no replacement
+            elif r > self._p_keep_threshold: # opt.2:no replacement
                 pass
 
-            else: # opt. 3: masking
+            else: # opt.3:masking
                 x[i] = '?'
         
         return x
@@ -204,9 +176,6 @@ class CDR3DataLoader(DataLoader):
             shuffle=True,
             collate_fn=self.collate_fn
         )
-
-        # Create and save an instance of a CDR3Tokeniser
-        self.tokeniser = CDR3Tokeniser()
     
 
     def collate_fn(self, batch) -> (torch.Tensor, torch.Tensor):
@@ -216,14 +185,18 @@ class CDR3DataLoader(DataLoader):
         '''
         x_batch, y_batch = [], []
         for x_sample, y_sample in batch:
-            x_batch.append(self.tokeniser.tokenise_in(x_sample))
-            y_batch.append(self.tokeniser.tokenise_out(y_sample))
+            x_batch.append(tokenise(x_sample))
+            y_batch.append(tokenise(y_sample))
 
-        x_batch = pad_sequence(sequences=x_batch,
-                               batch_first=True,
-                               padding_value=21)
-        y_batch = pad_sequence(sequences=y_batch,
-                               batch_first=True,
-                               padding_value=21)
+        x_batch = pad_sequence(
+            sequences=x_batch,
+            batch_first=True,
+            padding_value=21
+        )
+        y_batch = pad_sequence(
+            sequences=y_batch,
+            batch_first=True,
+            padding_value=21
+        )
 
         return x_batch, y_batch

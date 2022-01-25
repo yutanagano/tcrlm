@@ -1,3 +1,13 @@
+'''
+trained_bert_demo.py
+purpose: Executable script to generate demo visualisations of a specified
+         trained DR3 BERT model doing masked-residue modelling on a random
+         selection of CDR3s from the testing set.
+author: Yuta Nagano
+ver: 2.0.0
+'''
+
+
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 import os
@@ -6,7 +16,7 @@ import random
 import argparse
 import torch
 from torch.nn import functional as F
-from source.data_handling import CDR3Tokeniser
+from source.data_handling import tokenise, lookup
 
 
 if __name__ == '__main__':
@@ -31,7 +41,6 @@ if __name__ == '__main__':
 
     model = torch.load(os.path.join('training_runs',RUN_ID,'trained_model.ptnn'))
     ds = pd.read_csv('data/test.csv')
-    tokeniser = CDR3Tokeniser()
 
 
     cdr3s = random.sample(ds['CDR3'].to_list(),5)
@@ -47,7 +56,7 @@ if __name__ == '__main__':
         masked[index] = '?'
 
         # Tokenise the cdr3
-        tokenised = tokeniser.tokenise_in(masked)
+        tokenised = tokenise(masked)
         tokenised = tokenised.unsqueeze(0)
 
         mask = torch.zeros(tokenised.size())
@@ -73,7 +82,7 @@ if __name__ == '__main__':
 
             confidences, indices = test_at_index(model, cdr3, i)
             confidences = list(reversed(confidences))
-            guesses = list(reversed([tokeniser.lookup(idx.item()) for idx in indices]))
+            guesses = list(reversed([lookup(idx.item()) for idx in indices]))
 
             h = fig.add_subplot(gs[1:,i])
             bars = h.barh(range(5),confidences)

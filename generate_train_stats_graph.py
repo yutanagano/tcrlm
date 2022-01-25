@@ -1,3 +1,12 @@
+'''
+generate_train_stats_graph.py
+purpose: Executable script to generate a graph visualising the training
+         statistics for a particular version of the CDR3 BERT model.
+author: Yuta Nagano
+ver: 2.0.0
+'''
+
+
 import argparse
 import matplotlib.pyplot as plt
 import os
