@@ -3,7 +3,7 @@ data_handling.py
 purpose: Python module with classes involved in the loading and preprocessing
          CDR3 data.
 author: Yuta Nagano
-ver: 2.5.1
+ver: 2.5.2
 '''
 
 
@@ -80,7 +80,7 @@ class CDR3Dataset(Dataset):
     
 
     @property
-    def jumble(self):
+    def jumble(self) -> bool:
         return self._jumble
     
 
@@ -169,13 +169,24 @@ class CDR3Dataset(Dataset):
 
 
 class CDR3DataLoader(DataLoader):
-    def __init__(self, dataset: Dataset, batch_size: int):
+    def __init__(self, dataset: CDR3Dataset, batch_size: int):
+        assert(type(dataset) == CDR3Dataset)
         super(CDR3DataLoader, self).__init__(
             dataset=dataset,
             batch_size=batch_size,
             shuffle=True,
             collate_fn=self.collate_fn
         )
+
+
+    @property
+    def jumble(self) -> bool:
+        return self.dataset.jumble
+    
+
+    @jumble.setter
+    def jumble(self, b: bool):
+        self.dataset.jumble = b
     
 
     def collate_fn(self, batch) -> (torch.Tensor, torch.Tensor):

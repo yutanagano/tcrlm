@@ -32,3 +32,25 @@ def test_dataloader(instantiate_dataloader):
     assert(src_batch.size(0) == 5)
     assert(src_batch.size(1) >= 10 and src_batch.size(1) <= 20)
     assert(src_batch.dim() == 2)
+
+
+def test_get_set_jumble(instantiate_dataloader):
+    dataloader = instantiate_dataloader
+
+    dataloader.jumble = True
+    assert(dataloader.jumble == True)
+    dataloader.jumble = False
+    assert(dataloader.jumble == False)
+
+
+# Negative tests
+def test_incorrect_dataset_type():
+    dataset = torch.utils.data.Dataset()
+    with pytest.raises(AssertionError):
+        dataloader = CDR3DataLoader(dataset, 5)
+
+
+def test_bad_jumble_value(instantiate_dataloader):
+    dataloader = instantiate_dataloader
+    with pytest.raises(AssertionError):
+        dataloader.jumble = 'True'

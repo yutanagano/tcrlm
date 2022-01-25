@@ -3,7 +3,7 @@ main.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 1.3.0
+ver: 1.4.0
 '''
 
 
@@ -21,8 +21,8 @@ from source.training import create_padding_mask, AdamWithScheduling
 
 # Outline some settings
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-PATH_TRAIN_DATA = 'data/train.csv'
-PATH_VALID_DATA = 'data/test.csv'
+PATH_TRAIN_DATA = 'tests/data/mock_data.csv'
+PATH_VALID_DATA = 'tests/data/mock_data.csv'
 
 
 # Helper functions for training
@@ -122,10 +122,19 @@ def validate(model: torch.nn.Module,
         # Increment batch loss to total_loss
         total_loss += loss.item()
         total_acc += accuracy(logits,y)
+
+    # Decide on appropriate name for the statistic calculated based on the
+    # dataloader's jumble status
+    if dataloader.jumble:
+        stat_names = ('jumble_loss','jumble_acc')
+    else:
+        stat_names = ('valid_loss','valid_acc')
     
     # Return a dictionary with stats
-    return {'valid_loss': total_loss / len(dataloader),
-            'valid_acc' : total_acc / len(dataloader)}
+    return {
+        stat_names[0]: total_loss / len(dataloader),
+        stat_names[1]: total_acc / len(dataloader)
+    }
 
 
 if __name__ == '__main__':
@@ -215,6 +224,11 @@ if __name__ == '__main__':
         stats_log[epoch] = {**train_stats, **valid_stats}
 
     print('Training finished.')
+
+    print('Evaluating model on jumbled validation data...')
+    val_dataloader.jumble = True
+    jumbled_valid_stats = validate(model,val_dataloader)
+    stats_log[hyperparams['num_epochs']+1] = jumbled_valid_stats
 
     time_taken = int(time.time() - start_time)
     print(f'Total time taken: {time_taken}s ({time_taken / 60} min)')
