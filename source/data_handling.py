@@ -3,7 +3,7 @@ data_handling.py
 purpose: Python module with classes involved in the loading and preprocessing
          CDR3 data.
 author: Yuta Nagano
-ver: 2.4.0
+ver: 2.5.0
 '''
 
 
@@ -75,7 +75,8 @@ class CDR3Dataset(Dataset):
                  path_to_csv: str,
                  p_mask: float = 0.15,
                  p_mask_random: float = 0.1,
-                 p_mask_keep: float = 0.1):
+                 p_mask_keep: float = 0.1,
+                 jumble: bool = False):
         # Ensure that p_mask, p_mask_random and p_mask_keep values lie in a
         # well-defined range as probabilities
         assert(p_mask > 0 and p_mask < 1)
@@ -91,26 +92,46 @@ class CDR3Dataset(Dataset):
         dataframe = pd.read_csv(path_to_csv)
 
         # Save the dataframe as an attribute of the object
-        self.dataframe = dataframe
+        self._dataframe = dataframe
 
         # Save the p_mask and related values as attributes of the object
-        self.p_mask = p_mask
-        self.p_random_threshold = p_mask_random
-        self.p_keep_threshold = 1 - p_mask_keep
+        self._p_mask = p_mask
+        self._p_random_threshold = p_mask_random
+        self._p_keep_threshold = 1 - p_mask_keep
 
         # Save a set of all amino acid residues for use in __generate_x
         self.aas = {'A','C','D','E','F','G','H','I','K','L',
                     'M','N','P','Q','R','S','T','V','W','Y'}
 
+        # Enable/disable jumble mode
+        self._jumble = jumble
+    
+
+    @property
+    def jumble(self):
+        return self._jumble
+    
+
+    @jumble.setter
+    def jumble(self, b: bool):
+        assert(type(b) == bool)
+        self._jumble = b
+
 
     def __len__(self) -> int:
         # Return the length of the df as its own length
-        return len(self.dataframe)
+        return len(self._dataframe)
 
 
     def __getitem__(self, idx: int) -> (list, list):
         # Fetch the relevant cdr3 sequence from the dataframe
-        cdr3 = self.dataframe.iloc[idx, 0]
+        cdr3 = self._dataframe.iloc[idx, 0]
+        
+        # If jumble mode is enabled, shuffle the sequence
+        if self._jumble:
+            cdr3 = list(cdr3)
+            random.shuffle(cdr3)
+            cdr3 = ''.join(cdr3)
 
         # Mask a proportion (p_mask) of the amino acids
 
@@ -133,7 +154,7 @@ class CDR3Dataset(Dataset):
         Given a particular length of cdr3, pick some residue indices at random
         to be masked.
         '''
-        num_to_be_masked = max(1, int(cdr3_len * self.p_mask))
+        num_to_be_masked = max(1, round(cdr3_len * self._p_mask))
         return random.sample(range(cdr3_len), num_to_be_masked)
     
 
@@ -143,19 +164,19 @@ class CDR3Dataset(Dataset):
         sequence of tokens for model training, following the below convention:
 
         If an index i is chosen for masking, the residue at i is:
-        - replaced with a random distinct token | self.p_mask_random of the time
-        - kept as the original token            | self.p_mask_keep of the time
-        - replaced with the mask token          | the rest of the time
+        - replaced with a random distinct token |self._p_mask_random of the time
+        - kept as the original token            |self._p_mask_keep of the time
+        - replaced with the mask token          |the rest of the time
         '''
         x = list(cdr3) # convert cdr3 str into a list of chars
 
         for i in indices: # for each residue to be replaced
             r = random.random() # generate a random float in range [0,1)
 
-            if r < self.p_random_threshold: # opt. 1: random (distinct) replacement
+            if r < self._p_random_threshold: # opt. 1: random (distinct) replacement
                 x[i] = random.sample(tuple(self.aas - {x[i]}),1)[0]
 
-            elif r > self.p_keep_threshold: # opt. 2: no replacement
+            elif r > self._p_keep_threshold: # opt. 2: no replacement
                 pass
 
             else: # opt. 3: masking
