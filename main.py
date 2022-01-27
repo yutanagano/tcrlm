@@ -3,7 +3,7 @@ main.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 1.4.1
+ver: 1.4.2
 '''
 
 
@@ -246,6 +246,13 @@ if __name__ == '__main__':
     print('Evaluating model on jumbled validation data...')
     val_dataloader.jumble = True
     jumbled_valid_stats = validate(model,val_dataloader)
+    
+    # Quick feedback
+    print(
+        f'jumbled loss: {jumbled_valid_stats["jumble_loss"]:.3f} | '\
+        f'jumbled accuracy: {jumbled_valid_stats["jumble_acc"]:.3f}'
+    )
+
     stats_log[hyperparams['num_epochs']+1] = jumbled_valid_stats
 
     time_taken = int(time.time() - start_time)

@@ -3,7 +3,7 @@ data_handling.py
 purpose: Python module with classes involved in the loading and preprocessing
          CDR3 data.
 author: Yuta Nagano
-ver: 2.5.2
+ver: 3.0.0
 '''
 
 
@@ -11,7 +11,7 @@ import os
 import random
 import pandas as pd
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, Sampler
 from torch.nn.utils.rnn import pad_sequence
 
 
@@ -45,6 +45,24 @@ def lookup(i: int) -> str:
     return index_to_token[i]
 
 
+def batch(data: list, batch_size: int) -> list:
+    '''
+    Take a list of items and segment it into smaller lists of size <= batch_size
+    where all segments are of length batch_size until the very last batch which
+    may be smaller if the length of the dataset is not exactly divisible.
+    '''
+    num_batches = (len(data) + batch_size - 1) // batch_size
+    batched = []
+    for i in range(num_batches):
+        batched.append(
+            data[
+                i*batch_size:
+                min((i+1)*batch_size,len(data))
+            ]
+        )
+    return batched
+
+
 class CDR3Dataset(Dataset):
     # Custom dataset class to load CDR3 sequence data into memory and access it.
     def __init__(self,
@@ -69,6 +87,9 @@ class CDR3Dataset(Dataset):
 
         # Save the dataframe as an attribute of the object
         self._dataframe = dataframe
+
+        # Save a series containing the lengths of all CDR3s in the dataset
+        self._cdr3_lens = dataframe['CDR3'].map(len)
 
         # Save the p_mask and related values as attributes of the object
         self._p_mask = p_mask
@@ -121,6 +142,11 @@ class CDR3Dataset(Dataset):
         return (x, y)
 
 
+    def get_length(self, idx: int) -> int:
+        # Return the length of the CDR3 sequence at the specified index
+        return self._cdr3_lens.iloc[idx]
+
+
     def _pick_masking_indices(self, cdr3_len: int) -> list:
         '''
         Given a particular length of cdr3, pick some residue indices at random
@@ -168,15 +194,81 @@ class CDR3Dataset(Dataset):
         return y
 
 
-class CDR3DataLoader(DataLoader):
-    def __init__(self, dataset: CDR3Dataset, batch_size: int):
-        assert(type(dataset) == CDR3Dataset)
-        super(CDR3DataLoader, self).__init__(
-            dataset=dataset,
-            batch_size=batch_size,
-            shuffle=True,
-            collate_fn=self.collate_fn
+class PadMinimalBatchSampler(Sampler):
+    '''
+    A custom batch sampler class designed to do almost-random batch sampling,
+    but optimised to create batches of CDR3s with lengths that are relatively
+    similar to each other. This is done to minimise the neccesity for padding
+    (which increases the number of unnecessary computation) and therefore 
+    reduce training time.
+    '''
+    def __init__(self, data_source: CDR3Dataset, batch_size: int):
+        assert(type(data_source) == CDR3Dataset)
+        self.data_source = data_source
+        self.batch_size = batch_size
+        self.num_samples = len(data_source)
+
+        self._len = (len(data_source) + batch_size - 1) // batch_size
+
+
+    def __iter__(self):
+        shuffled_indices = random.sample(
+            range(self.num_samples),
+            k=self.num_samples
         )
+        superbatched = batch(shuffled_indices, self.batch_size * 100)
+        for sb in superbatched:
+            sorted_sb = sorted(
+                sb,
+                key=lambda x: self.data_source.get_length(x)
+            )
+            batched = batch(sorted_sb, self.batch_size)
+            random.shuffle(batched)
+            for b in batched:
+                yield b
+
+
+    def __len__(self):
+        return self._len
+
+
+class CDR3DataLoader(DataLoader):
+    '''
+    Custom dataloader class that does random batch-sampling optimised for
+    transformer/BERT training. It matches CDR3s that have relatively similar
+    lengths to each other and puts them together in the same batch.
+    '''
+    def __init__(
+        self,
+        dataset: CDR3Dataset,
+        batch_size: int,
+        batch_optimisation: bool = True
+    ):
+        assert(type(dataset) == CDR3Dataset)
+
+        self._batch_optimisation = batch_optimisation
+
+        if batch_optimisation:
+            super(CDR3DataLoader, self).__init__(
+                dataset=dataset,
+                batch_sampler=PadMinimalBatchSampler(
+                    data_source=dataset,
+                    batch_size=batch_size
+                ),
+                collate_fn=self.collate_fn
+            )
+        else:
+            super(CDR3DataLoader, self).__init__(
+                dataset=dataset,
+                batch_size=batch_size,
+                shuffle=True,
+                collate_fn=self.collate_fn
+            )
+
+
+    @property
+    def batch_optimisation(self):
+        return self._batch_optimisation
 
 
     @property
