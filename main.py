@@ -3,7 +3,7 @@ main.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 1.4.0
+ver: 1.4.1
 '''
 
 
@@ -19,10 +19,8 @@ from source.data_handling import CDR3Dataset, CDR3DataLoader
 from source.training import create_padding_mask, AdamWithScheduling
 
 
-# Outline some settings
+# Detect training device
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-PATH_TRAIN_DATA = 'tests/data/mock_data.csv'
-PATH_VALID_DATA = 'tests/data/mock_data.csv'
 
 
 # Helper functions for training
@@ -38,9 +36,11 @@ def accuracy(x: torch.Tensor, y: torch.Tensor) -> float:
     return (correct_masked.sum() / mask.sum()).item()
 
 
-def train_epoch(model: torch.nn.Module,
-                dataloader: torch.utils.data.DataLoader,
-                optimiser: torch.optim.Optimizer) -> dict:
+def train_epoch(
+        model: torch.nn.Module,
+        dataloader: torch.utils.data.DataLoader,
+        optimiser: torch.optim.Optimizer
+    ) -> dict:
     # Train the given model through one epoch of data from the given dataloader.
     # Ensure that the model is in training mode.
     model.train()
@@ -83,15 +83,19 @@ def train_epoch(model: torch.nn.Module,
     elapsed = time.time() - start_time
 
     # Return a dictionary with stats
-    return {'train_loss': total_loss / len(dataloader),
-            'train_acc' : total_acc / len(dataloader),
-            'avg_lr' : total_lr / len(dataloader),
-            'epoch_time': elapsed}
+    return {
+        'train_loss': total_loss / len(dataloader),
+        'train_acc' : total_acc / len(dataloader),
+        'avg_lr' : total_lr / len(dataloader),
+        'epoch_time': elapsed
+    }
 
 
 @torch.no_grad()
-def validate(model: torch.nn.Module,
-             dataloader: torch.utils.data.DataLoader) -> dict:
+def validate(
+        model: torch.nn.Module,
+        dataloader: torch.utils.data.DataLoader
+    ) -> dict:
     '''
     Validates the given model's performance by calculating loss and other stats
     from the data in the given dataloader.
@@ -165,33 +169,43 @@ if __name__ == '__main__':
     # Instantiate model, dataloader and any other objects required for training
     print('Instantiating cdr3bert model...')
 
-    model = Cdr3Bert(num_encoder_layers=hyperparams['num_encoder_layers'],
-                     d_model=hyperparams['d_model'],
-                     nhead=hyperparams['nhead'],
-                     dim_feedforward=hyperparams['dim_feedforward']).to(DEVICE)
+    model = Cdr3Bert(
+        num_encoder_layers=hyperparams['num_encoder_layers'],
+        d_model=hyperparams['d_model'],
+        nhead=hyperparams['nhead'],
+        dim_feedforward=hyperparams['dim_feedforward']
+    ).to(DEVICE)
 
     print('Loading cdr3 data into memory...')
 
-    train_dataset = CDR3Dataset(path_to_csv=PATH_TRAIN_DATA)
-    train_dataloader = CDR3DataLoader(dataset=train_dataset,
-                                      batch_size=hyperparams['batch_size'])
+    train_dataset = CDR3Dataset(path_to_csv=hyperparams['path_train_data'])
+    train_dataloader = CDR3DataLoader(
+        dataset=train_dataset,
+        batch_size=hyperparams['batch_size']
+    )
 
-    val_dataset = CDR3Dataset(path_to_csv=PATH_VALID_DATA,
-                              p_mask_random=0,
-                              p_mask_keep=0)
-    val_dataloader = CDR3DataLoader(dataset=val_dataset,
-                                    batch_size=hyperparams['batch_size'])
+    val_dataset = CDR3Dataset(
+        path_to_csv=hyperparams['path_valid_data'],
+        p_mask_random=0,
+        p_mask_keep=0
+    )
+    val_dataloader = CDR3DataLoader(
+        dataset=val_dataset,
+        batch_size=hyperparams['batch_size']
+    )
 
     print('Instantiating other misc. objects for training...')
 
-    optimiser = AdamWithScheduling(params=model.parameters(),
-                                   lr=hyperparams['lr'],
-                                   betas=(0.9,0.999),
-                                   eps=1e-08,
-                                   lr_multiplier=1,
-                                   d_model=hyperparams['d_model'],
-                                   n_warmup_steps=hyperparams['optim_warmup'],
-                                   scheduling=hyperparams['lr_scheduling'])
+    optimiser = AdamWithScheduling(
+        params=model.parameters(),
+        lr=hyperparams['lr'],
+        betas=(0.9,0.999),
+        eps=1e-08,
+        lr_multiplier=1,
+        d_model=hyperparams['d_model'],
+        n_warmup_steps=hyperparams['optim_warmup'],
+        scheduling=hyperparams['lr_scheduling']
+    )
     loss_fn = torch.nn.CrossEntropyLoss(ignore_index=21,label_smoothing=0.1)
 
 
@@ -215,10 +229,14 @@ if __name__ == '__main__':
         valid_stats = validate(model,val_dataloader)
 
         # Quick feedback
-        print(f'training loss: {train_stats["train_loss"]:.3f} | '\
-              f'validation loss: {valid_stats["valid_loss"]:.3f}')
-        print(f'training accuracy: {train_stats["train_acc"]:.3f} | '\
-              f'validation accuracy: {valid_stats["valid_acc"]:.3f}')
+        print(
+            f'training loss: {train_stats["train_loss"]:.3f} | '\
+            f'validation loss: {valid_stats["valid_loss"]:.3f}'
+        )
+        print(
+            f'training accuracy: {train_stats["train_acc"]:.3f} | '\
+            f'validation accuracy: {valid_stats["valid_acc"]:.3f}'
+        )
 
         # Log stats
         stats_log[epoch] = {**train_stats, **valid_stats}
