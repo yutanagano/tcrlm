@@ -5,5 +5,6 @@ __pycache__
 .coverage
 *.ipynb
 SearchTable-2022-01-21\ 12\ 48\ 23.693.tsv
+/benchmark_results
 /data
 /training_runs

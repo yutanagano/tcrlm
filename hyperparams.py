@@ -5,9 +5,10 @@ hyperparams = {
     'd_model': 16,
     'nhead': 4,
     'dim_feedforward': 128,
-    'batch_size': 256,
+    'batch_size': 512,
+    'batch_optimisation': False,
     'lr_scheduling': True,
     'lr': 0.001,
-    'optim_warmup': 10_000,
+    'optim_warmup': 3_000,
     'num_epochs': 20,
 }

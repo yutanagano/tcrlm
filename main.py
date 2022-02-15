@@ -3,7 +3,7 @@ main.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 1.4.2
+ver: 1.4.3
 '''
 
 
@@ -181,7 +181,8 @@ if __name__ == '__main__':
     train_dataset = CDR3Dataset(path_to_csv=hyperparams['path_train_data'])
     train_dataloader = CDR3DataLoader(
         dataset=train_dataset,
-        batch_size=hyperparams['batch_size']
+        batch_size=hyperparams['batch_size'],
+        batch_optimisation=hyperparams['batch_optimisation']
     )
 
     val_dataset = CDR3Dataset(
