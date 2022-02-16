@@ -3,7 +3,7 @@ main.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 1.4.3
+ver: 1.5.0
 '''
 
 
@@ -20,7 +20,8 @@ from source.training import create_padding_mask, AdamWithScheduling
 
 
 # Detect training device
-DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+GPU_COUNT = torch.cuda.device_count()
 
 
 # Helper functions for training
@@ -174,7 +175,11 @@ if __name__ == '__main__':
         d_model=hyperparams['d_model'],
         nhead=hyperparams['nhead'],
         dim_feedforward=hyperparams['dim_feedforward']
-    ).to(DEVICE)
+    )
+    if GPU_COUNT > 1:
+        print(f'Detected {GPU_COUNT} gpus, setting up distributed training...')
+        model = torch.nn.DataParallel(model)
+    model.to(DEVICE)
 
     print('Loading cdr3 data into memory...')
 
