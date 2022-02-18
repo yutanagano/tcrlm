@@ -3,7 +3,7 @@ pretrain.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 1.6.0
+ver: 1.7.0
 '''
 
 
@@ -81,16 +81,33 @@ def create_training_run_directory(run_id: str, overwrite: bool = False) -> str:
     # Create parent directory if not already existent
     if not os.path.isdir('training_runs'): os.mkdir('training_runs')
 
-    # Create new directory corresponding to the specified run_id
+    # Create a path to a target directory corresponding to the specified run_id
     tr_dir = os.path.join('training_runs',run_id)
 
-    # If overwrite=True, then check for pre-existing directory with the same
-    # name as the specified run_id and delete it along with its contents
-    if overwrite and os.path.isdir(tr_dir):
-        shutil.rmtree(tr_dir)
+    # If there already exists a directory at the specified path/name
+    if os.path.isdir(tr_dir):
+        # If overwrite=True, delete the preexisting directory along with all
+        # contents, to free up that path address.
+        if overwrite: shutil.rmtree(tr_dir)
+        # Otherwise, keep modifying the target directory path in a systematic
+        # way until we find a directory path that does not yet exist.
+        else:
+            suffix_int = 1
+            new_tr_dir = f'{tr_dir}_{suffix_int}'
+            while os.path.isdir(new_tr_dir):
+                suffix_int += 1
+                new_tr_dir = f'{tr_dir}_{suffix_int}'
+            # Quick user feedback
+            print(
+                f'A directory {tr_dir} already exists. Target directory now '\
+                f'modified to {new_tr_dir}.'
+            )
+            tr_dir = new_tr_dir
 
+    # Create the directory
     os.mkdir(tr_dir)
 
+    # Return the path to that directory
     return tr_dir
 
 
