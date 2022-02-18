@@ -1,9 +1,9 @@
 '''
-main.py
+pretrain.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 1.5.0
+ver: 1.5.1
 '''
 
 
@@ -13,18 +13,13 @@ import os
 import pandas as pd
 import time
 import torch
+import torch.distributed as dist
 from tqdm import tqdm
 from source.cdr3bert import Cdr3Bert
 from source.data_handling import CDR3Dataset, CDR3DataLoader
 from source.training import create_padding_mask, AdamWithScheduling
 
 
-# Detect training device
-DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-GPU_COUNT = torch.cuda.device_count()
-
-
-# Helper functions for training
 @torch.no_grad()
 def accuracy(x: torch.Tensor, y: torch.Tensor) -> float:
     '''
@@ -40,7 +35,9 @@ def accuracy(x: torch.Tensor, y: torch.Tensor) -> float:
 def train_epoch(
         model: torch.nn.Module,
         dataloader: torch.utils.data.DataLoader,
-        optimiser: torch.optim.Optimizer
+        criterion: torch.nn.Module,
+        optimiser: torch.optim.Optimizer,
+        device: torch.device
     ) -> dict:
     # Train the given model through one epoch of data from the given dataloader.
     # Ensure that the model is in training mode.
@@ -56,8 +53,8 @@ def train_epoch(
     # Iterate through the dataloader
     for x, y in tqdm(dataloader):
         # Transfer batches to appropriate device
-        x = x.to(DEVICE)
-        y = y.to(DEVICE)
+        x = x.to(device)
+        y = y.to(device)
 
         # Create padding mask for batch
         padding_mask = create_padding_mask(x)
@@ -70,7 +67,7 @@ def train_epoch(
         # Backward pass
         optimiser.zero_grad()
 
-        loss = loss_fn(logits,y)
+        loss = criterion(logits,y)
         loss.backward()
 
         optimiser.step()
@@ -95,7 +92,9 @@ def train_epoch(
 @torch.no_grad()
 def validate(
         model: torch.nn.Module,
-        dataloader: torch.utils.data.DataLoader
+        dataloader: torch.utils.data.DataLoader,
+        criterion: torch.nn.Module,
+        device: torch.device
     ) -> dict:
     '''
     Validates the given model's performance by calculating loss and other stats
@@ -110,8 +109,8 @@ def validate(
     # Iterate through the dataloader
     for x, y in tqdm(dataloader):
         # Transfer batches to appropriate device
-        x = x.to(DEVICE)
-        y = y.to(DEVICE)
+        x = x.to(device)
+        y = y.to(device)
 
         # Create padding mask for batch
         padding_mask = create_padding_mask(x)
@@ -122,7 +121,7 @@ def validate(
         y = y.view(-1)
 
         # Loss calculation
-        loss = loss_fn(logits,y)
+        loss = criterion(logits,y)
 
         # Increment batch loss to total_loss
         total_loss += loss.item()
@@ -142,31 +141,8 @@ def validate(
     }
 
 
-if __name__ == '__main__':
-    # Create argparser, add arguments
-    parser = argparse.ArgumentParser(
-        description='Main training loop script for CDR3 BERT pre-training.'
-    )
-    parser.add_argument(
-        'run_id',
-        help='Give this particular training run a unique ID.'
-    )
-    args = parser.parse_args()
-
-
-    # Set run ID
-    RUN_ID = args.run_id
-
-
-    # Claim space to store results of training run by creating a new directory
-    # based on the training id specified above
-    dirpath = os.path.join('training_runs',RUN_ID)
-    os.mkdir(dirpath)
-
-
-    print(f'Training will commence on device: {DEVICE}.')
-
-
+def train(device: torch.device) -> (torch.nn.Module, dict):
+    # Train an instance of a CDR3BERT model using unlabelled CDR3 data.
     # Instantiate model, dataloader and any other objects required for training
     print('Instantiating cdr3bert model...')
 
@@ -176,10 +152,14 @@ if __name__ == '__main__':
         nhead=hyperparams['nhead'],
         dim_feedforward=hyperparams['dim_feedforward']
     )
-    if GPU_COUNT > 1:
-        print(f'Detected {GPU_COUNT} gpus, setting up distributed training...')
+
+    if torch.cuda.device_count() > 1:
+        print(
+            f'Detected {torch.cuda.device_count()} gpus, '\
+            'setting up distributed training...'
+        )
         model = torch.nn.DataParallel(model)
-    model.to(DEVICE)
+    model.to(device)
 
     print('Loading cdr3 data into memory...')
 
@@ -214,7 +194,6 @@ if __name__ == '__main__':
     )
     loss_fn = torch.nn.CrossEntropyLoss(ignore_index=21,label_smoothing=0.1)
 
-
     # Train model for a set number of epochs
     print('Commencing training.')
 
@@ -228,11 +207,22 @@ if __name__ == '__main__':
     for epoch in range(1, hyperparams['num_epochs']+1):
         # Do an epoch through the training data
         print(f'Beginning epoch {epoch}...')
-        train_stats = train_epoch(model,train_dataloader,optimiser)
+        train_stats = train_epoch(
+            model,
+            train_dataloader,
+            loss_fn,
+            optimiser,
+            device
+        )
 
         # Validate model performance
         print('Validating model...')
-        valid_stats = validate(model,val_dataloader)
+        valid_stats = validate(
+            model,
+            val_dataloader,
+            loss_fn,
+            device
+        )
 
         # Quick feedback
         print(
@@ -251,7 +241,12 @@ if __name__ == '__main__':
 
     print('Evaluating model on jumbled validation data...')
     val_dataloader.jumble = True
-    jumbled_valid_stats = validate(model,val_dataloader)
+    jumbled_valid_stats = validate(
+        model,
+        val_dataloader,
+        loss_fn,
+        device
+    )
     
     # Quick feedback
     print(
@@ -264,17 +259,54 @@ if __name__ == '__main__':
     time_taken = int(time.time() - start_time)
     print(f'Total time taken: {time_taken}s ({time_taken / 60} min)')
 
+    # Return trained model and training log
+    return model, stats_log
 
-    # Save hyperparameters as csv
-    print('Saving hyperparameters...')
+
+def main():
+    # Main execution.
+    # Create argparser, add arguments
+    parser = argparse.ArgumentParser(
+        description='Main training loop script for CDR3 BERT pre-training.'
+    )
+    parser.add_argument(
+        'run_id',
+        help='Give this particular training run a unique ID.'
+    )
+    args = parser.parse_args()
+
+    # Detect training device(s)
+    DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    print(f'Training will commence on device: {DEVICE}.')
+
+    # Set run ID
+    RUN_ID = args.run_id
+
+    # Claim space to store results of training run by creating a new directory
+    # based on the training id specified above
+    dirpath = os.path.join('training_runs',RUN_ID)
+    os.mkdir(dirpath)
+
+    # Save a text file containing info of current run's hyperparameters
+    print(
+        f'Logging hyperparameters to '\
+        f'{os.path.join(dirpath, "hyperparams.txt")}...'
+    )
     with open(os.path.join(dirpath, 'hyperparams.txt'), 'w') as f:
         f.writelines([f'{k}: {hyperparams[k]}\n' for k in hyperparams])
 
+    # Train a model instance
+    trained_model, stats_log_dict = train(DEVICE)
+
     # Save log as csv
     print('Saving training log...')
-    log_df = pd.DataFrame.from_dict(data=stats_log, orient='index')
+    log_df = pd.DataFrame.from_dict(data=stats_log_dict, orient='index')
     log_df.to_csv(os.path.join(dirpath, 'train_stats.csv'),index_label='epoch')
 
     # Save trained model
     print('Saving model...')
-    torch.save(model.cpu(), os.path.join(dirpath, 'trained_model.ptnn'))
+    torch.save(trained_model.cpu(), os.path.join(dirpath, 'trained_model.ptnn'))
+
+
+if __name__ == '__main__':
+    main()
