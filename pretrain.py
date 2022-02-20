@@ -3,7 +3,7 @@ pretrain.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 2.1.1
+ver: 2.1.2
 '''
 
 
@@ -38,7 +38,7 @@ hyperparams_test = {
     'lr_scheduling': True,
     'lr': 0.001,
     'optim_warmup': 5,
-    'num_epochs': 20,
+    'num_epochs': 3,
 }
 
 
