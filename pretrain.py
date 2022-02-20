@@ -3,7 +3,7 @@ pretrain.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 2.0.2
+ver: 2.0.3
 '''
 
 
@@ -320,7 +320,7 @@ def train(
         train_sampler = DistributedSampler(
             dataset=train_dataset,
             num_replicas=world_size,
-            rank=device,
+            rank=device.index,
             shuffle=True,
             seed=0
         )
