@@ -3,7 +3,7 @@ pretrain.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 1.7.0
+ver: 2.0.0
 '''
 
 
@@ -14,6 +14,9 @@ import pandas as pd
 import time
 import torch
 import torch.distributed as dist
+import torch.multiprocessing as mp
+from torch.nn.parallel import DistributedDataParallel
+from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm
 import shutil
 
@@ -124,6 +127,19 @@ def write_hyperparameters(hyperparameters: dict, dirpath: str) -> None:
         f.writelines([f'{k}: {hyperparameters[k]}\n' for k in hyperparameters])
 
 
+def set_env_vars(master_addr: str, master_port: str) -> None:
+    '''
+    Set some environment variables that are required when spawning parallel
+    processes using torch.nn.parallel.DistributedDataParallel.
+    '''
+    os.environ['MASTER_ADDR'] = master_addr
+    os.environ['MASTER_PORT'] = master_port
+
+
+def print_with_deviceid(msg: str, device: torch.device) -> None:
+    print(f'[{device}]: {msg}')
+
+
 @torch.no_grad()
 def accuracy(x: torch.Tensor, y: torch.Tensor) -> float:
     '''
@@ -155,7 +171,7 @@ def train_epoch(
     start_time = time.time()
 
     # Iterate through the dataloader
-    for x, y in tqdm(dataloader):
+    for x, y in tqdm(dataloader, desc=f'[{device}]'):
         # Transfer batches to appropriate device
         x = x.to(device)
         y = y.to(device)
@@ -211,7 +227,7 @@ def validate(
     total_acc = 0
 
     # Iterate through the dataloader
-    for x, y in tqdm(dataloader):
+    for x, y in tqdm(dataloader, desc=f'[{device}]'):
         # Transfer batches to appropriate device
         x = x.to(device)
         y = y.to(device)
@@ -246,40 +262,73 @@ def validate(
 
 
 def train(
+    device,
     hyperparameters: dict,
-    device: torch.device,
-    save_dir_path: str
+    save_dir_path: str,
+    multiprocess: bool = False,
+    world_size: int = 1
 ) -> None:
     '''
-    Train an instance of a CDR3BERT model using unlabelled CDR3 data. Save the
-    trained model as well as a log of training stats in the directory specified.
+    Train an instance of a CDR3BERT model using unlabelled CDR3 data. If
+    multiprocess=True, perform necessary setup for synchronised parallel
+    processing and splitting of the dataloader. Once training is finished, save
+    the trained model as well as a log of training stats in the directory
+    specified.
     '''
+    # Initialise process group if multiprocessing
+    if multiprocess:
+        dist.init_process_group(
+            backend='nccl',
+            rank=device,
+            world_size=world_size
+        )
+
+    # Wrap device identifier with torch.device
+    device = torch.device(device)
+
     # Instantiate model, dataloader and any other objects required for training
-    print('Instantiating cdr3bert model...')
+    print_with_deviceid('Instantiating cdr3bert model...', device)
 
     model = Cdr3Bert(
         num_encoder_layers=hyperparameters['num_encoder_layers'],
         d_model=hyperparameters['d_model'],
         nhead=hyperparameters['nhead'],
         dim_feedforward=hyperparameters['dim_feedforward']
-    )
+    ).to(device)
 
-    if torch.cuda.device_count() > 1:
-        print(
-            f'Detected {torch.cuda.device_count()} gpus, '\
-            'setting up distributed training...'
-        )
-        model = torch.nn.DataParallel(model)
-    model.to(device)
+    # Wrap the model with DistributedDataParallel if multiprocessing
+    if multiprocess:
+        model = DistributedDataParallel(model, device_ids=[device])
 
-    print('Loading cdr3 data into memory...')
+    print_with_deviceid('Loading cdr3 data into memory...', device)
 
     train_dataset = CDR3Dataset(path_to_csv=hyperparameters['path_train_data'])
-    train_dataloader = CDR3DataLoader(
-        dataset=train_dataset,
-        batch_size=hyperparameters['batch_size'],
-        batch_optimisation=hyperparameters['batch_optimisation']
-    )
+    # Create a split dataloader if multiprocessing
+    # NOTE: batch_optimisation is currently unsupported in multiprocessing, as
+    #       specifying distributed_sampler is mutually exclusive with having
+    #       batch_optimisation = True.
+    # TODO: implement randomised seeding for pseudorandom number generator at
+    #       runtime within main().
+    if multiprocess:
+        train_sampler = DistributedSampler(
+            dataset=train_dataset,
+            num_replicas=world_size,
+            rank=device,
+            shuffle=True,
+            seed=0
+        )
+        train_dataloader = CDR3DataLoader(
+            dataset=train_dataset,
+            batch_size=hyperparameters['batch_size'],
+            distributed_sampler=train_sampler
+        )
+    # Otherwise, create a standard dataloader
+    else:
+        train_dataloader = CDR3DataLoader(
+            dataset=train_dataset,
+            batch_size=hyperparameters['batch_size'],
+            batch_optimisation=hyperparameters['batch_optimisation']
+        )
 
     val_dataset = CDR3Dataset(
         path_to_csv=hyperparameters['path_valid_data'],
@@ -291,7 +340,10 @@ def train(
         batch_size=hyperparameters['batch_size']
     )
 
-    print('Instantiating other misc. objects for training...')
+    print_with_deviceid(
+        'Instantiating other misc. objects for training...',
+        device
+    )
 
     optimiser = AdamWithScheduling(
         params=model.parameters(),
@@ -306,7 +358,7 @@ def train(
     loss_fn = torch.nn.CrossEntropyLoss(ignore_index=21,label_smoothing=0.1)
 
     # Train model for a set number of epochs
-    print('Commencing training.')
+    print_with_deviceid('Commencing training...', device)
 
     # Create dictionaries to keep a log of training stats
     stats_log = dict()
@@ -317,7 +369,7 @@ def train(
     # Begin training loop
     for epoch in range(1, hyperparameters['num_epochs']+1):
         # Do an epoch through the training data
-        print(f'Beginning epoch {epoch}...')
+        print_with_deviceid(f'Beginning epoch {epoch}...', device)
         train_stats = train_epoch(
             model,
             train_dataloader,
@@ -327,7 +379,7 @@ def train(
         )
 
         # Validate model performance
-        print('Validating model...')
+        print_with_deviceid('Validating model...', device)
         valid_stats = validate(
             model,
             val_dataloader,
@@ -336,23 +388,28 @@ def train(
         )
 
         # Quick feedback
-        print(
+        print_with_deviceid(
             f'training loss: {train_stats["train_loss"]:.3f} | '\
-            f'validation loss: {valid_stats["valid_loss"]:.3f}'
+            f'validation loss: {valid_stats["valid_loss"]:.3f}',
+            device
         )
-        print(
+        print_with_deviceid(
             f'training accuracy: {train_stats["train_acc"]:.3f} | '\
-            f'validation accuracy: {valid_stats["valid_acc"]:.3f}'
+            f'validation accuracy: {valid_stats["valid_acc"]:.3f}',
+            device
         )
 
         # Log stats
         stats_log[epoch] = {**train_stats, **valid_stats}
 
-    print('Training finished.')
+    print_with_deviceid('Training finished.', device)
 
     # Evaluate the model on jumbled validation data to ensure that the model is
     # learning something more than just amino acid residue frequencies.
-    print('Evaluating model on jumbled validation data...')
+    print_with_deviceid(
+        'Evaluating model on jumbled validation data...',
+        device
+    )
     val_dataloader.jumble = True
     jumbled_valid_stats = validate(
         model,
@@ -362,9 +419,10 @@ def train(
     )
     
     # Quick feedback
-    print(
+    print_with_deviceid(
         f'jumbled loss: {jumbled_valid_stats["jumble_loss"]:.3f} | '\
-        f'jumbled accuracy: {jumbled_valid_stats["jumble_acc"]:.3f}'
+        f'jumbled accuracy: {jumbled_valid_stats["jumble_acc"]:.3f}',
+        device
     )
 
     # Save the results of the jumbled data validation in the log.
@@ -372,25 +430,35 @@ def train(
 
     # Print the total time taken to train to the console.
     time_taken = int(time.time() - start_time)
-    print(f'Total time taken: {time_taken}s ({time_taken / 60} min)')
+    print_with_deviceid(
+        f'Total time taken: {time_taken}s ({time_taken / 60} min)',
+        device
+    )
 
     # Save log as csv
-    print(
+    print_with_deviceid(
         f'Saving training log to '\
-        f'{os.path.join(save_dir_path, "train_stats.csv")}...'
+        f'{os.path.join(save_dir_path, f"train_stats_{device}.csv")}...',
+        device
     )
     log_df = pd.DataFrame.from_dict(data=stats_log, orient='index')
     log_df.to_csv(
-        os.path.join(save_dir_path, 'train_stats.csv'),
+        os.path.join(save_dir_path, f'train_stats_{device}.csv'),
         index_label='epoch'
     )
 
-    # Save trained model
-    print(
-        f'Saving model to '\
-        f'{os.path.join(save_dir_path, "trained_model.ptnn")}...'
-    )
-    torch.save(model.cpu(), os.path.join(save_dir_path, 'trained_model.ptnn'))
+    # Save trained model (if multiprocessing, this step is only done by process
+    # with rank 0, i.e. the process on GPU 0)
+    if not multiprocess or (multiprocess and device.index == 0):
+        print_with_deviceid(
+            f'Saving model to '\
+            f'{os.path.join(save_dir_path, "trained_model.ptnn")}...',
+            device
+        )
+        torch.save(
+            model.cpu(),
+            os.path.join(save_dir_path, 'trained_model.ptnn')
+        )
 
 
 def main(run_id: str, test_mode: bool = False) -> None:
@@ -420,12 +488,25 @@ def main(run_id: str, test_mode: bool = False) -> None:
     # Save a text file containing info of current run's hyperparameters
     write_hyperparameters(hp, dirpath)
 
-    # Detect training device(s)
-    DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    print(f'Training will commence on device: {DEVICE}.')
-    
-    # Train a model instance
-    train(hp, DEVICE, dirpath)
+    # Detect how many GPUs are available
+    GPU_COUNT = torch.cuda.device_count()
+
+    # If there are multiple GPUs available:
+    if GPU_COUNT > 1:
+        print(
+            f'{GPU_COUNT} CUDA devices detected, setting up distributed '\
+            'training...'
+        )
+        # Spawn parallel processes each running train() on a different GPU
+        mp.spawn(train, args=(hp, dirpath, True, GPU_COUNT), nprocs=GPU_COUNT)
+    # If there is one GPU available:
+    elif GPU_COUNT == 1:
+        print('1 CUDA device detected, running training loop on cuda device...')
+        train(0, hp, dirpath)
+    # If there are no GPUs available:
+    else:
+        print('No CUDA devices detected, running training loop on cpu...')
+        train('cpu', hp, dirpath)
 
 
 if __name__ == '__main__':

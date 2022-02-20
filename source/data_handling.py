@@ -3,7 +3,7 @@ data_handling.py
 purpose: Python module with classes involved in the loading and preprocessing
          CDR3 data.
 author: Yuta Nagano
-ver: 3.0.0
+ver: 3.1.0
 '''
 
 
@@ -12,6 +12,7 @@ import random
 import pandas as pd
 import torch
 from torch.utils.data import Dataset, DataLoader, Sampler
+from torch.utils.data.distributed import DistributedSampler
 from torch.nn.utils.rnn import pad_sequence
 
 
@@ -238,17 +239,24 @@ class CDR3DataLoader(DataLoader):
     transformer/BERT training. It matches CDR3s that have relatively similar
     lengths to each other and puts them together in the same batch.
     '''
+    # TODO: implement setting a distributed sampler.
     def __init__(
         self,
         dataset: CDR3Dataset,
         batch_size: int,
-        batch_optimisation: bool = True
+        distributed_sampler = None,
+        batch_optimisation: bool = False
     ):
         assert(type(dataset) == CDR3Dataset)
 
         self._batch_optimisation = batch_optimisation
 
         if batch_optimisation:
+            if distributed_sampler:
+                raise RuntimeError(
+                    'CDR3DataLoader: distributed_sampler is mutually exclusive'\
+                    ' with batch_optimisation.'
+                )
             super(CDR3DataLoader, self).__init__(
                 dataset=dataset,
                 batch_sampler=PadMinimalBatchSampler(
@@ -256,6 +264,17 @@ class CDR3DataLoader(DataLoader):
                     batch_size=batch_size
                 ),
                 collate_fn=self.collate_fn
+            )
+        elif distributed_sampler:
+            assert(type(distributed_sampler) == DistributedSampler)
+            super(CDR3DataLoader, self).__init__(
+                dataset=dataset,
+                batch_size=batch_size,
+                shuffle=False,
+                collate_fn=self.collate_fn,
+                num_workers=0,
+                pin_memory=True,
+                sampler=distributed_sampler
             )
         else:
             super(CDR3DataLoader, self).__init__(

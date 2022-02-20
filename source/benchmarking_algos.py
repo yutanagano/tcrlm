@@ -38,8 +38,7 @@ class BenchmarkAlgo(ABC):
 
     @staticmethod
     @abstractmethod
-    def similarity_func(cdr3_a: str, cdr3_b: str):
-        return 0
+    def similarity_func(cdr3_a: str, cdr3_b: str): return 0
     
 
 # Children classes
