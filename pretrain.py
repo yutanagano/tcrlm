@@ -3,7 +3,7 @@ pretrain.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 2.0.0
+ver: 2.0.1
 '''
 
 
@@ -459,6 +459,10 @@ def train(
             model.cpu(),
             os.path.join(save_dir_path, 'trained_model.ptnn')
         )
+    
+    # If multiprocessing, then clean up by terminating the process group
+    if multiprocess:
+        dist.destroy_process_group()
 
 
 def main(run_id: str, test_mode: bool = False) -> None:
@@ -497,6 +501,9 @@ def main(run_id: str, test_mode: bool = False) -> None:
             f'{GPU_COUNT} CUDA devices detected, setting up distributed '\
             'training...'
         )
+        # Set the required environment variables to properly create a process
+        # group
+        set_env_vars(master_addr='localhost', master_port='7777')
         # Spawn parallel processes each running train() on a different GPU
         mp.spawn(train, args=(hp, dirpath, True, GPU_COUNT), nprocs=GPU_COUNT)
     # If there is one GPU available:
