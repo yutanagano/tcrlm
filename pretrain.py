@@ -3,7 +3,7 @@ pretrain.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 2.1.2
+ver: 2.1.3
 '''
 
 
@@ -319,9 +319,21 @@ def save_model(
     '''
     # First, ensure that the specified directory exists
     assert(os.path.isdir(dirpath))
+    
+    # Option 1: The script is in multiprocess mode and test mode, so each
+    # process must save its own copy of the model with the filename needing to
+    # distinguish copies of the model from different processes
+    if multiprocess and test_mode:
+        # Establish the destination path
+        destination = os.path.join(dirpath, f'trained_model_{device}.ptnn')
+        print_with_deviceid(f'Saving model to {destination}...', device)
 
-    # Option 1: Save the model in the usual way
-    if not multiprocess or (multiprocess and device.index == 0):
+        # As above, the DDP object must be unwrapped before saving.
+        torch.save(model.module.cpu(), destination)
+
+    # Option 2: Save the model in the usual way (either the program is not
+    # running in multiprocess mode, or if it is, it is the process with rank 0)
+    elif not multiprocess or (multiprocess and device.index == 0):
         # Establish the destination path
         destination = os.path.join(dirpath, 'trained_model.ptnn')
         print_with_deviceid(f'Saving model to {destination}...', device)
@@ -333,17 +345,6 @@ def save_model(
 
         # Otherwise, the model is the model object itself, so save as usual.
         else: torch.save(model.cpu(), destination)
-    
-    # Option 2: The script is in multiprocess mode and test mode, so each
-    # process must save its own copy of the model with the filename needing to
-    # distinguish copies of the model from different processes
-    if multiprocess and test_mode:
-        # Establish the destination path
-        destination = os.path.join(dirpath, f'trained_model_{device}.ptnn')
-        print_with_deviceid(f'Saving model to {destination}...', device)
-
-        # As above, the DDP object must be unwrapped before saving.
-        torch.save(model.module.cpu(), destination)
 
 
 def compare_models(n_gpus: int) -> None:
@@ -359,6 +360,10 @@ def compare_models(n_gpus: int) -> None:
         for i in range(n_gpus)
     ]
     models = [torch.load(path) for path in paths_to_models]
+
+    # User feedback
+    print('Model endpoints detected:')
+    for path in paths_to_models: print(path)
 
     # Compare the models
     def compare_two(model1: torch.nn.Module, model2: torch.nn.Module):
