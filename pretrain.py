@@ -3,7 +3,7 @@ pretrain.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 2.0.4
+ver: 2.0.5
 '''
 
 
@@ -67,6 +67,15 @@ def parse_command_line_arguments() -> argparse.Namespace:
         type=int,
         help='The number of GPUs to utilise. If set to 0, the training ' + \
             'loop will be run on the CPU.'
+    )
+    parser.add_argument(
+        '-q', '--no-progressbars',
+        action='store_true',
+        help='Running with this flag will suppress the output of any ' + \
+            'progress bars. This may be useful to keep the output stream ' + \
+            'clean when running the program on the cluster, especially if ' + \
+            'the program will be run in distributed training mode ' + \
+            '(accross multiple GPUs).'
     )
     parser.add_argument(
         'run_id',
@@ -164,6 +173,7 @@ def train_epoch(
         dataloader: torch.utils.data.DataLoader,
         criterion: torch.nn.Module,
         optimiser: torch.optim.Optimizer,
+        no_progressbars: bool,
         device: torch.device
     ) -> dict:
     # Train the given model through one epoch of data from the given dataloader.
@@ -178,7 +188,7 @@ def train_epoch(
     start_time = time.time()
 
     # Iterate through the dataloader
-    for x, y in tqdm(dataloader, desc=f'[{device}]'):
+    for x, y in tqdm(dataloader, desc=f'[{device}]', disable=no_progressbars):
         # Transfer batches to appropriate device
         x = x.to(device)
         y = y.to(device)
@@ -221,6 +231,7 @@ def validate(
         model: torch.nn.Module,
         dataloader: torch.utils.data.DataLoader,
         criterion: torch.nn.Module,
+        no_progressbars: bool,
         device: torch.device
     ) -> dict:
     '''
@@ -234,7 +245,7 @@ def validate(
     total_acc = 0
 
     # Iterate through the dataloader
-    for x, y in tqdm(dataloader, desc=f'[{device}]'):
+    for x, y in tqdm(dataloader, desc=f'[{device}]', disable=no_progressbars):
         # Transfer batches to appropriate device
         x = x.to(device)
         y = y.to(device)
@@ -272,6 +283,7 @@ def train(
     device,
     hyperparameters: dict,
     save_dir_path: str,
+    no_progressbars: bool = False,
     multiprocess: bool = False,
     world_size: int = 1
 ) -> None:
@@ -383,6 +395,7 @@ def train(
             train_dataloader,
             loss_fn,
             optimiser,
+            no_progressbars,
             device
         )
 
@@ -392,6 +405,7 @@ def train(
             model,
             val_dataloader,
             loss_fn,
+            no_progressbars,
             device
         )
 
@@ -423,6 +437,7 @@ def train(
         model,
         val_dataloader,
         loss_fn,
+        no_progressbars,
         device
     )
     
@@ -473,7 +488,12 @@ def train(
         dist.destroy_process_group()
 
 
-def main(run_id: str, n_gpus: int = 0, test_mode: bool = False) -> None:
+def main(
+    run_id: str,
+    n_gpus: int = 0,
+    test_mode: bool = False,
+    no_progressbars: bool = False,
+) -> None:
     '''
     Main execution.
 
@@ -510,19 +530,23 @@ def main(run_id: str, n_gpus: int = 0, test_mode: bool = False) -> None:
         # group
         set_env_vars(master_addr='localhost', master_port='7777')
         # Spawn parallel processes each running train() on a different GPU
-        mp.spawn(train, args=(hp, dirpath, True, n_gpus), nprocs=n_gpus)
+        mp.spawn(
+            train,
+            args=(hp, dirpath, no_progressbars, True, n_gpus),
+            nprocs=n_gpus
+        )
     # If there is one GPU available:
     elif n_gpus == 1:
         print('1 CUDA device expected, running training loop on cuda device...')
-        train(0, hp, dirpath)
+        train(0, hp, dirpath, no_progressbars)
     # If there are no GPUs available:
     else:
         print('No CUDA devices expected, running training loop on cpu...')
-        train('cpu', hp, dirpath)
+        train('cpu', hp, dirpath, no_progressbars)
 
 
 if __name__ == '__main__':
     # Parse command line arguments
     args = parse_command_line_arguments()
     
-    main(args.run_id, args.gpus, args.test)
+    main(args.run_id, args.gpus, args.test, args.no_progressbars)
