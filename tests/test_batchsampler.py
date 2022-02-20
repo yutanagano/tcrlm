@@ -18,6 +18,11 @@ def test_iter(instantiate_dataset):
     for i in range(2):
         for batch in sampler:
             assert(len(batch) in (4,5))
+    
+    sampler.shuffle = True
+    for i in range(2):
+        for batch in sampler:
+            assert(len(batch) in (4,5))
 
 
 def test_len(instantiate_dataset):

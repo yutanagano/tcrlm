@@ -3,7 +3,7 @@ pretrain.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 2.0.3
+ver: 2.0.4
 '''
 
 
@@ -334,6 +334,7 @@ def train(
         train_dataloader = CDR3DataLoader(
             dataset=train_dataset,
             batch_size=hyperparameters['batch_size'],
+            shuffle=True,
             batch_optimisation=hyperparameters['batch_optimisation']
         )
 

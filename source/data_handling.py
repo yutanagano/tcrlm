@@ -3,7 +3,7 @@ data_handling.py
 purpose: Python module with classes involved in the loading and preprocessing
          CDR3 data.
 author: Yuta Nagano
-ver: 3.1.0
+ver: 3.1.1
 '''
 
 
@@ -203,28 +203,30 @@ class PadMinimalBatchSampler(Sampler):
     (which increases the number of unnecessary computation) and therefore 
     reduce training time.
     '''
-    def __init__(self, data_source: CDR3Dataset, batch_size: int):
+    def __init__(
+        self,
+        data_source: CDR3Dataset,
+        batch_size: int,
+        shuffle: bool = False
+    ):
         assert(type(data_source) == CDR3Dataset)
         self.data_source = data_source
         self.batch_size = batch_size
+        self.shuffle = shuffle
         self.num_samples = len(data_source)
 
         self._len = (len(data_source) + batch_size - 1) // batch_size
 
 
     def __iter__(self):
-        shuffled_indices = random.sample(
-            range(self.num_samples),
-            k=self.num_samples
-        )
-        superbatched = batch(shuffled_indices, self.batch_size * 100)
+        superbatched = batch(self._get_indices(), self.batch_size * 100)
         for sb in superbatched:
             sorted_sb = sorted(
                 sb,
                 key=lambda x: self.data_source.get_length(x)
             )
             batched = batch(sorted_sb, self.batch_size)
-            random.shuffle(batched)
+            if self.shuffle: random.shuffle(batched)
             for b in batched:
                 yield b
 
@@ -233,17 +235,27 @@ class PadMinimalBatchSampler(Sampler):
         return self._len
 
 
+    def _get_indices(self):
+        if self.shuffle:
+            return random.sample(
+                range(self.num_samples),
+                k=self.num_samples
+            )
+        else:
+            return range(self.num_samples)
+
+
 class CDR3DataLoader(DataLoader):
     '''
     Custom dataloader class that does random batch-sampling optimised for
     transformer/BERT training. It matches CDR3s that have relatively similar
     lengths to each other and puts them together in the same batch.
     '''
-    # TODO: implement setting a distributed sampler.
     def __init__(
         self,
         dataset: CDR3Dataset,
         batch_size: int,
+        shuffle: bool = False,
         distributed_sampler = None,
         batch_optimisation: bool = False
     ):
@@ -261,12 +273,18 @@ class CDR3DataLoader(DataLoader):
                 dataset=dataset,
                 batch_sampler=PadMinimalBatchSampler(
                     data_source=dataset,
-                    batch_size=batch_size
+                    batch_size=batch_size,
+                    shuffle=shuffle
                 ),
                 collate_fn=self.collate_fn
             )
         elif distributed_sampler:
             assert(type(distributed_sampler) == DistributedSampler)
+            if shuffle:
+                raise RuntimeError(
+                    'CDR3DataLoader: distributed_sampler is mutually exclusive'\
+                    ' with shuffle.'
+                )
             super(CDR3DataLoader, self).__init__(
                 dataset=dataset,
                 batch_size=batch_size,
@@ -280,7 +298,7 @@ class CDR3DataLoader(DataLoader):
             super(CDR3DataLoader, self).__init__(
                 dataset=dataset,
                 batch_size=batch_size,
-                shuffle=True,
+                shuffle=shuffle,
                 collate_fn=self.collate_fn
             )
 

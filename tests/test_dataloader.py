@@ -60,6 +60,21 @@ def test_dataloader_with_optim(instantiate_dataset):
                 min_batch_seq_len_encountered
             )
         assert(min_batch_seq_len_encountered == 12)
+    
+    dataloader.batch_sampler.shuffle = True
+    for i in range(10):
+        min_batch_seq_len_encountered = 999
+        for src_batch, tgt_batch in dataloader:
+            assert(type(src_batch) == type(tgt_batch) == torch.Tensor)
+            assert(src_batch.size() == tgt_batch.size())
+            assert(src_batch.size(0) in (4, 5))
+            assert(src_batch.size(1) >= 10 and src_batch.size(1) <= 20)
+            assert(src_batch.dim() == 2)
+            min_batch_seq_len_encountered = min(
+                src_batch.size(1),
+                min_batch_seq_len_encountered
+            )
+        assert(min_batch_seq_len_encountered == 12)
 
 
 def test_dataloader_with_distributed_sampler(instantiate_dataset):
@@ -127,6 +142,24 @@ def test_set_both_distributed_sampler_batch_optim(instantiate_dataset):
             distributed_sampler=test_sampler,
             batch_optimisation=True
         )
+
+
+def test_set_both_distributed_sampler_shuffle(instantiate_dataset):
+    test_sampler = DistributedSampler(
+        dataset=instantiate_dataset,
+        num_replicas=2,
+        rank=0,
+        shuffle=True,
+        seed=0
+    )
+    with pytest.raises(RuntimeError):
+        dataloader = CDR3DataLoader(
+            dataset=instantiate_dataset,
+            batch_size=5,
+            shuffle=True,
+            distributed_sampler=test_sampler,
+        )
+
 
 def test_set_bad_distributed_sampler(instantiate_dataset):
     with pytest.raises(AssertionError):
