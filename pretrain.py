@@ -3,7 +3,7 @@ pretrain.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 2.0.5
+ver: 2.1.0
 '''
 
 
@@ -27,8 +27,8 @@ from source.training import create_padding_mask, AdamWithScheduling
 
 # Hyperparameter preset for testing mode
 hyperparams_test = {
-    'path_train_data': 'tests/data/mock_data.csv',
-    'path_valid_data': 'tests/data/mock_data.csv',
+    'path_train_data': os.path.join('tests', 'data', 'mock_data.csv'),
+    'path_valid_data': os.path.join('tests', 'data', 'mock_data.csv'),
     'num_encoder_layers': 16,
     'd_model': 16,
     'nhead': 4,
@@ -52,16 +52,6 @@ def parse_command_line_arguments() -> argparse.Namespace:
 
     # Add relevant arguments
     parser.add_argument(
-        '-t', '--test',
-        action='store_true',
-        help='Run the training script in testing mode. Used for debugging. ' + \
-            'Note that when using this flag, the run_id of the training ' + \
-            'run will always be set to "test" regardless of what is ' + \
-            'specified in the command line argument. If a "test" training ' + \
-            'run directory already exists, this will be deleted along with ' + \
-            'any contents.'
-    )
-    parser.add_argument(
         '-g', '--gpus',
         default=0,
         type=int,
@@ -76,6 +66,16 @@ def parse_command_line_arguments() -> argparse.Namespace:
             'clean when running the program on the cluster, especially if ' + \
             'the program will be run in distributed training mode ' + \
             '(accross multiple GPUs).'
+    )
+    parser.add_argument(
+        '-t', '--test',
+        action='store_true',
+        help='Run the training script in testing mode. Used for debugging. ' + \
+            'Note that when using this flag, the run_id of the training ' + \
+            'run will always be set to "test" regardless of what is ' + \
+            'specified in the command line argument. If a "test" training ' + \
+            'run directory already exists, this will be deleted along with ' + \
+            'any contents.'
     )
     parser.add_argument(
         'run_id',
@@ -279,13 +279,112 @@ def validate(
     }
 
 
+def save_log(
+    log_dict: dict,
+    dirpath: str,
+    multiprocess: bool,
+    device: torch.device
+) -> None:
+    '''
+    Saves the given training stats log as a csv inside the specified directory.
+    The specific way in which the saved file is named is determined from the
+    multiprocess variable.
+    '''
+    # First, ensure that the specified directory exists
+    assert(os.path.isdir(dirpath))
+
+    # Establish what the destination path for the saved file is
+    if multiprocess:
+        destination = os.path.join(dirpath, f'train_stats_{device}.csv')
+    else:
+        destination = os.path.join(dirpath, f'train_stats.csv')
+    print_with_deviceid(f'Saving training log to {destination}...', device)
+
+    # Save the log data as a csv at the destination
+    log_df = pd.DataFrame.from_dict(data=log_dict, orient='index')
+    log_df.to_csv(destination, index_label='epoch')
+
+
+def save_model(
+    model: torch.nn.Module,
+    dirpath: str,
+    multiprocess: bool,
+    device: torch.device,
+    test_mode: bool
+) -> None:
+    '''
+    If appropriate, save the given model inside the given directory. Whether it
+    is appropriate for the current process to save a copy of the model or not is
+    determined based on the multiprocess, device and test_mode variables.
+    '''
+    # First, ensure that the specified directory exists
+    assert(os.path.isdir(dirpath))
+
+    # Option 1: Save the model in the usual way
+    if not multiprocess or (multiprocess and device.index == 0):
+        # Establish the destination path
+        destination = os.path.join(dirpath, 'trained_model.ptnn')
+        print_with_deviceid(f'Saving model to {destination}...', device)
+
+        # If in multiprocess mode, the model will be wrapped in a Distributed-
+        # DataParallel wrapper. Therefore the module attribute of the DDP object
+        # (the actual model) should be saved, and not the DDP object.
+        if multiprocess: torch.save(model.module.cpu(), destination)
+
+        # Otherwise, the model is the model object itself, so save as usual.
+        else: torch.save(model.cpu(), destination)
+    
+    # Option 2: The script is in multiprocess mode and test mode, so each
+    # process must save its own copy of the model with the filename needing to
+    # distinguish copies of the model from different processes
+    if multiprocess and test_mode:
+        # Establish the destination path
+        destination = os.path.join(dirpath, f'trained_model_{device}.ptnn')
+        print_with_deviceid(f'Saving model to {destination}...', device)
+
+        # As above, the DDP object must be unwrapped before saving.
+        torch.save(model.module.cpu(), destination)
+
+
+def compare_models(n_gpus: int) -> None:
+    '''
+    Compare all models saved from distributed processes and ensure that they
+    are all equivalent i.e. that they all have the same weights.
+    '''
+    print('Comparing model enpoints from distributed training...')
+
+    # Load the models
+    paths_to_models = [
+        os.path.join('training_runs','test',f'trained_model_cuda:{i}.ptnn') \
+        for i in range(n_gpus)
+    ]
+    models = [torch.load(path) for path in paths_to_models]
+
+    # Compare the models
+    def compare_two(model1: torch.nn.Module, model2: torch.nn.Module):
+        for p1, p2 in zip(model1.parameters(), model2.parameters()):
+            if not torch.equal(p1, p2): return False
+        return True
+    
+    for i, model2 in enumerate(models[1:], start=1):
+        if not compare_two(models[0], model2):
+            raise RuntimeError(
+                f'compare_models(): models {paths_to_models[0]} and '\
+                f'{paths_to_models[i]} are not equivalent.'
+            )
+    
+    # Comparisons finished, no errors found!
+    print('All model endpoints compared, no discrepancies found!')
+
+
 def train(
     device,
     hyperparameters: dict,
     save_dir_path: str,
     no_progressbars: bool = False,
     multiprocess: bool = False,
-    world_size: int = 1
+    world_size: int = 1,
+    test_mode: bool = False
 ) -> None:
     '''
     Train an instance of a CDR3BERT model using unlabelled CDR3 data. If
@@ -459,29 +558,15 @@ def train(
     )
 
     # Save log as csv
-    print_with_deviceid(
-        f'Saving training log to '\
-        f'{os.path.join(save_dir_path, f"train_stats_{device}.csv")}...',
-        device
-    )
-    log_df = pd.DataFrame.from_dict(data=stats_log, orient='index')
-    log_df.to_csv(
-        os.path.join(save_dir_path, f'train_stats_{device}.csv'),
-        index_label='epoch'
-    )
+    save_log(stats_log, save_dir_path, multiprocess, device)
 
     # Save trained model (if multiprocessing, this step is only done by process
-    # with rank 0, i.e. the process on GPU 0)
-    if not multiprocess or (multiprocess and device.index == 0):
-        print_with_deviceid(
-            f'Saving model to '\
-            f'{os.path.join(save_dir_path, "trained_model.ptnn")}...',
-            device
-        )
-        torch.save(
-            model.cpu(),
-            os.path.join(save_dir_path, 'trained_model.ptnn')
-        )
+    # with rank 0, i.e. the process on GPU 0, unless the program is being run
+    # in testing mode- then all process save the model for comparison). The
+    # save_model function will automatically determine when it is appropriate
+    # for the current process to save the model, using the multiprocess,
+    # device, and test_mode variables.
+    save_model(model, save_dir_path, multiprocess, device, test_mode)
     
     # If multiprocessing, then clean up by terminating the process group
     if multiprocess:
@@ -491,18 +576,22 @@ def train(
 def main(
     run_id: str,
     n_gpus: int = 0,
-    test_mode: bool = False,
     no_progressbars: bool = False,
+    test_mode: bool = False
 ) -> None:
     '''
     Main execution.
 
     Args:
-    run_id:     A string which acts as a unique identifier of this training run.
-                Used to name the directory in which the results from this run
-                will be stored.
-    test_mode:  If true, the program will run using a set of hyperparameters
-                meant specifically for testing (e.g. use toy data, etc.).
+    run_id:         A string which acts as a unique identifier of this training
+                    run. Used to name the directory in which the results from
+                    this run will be stored.
+    n_gpus          An integer value which signifies how many CUDA-capable
+                    devices are expected to be available.
+    no_progressbars Whether to suppress progressbar outputs to the output stream
+                    or not.
+    test_mode:      If true, the program will run using a set of hyperparameters
+                    meant specifically for testing (e.g. use toy data, etc.).
     '''
     # If the program is being run in testing mode, set the hyperparameters to
     # the test mode preset, along with setting the run ID to 'test'. Otherwise,
@@ -526,27 +615,47 @@ def main(
             f'{n_gpus} CUDA devices expected, setting up distributed '\
             'training...'
         )
+
         # Set the required environment variables to properly create a process
         # group
         set_env_vars(master_addr='localhost', master_port='7777')
+
         # Spawn parallel processes each running train() on a different GPU
         mp.spawn(
             train,
-            args=(hp, dirpath, no_progressbars, True, n_gpus),
+            args=(hp, dirpath, no_progressbars, True, n_gpus, test_mode),
             nprocs=n_gpus
         )
+
+        # If in test mode, verify that the trained models saved from all
+        # processes are equivalent (i.e. they all have the same weights).
+        if test_mode: compare_models(n_gpus)
+
     # If there is one GPU available:
     elif n_gpus == 1:
         print('1 CUDA device expected, running training loop on cuda device...')
-        train(0, hp, dirpath, no_progressbars)
+        train(
+            device=0,
+            hyperparameters=hp,
+            save_dir_path=dirpath,
+            no_progressbars=no_progressbars,
+            test_mode=test_mode
+        )
+    
     # If there are no GPUs available:
     else:
         print('No CUDA devices expected, running training loop on cpu...')
-        train('cpu', hp, dirpath, no_progressbars)
+        train(
+            device='cpu',
+            hyperparameters=hp,
+            save_dir_path=dirpath,
+            no_progressbars=no_progressbars,
+            test_mode=test_mode
+        )
 
 
 if __name__ == '__main__':
     # Parse command line arguments
     args = parse_command_line_arguments()
     
-    main(args.run_id, args.gpus, args.test, args.no_progressbars)
+    main(args.run_id, args.gpus, args.no_progressbars, args.test)
