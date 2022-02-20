@@ -3,7 +3,7 @@ pretrain.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 2.0.1
+ver: 2.0.2
 '''
 
 
@@ -60,6 +60,13 @@ def parse_command_line_arguments() -> argparse.Namespace:
             'specified in the command line argument. If a "test" training ' + \
             'run directory already exists, this will be deleted along with ' + \
             'any contents.'
+    )
+    parser.add_argument(
+        '-g', '--gpus',
+        default=0,
+        type=int,
+        help='The number of GPUs to utilise. If set to 0, the training ' + \
+            'loop will be run on the CPU.'
     )
     parser.add_argument(
         'run_id',
@@ -465,7 +472,7 @@ def train(
         dist.destroy_process_group()
 
 
-def main(run_id: str, test_mode: bool = False) -> None:
+def main(run_id: str, n_gpus: int = 0, test_mode: bool = False) -> None:
     '''
     Main execution.
 
@@ -477,8 +484,8 @@ def main(run_id: str, test_mode: bool = False) -> None:
                 meant specifically for testing (e.g. use toy data, etc.).
     '''
     # If the program is being run in testing mode, set the hyperparameters to
-    # the test mode preset. Otherwise, set the hyperparameters to what is
-    # contained in the hyperparameters file.
+    # the test mode preset, along with setting the run ID to 'test'. Otherwise,
+    # set the hyperparameters to what is contained in the hyperparameters file.
     if test_mode:
         hp = hyperparams_test
         run_id = 'test'
@@ -492,27 +499,24 @@ def main(run_id: str, test_mode: bool = False) -> None:
     # Save a text file containing info of current run's hyperparameters
     write_hyperparameters(hp, dirpath)
 
-    # Detect how many GPUs are available
-    GPU_COUNT = torch.cuda.device_count()
-
-    # If there are multiple GPUs available:
-    if GPU_COUNT > 1:
+    # If multiple GPUs are expected:
+    if n_gpus > 1:
         print(
-            f'{GPU_COUNT} CUDA devices detected, setting up distributed '\
+            f'{n_gpus} CUDA devices expected, setting up distributed '\
             'training...'
         )
         # Set the required environment variables to properly create a process
         # group
         set_env_vars(master_addr='localhost', master_port='7777')
         # Spawn parallel processes each running train() on a different GPU
-        mp.spawn(train, args=(hp, dirpath, True, GPU_COUNT), nprocs=GPU_COUNT)
+        mp.spawn(train, args=(hp, dirpath, True, n_gpus), nprocs=n_gpus)
     # If there is one GPU available:
-    elif GPU_COUNT == 1:
-        print('1 CUDA device detected, running training loop on cuda device...')
+    elif n_gpus == 1:
+        print('1 CUDA device expected, running training loop on cuda device...')
         train(0, hp, dirpath)
     # If there are no GPUs available:
     else:
-        print('No CUDA devices detected, running training loop on cpu...')
+        print('No CUDA devices expected, running training loop on cpu...')
         train('cpu', hp, dirpath)
 
 
@@ -520,4 +524,4 @@ if __name__ == '__main__':
     # Parse command line arguments
     args = parse_command_line_arguments()
     
-    main(args.run_id, args.test)
+    main(args.run_id, args.gpus, args.test)
