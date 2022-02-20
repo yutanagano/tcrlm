@@ -3,7 +3,7 @@ pretrain.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 2.1.0
+ver: 2.1.1
 '''
 
 
@@ -33,7 +33,7 @@ hyperparams_test = {
     'd_model': 16,
     'nhead': 4,
     'dim_feedforward': 128,
-    'batch_size': 512,
+    'batch_size': 2,
     'batch_optimisation': True,
     'lr_scheduling': True,
     'lr': 0.001,
@@ -428,6 +428,19 @@ def train(
     # TODO: implement randomised seeding for pseudorandom number generator at
     #       runtime within main().
     if multiprocess:
+        # If batch_optimisation is set but the program is running in
+        # multiprocessing mode (i.e. the dataloader will necessarily utilise the
+        # distributed sampler mode) print a warning to the console saying that
+        # batch optimisation is not supported in distributed training. This
+        # message only needs to be printed by one of the processes, so the main
+        # process (rank 0) will do it.
+        if hyperparameters['batch_optimisation'] and device.index == 0:
+            print(
+                'WARNING: batch_optimisation has been set in hyperparameters, '\
+                'but this setting is currently unsupported when running in '\
+                'distributed training mode.'
+            )
+        
         train_sampler = DistributedSampler(
             dataset=train_dataset,
             num_replicas=world_size,
@@ -456,7 +469,8 @@ def train(
     )
     val_dataloader = CDR3DataLoader(
         dataset=val_dataset,
-        batch_size=hyperparameters['batch_size']
+        batch_size=hyperparameters['batch_size'],
+        batch_optimisation=True
     )
 
     print_with_deviceid(
