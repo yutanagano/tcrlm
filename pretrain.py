@@ -3,7 +3,7 @@ pretrain.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 2.0.2
+ver: 2.0.3
 '''
 
 
@@ -159,115 +159,6 @@ def accuracy(x: torch.Tensor, y: torch.Tensor) -> float:
     return (correct_masked.sum() / mask.sum()).item()
 
 
-def train_epoch(
-        model: torch.nn.Module,
-        dataloader: torch.utils.data.DataLoader,
-        criterion: torch.nn.Module,
-        optimiser: torch.optim.Optimizer,
-        device: torch.device
-    ) -> dict:
-    # Train the given model through one epoch of data from the given dataloader.
-    # Ensure that the model is in training mode.
-    model.train()
-    # Initialise variables to keep track of stats throughout the epoch.
-    total_loss = 0
-    total_acc = 0
-    total_lr = 0
-
-    # Take note of the start time
-    start_time = time.time()
-
-    # Iterate through the dataloader
-    for x, y in tqdm(dataloader, desc=f'[{device}]'):
-        # Transfer batches to appropriate device
-        x = x.to(device)
-        y = y.to(device)
-
-        # Create padding mask for batch
-        padding_mask = create_padding_mask(x)
-
-        # Forward pass
-        logits = model(x=x, padding_mask=padding_mask)
-        logits = logits.view(-1,logits.size(-1))
-        y = y.view(-1)
-
-        # Backward pass
-        optimiser.zero_grad()
-
-        loss = criterion(logits,y)
-        loss.backward()
-
-        optimiser.step()
-        
-        # Increment stats
-        total_loss += loss.item()
-        total_acc += accuracy(logits,y)
-        total_lr += optimiser.lr
-
-    # Take note of elapsed time
-    elapsed = time.time() - start_time
-
-    # Return a dictionary with stats
-    return {
-        'train_loss': total_loss / len(dataloader),
-        'train_acc' : total_acc / len(dataloader),
-        'avg_lr' : total_lr / len(dataloader),
-        'epoch_time': elapsed
-    }
-
-
-@torch.no_grad()
-def validate(
-        model: torch.nn.Module,
-        dataloader: torch.utils.data.DataLoader,
-        criterion: torch.nn.Module,
-        device: torch.device
-    ) -> dict:
-    '''
-    Validates the given model's performance by calculating loss and other stats
-    from the data in the given dataloader.
-    '''
-    # Ensure that the model is in evaludation mode
-    model.eval()
-    # Initialise variables to keep track of stats over the minibatches.
-    total_loss = 0
-    total_acc = 0
-
-    # Iterate through the dataloader
-    for x, y in tqdm(dataloader, desc=f'[{device}]'):
-        # Transfer batches to appropriate device
-        x = x.to(device)
-        y = y.to(device)
-
-        # Create padding mask for batch
-        padding_mask = create_padding_mask(x)
-
-        # Forward pass
-        logits = model(x=x, padding_mask=padding_mask)
-        logits = logits.view(-1,logits.size(-1))
-        y = y.view(-1)
-
-        # Loss calculation
-        loss = criterion(logits,y)
-
-        # Increment batch loss to total_loss
-        total_loss += loss.item()
-        total_acc += accuracy(logits,y)
-
-    # Decide on appropriate name for the statistic calculated based on the
-    # dataloader's jumble status
-    if dataloader.jumble:
-        stat_names = ('jumble_loss','jumble_acc')
-    else:
-        stat_names = ('valid_loss','valid_acc')
-    
-    # Return a dictionary with stats
-    return {
-        stat_names[0]: total_loss / len(dataloader),
-        stat_names[1]: total_acc / len(dataloader)
-    }
-
-
 def train(
     device,
     hyperparameters: dict,
@@ -282,6 +173,116 @@ def train(
     the trained model as well as a log of training stats in the directory
     specified.
     '''
+    # First define some helper functions
+    def train_epoch(
+        model: torch.nn.Module,
+        dataloader: torch.utils.data.DataLoader,
+        criterion: torch.nn.Module,
+        optimiser: torch.optim.Optimizer,
+        device: torch.device
+    ) -> dict:
+        # Train the given model through one epoch of data from the given dataloader.
+        # Ensure that the model is in training mode.
+        model.train()
+        # Initialise variables to keep track of stats throughout the epoch.
+        total_loss = 0
+        total_acc = 0
+        total_lr = 0
+
+        # Take note of the start time
+        start_time = time.time()
+
+        # Iterate through the dataloader
+        for x, y in tqdm(dataloader, desc=f'[{device}]'):
+            # Transfer batches to appropriate device
+            x = x.to(device)
+            y = y.to(device)
+
+            # Create padding mask for batch
+            padding_mask = create_padding_mask(x)
+
+            # Forward pass
+            logits = model(x=x, padding_mask=padding_mask)
+            logits = logits.view(-1,logits.size(-1))
+            y = y.view(-1)
+
+            # Backward pass
+            optimiser.zero_grad()
+
+            loss = criterion(logits,y)
+            loss.backward()
+
+            optimiser.step()
+            
+            # Increment stats
+            total_loss += loss.item()
+            total_acc += accuracy(logits,y)
+            total_lr += optimiser.lr
+
+        # Take note of elapsed time
+        elapsed = time.time() - start_time
+
+        # Return a dictionary with stats
+        return {
+            'train_loss': total_loss / len(dataloader),
+            'train_acc' : total_acc / len(dataloader),
+            'avg_lr' : total_lr / len(dataloader),
+            'epoch_time': elapsed
+        }
+    
+
+    @torch.no_grad()
+    def validate(
+        model: torch.nn.Module,
+        dataloader: torch.utils.data.DataLoader,
+        criterion: torch.nn.Module,
+        device: torch.device
+    ) -> dict:
+        '''
+        Validates the given model's performance by calculating loss and other stats
+        from the data in the given dataloader.
+        '''
+        # Ensure that the model is in evaludation mode
+        model.eval()
+        # Initialise variables to keep track of stats over the minibatches.
+        total_loss = 0
+        total_acc = 0
+
+        # Iterate through the dataloader
+        for x, y in tqdm(dataloader, desc=f'[{device}]'):
+            # Transfer batches to appropriate device
+            x = x.to(device)
+            y = y.to(device)
+
+            # Create padding mask for batch
+            padding_mask = create_padding_mask(x)
+
+            # Forward pass
+            logits = model(x=x, padding_mask=padding_mask)
+            logits = logits.view(-1,logits.size(-1))
+            y = y.view(-1)
+
+            # Loss calculation
+            loss = criterion(logits,y)
+
+            # Increment batch loss to total_loss
+            total_loss += loss.item()
+            total_acc += accuracy(logits,y)
+
+        # Decide on appropriate name for the statistic calculated based on the
+        # dataloader's jumble status
+        if dataloader.jumble:
+            stat_names = ('jumble_loss','jumble_acc')
+        else:
+            stat_names = ('valid_loss','valid_acc')
+        
+        # Return a dictionary with stats
+        return {
+            stat_names[0]: total_loss / len(dataloader),
+            stat_names[1]: total_acc / len(dataloader)
+        }
+
+
     # Initialise process group if multiprocessing
     if multiprocess:
         dist.init_process_group(
@@ -320,7 +321,7 @@ def train(
         train_sampler = DistributedSampler(
             dataset=train_dataset,
             num_replicas=world_size,
-            rank=device,
+            rank=device.index,
             shuffle=True,
             seed=0
         )
