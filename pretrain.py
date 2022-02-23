@@ -3,7 +3,7 @@ pretrain.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 2.1.3
+ver: 2.1.4
 '''
 
 
@@ -33,7 +33,7 @@ hyperparams_test = {
     'd_model': 16,
     'nhead': 4,
     'dim_feedforward': 128,
-    'batch_size': 2,
+    'batch_size': 6,
     'batch_optimisation': True,
     'lr_scheduling': True,
     'lr': 0.001,
@@ -57,6 +57,16 @@ def parse_command_line_arguments() -> argparse.Namespace:
         type=int,
         help='The number of GPUs to utilise. If set to 0, the training ' + \
             'loop will be run on the CPU.'
+    )
+    parser.add_argument(
+        '-b','--fixed-batch-size',
+        action='store_true',
+        help='Without this option, when the program is running in ' + \
+            'distributed training mode, the batch size will be adaptively ' + \
+            'modified based on how many CUDA devices are available. That ' + \
+            'is, new_batch_size = old_batch_size // nGPUs. If this flag ' + \
+            'is specified, this feature is disabled and the batch size ' + \
+            'will be kept constant regardless of the number of CUDA devices.'
     )
     parser.add_argument(
         '-q', '--no-progressbars',
@@ -282,19 +292,19 @@ def validate(
 def save_log(
     log_dict: dict,
     dirpath: str,
-    multiprocess: bool,
+    distributed: bool,
     device: torch.device
 ) -> None:
     '''
     Saves the given training stats log as a csv inside the specified directory.
     The specific way in which the saved file is named is determined from the
-    multiprocess variable.
+    distributed variable.
     '''
     # First, ensure that the specified directory exists
     assert(os.path.isdir(dirpath))
 
     # Establish what the destination path for the saved file is
-    if multiprocess:
+    if distributed:
         destination = os.path.join(dirpath, f'train_stats_{device}.csv')
     else:
         destination = os.path.join(dirpath, f'train_stats.csv')
@@ -308,22 +318,22 @@ def save_log(
 def save_model(
     model: torch.nn.Module,
     dirpath: str,
-    multiprocess: bool,
+    distributed: bool,
     device: torch.device,
     test_mode: bool
 ) -> None:
     '''
     If appropriate, save the given model inside the given directory. Whether it
     is appropriate for the current process to save a copy of the model or not is
-    determined based on the multiprocess, device and test_mode variables.
+    determined based on the distributed, device and test_mode variables.
     '''
     # First, ensure that the specified directory exists
     assert(os.path.isdir(dirpath))
     
-    # Option 1: The script is in multiprocess mode and test mode, so each
+    # Option 1: The script is in distributed mode and test mode, so each
     # process must save its own copy of the model with the filename needing to
     # distinguish copies of the model from different processes
-    if multiprocess and test_mode:
+    if distributed and test_mode:
         # Establish the destination path
         destination = os.path.join(dirpath, f'trained_model_{device}.ptnn')
         print_with_deviceid(f'Saving model to {destination}...', device)
@@ -332,16 +342,16 @@ def save_model(
         torch.save(model.module.cpu(), destination)
 
     # Option 2: Save the model in the usual way (either the program is not
-    # running in multiprocess mode, or if it is, it is the process with rank 0)
-    elif not multiprocess or (multiprocess and device.index == 0):
+    # running in distributed mode, or if it is, it is the process with rank 0)
+    elif not distributed or (distributed and device.index == 0):
         # Establish the destination path
         destination = os.path.join(dirpath, 'trained_model.ptnn')
         print_with_deviceid(f'Saving model to {destination}...', device)
 
-        # If in multiprocess mode, the model will be wrapped in a Distributed-
+        # If in distributed mode, the model will be wrapped in a Distributed-
         # DataParallel wrapper. Therefore the module attribute of the DDP object
         # (the actual model) should be saved, and not the DDP object.
-        if multiprocess: torch.save(model.module.cpu(), destination)
+        if distributed: torch.save(model.module.cpu(), destination)
 
         # Otherwise, the model is the model object itself, so save as usual.
         else: torch.save(model.cpu(), destination)
@@ -387,19 +397,21 @@ def train(
     hyperparameters: dict,
     save_dir_path: str,
     no_progressbars: bool = False,
-    multiprocess: bool = False,
     world_size: int = 1,
     test_mode: bool = False
 ) -> None:
     '''
     Train an instance of a CDR3BERT model using unlabelled CDR3 data. If
-    multiprocess=True, perform necessary setup for synchronised parallel
-    processing and splitting of the dataloader. Once training is finished, save
-    the trained model as well as a log of training stats in the directory
-    specified.
+    world_size > 1 (distributed training), perform necessary setup for
+    synchronised parallel processing and splitting of the dataloader. Once
+    training is finished, save the trained model as well as a log of training
+    stats in the directory specified.
     '''
-    # Initialise process group if multiprocessing
-    if multiprocess:
+    # If world_size is > 1, we are running in distributed mode
+    distributed = (world_size > 1)
+
+    # Initialise process group if distributed
+    if distributed:
         dist.init_process_group(
             backend='nccl',
             rank=device,
@@ -419,22 +431,22 @@ def train(
         dim_feedforward=hyperparameters['dim_feedforward']
     ).to(device)
 
-    # Wrap the model with DistributedDataParallel if multiprocessing
-    if multiprocess:
+    # Wrap the model with DistributedDataParallel if distributed
+    if distributed:
         model = DistributedDataParallel(model, device_ids=[device])
 
     print_with_deviceid('Loading cdr3 data into memory...', device)
 
     train_dataset = CDR3Dataset(path_to_csv=hyperparameters['path_train_data'])
-    # Create a split dataloader if multiprocessing
-    # NOTE: batch_optimisation is currently unsupported in multiprocessing, as
+    # Create a split dataloader if distributed
+    # NOTE: batch_optimisation is currently unsupported in distributed mode, as
     #       specifying distributed_sampler is mutually exclusive with having
     #       batch_optimisation = True.
     # TODO: implement randomised seeding for pseudorandom number generator at
     #       runtime within main().
-    if multiprocess:
+    if distributed:
         # If batch_optimisation is set but the program is running in
-        # multiprocessing mode (i.e. the dataloader will necessarily utilise the
+        # distributed mode (i.e. the dataloader will necessarily utilise the
         # distributed sampler mode) print a warning to the console saying that
         # batch optimisation is not supported in distributed training. This
         # message only needs to be printed by one of the processes, so the main
@@ -577,24 +589,25 @@ def train(
     )
 
     # Save log as csv
-    save_log(stats_log, save_dir_path, multiprocess, device)
+    save_log(stats_log, save_dir_path, distributed, device)
 
-    # Save trained model (if multiprocessing, this step is only done by process
+    # Save trained model (if distributed, this step is only done by process
     # with rank 0, i.e. the process on GPU 0, unless the program is being run
     # in testing mode- then all process save the model for comparison). The
     # save_model function will automatically determine when it is appropriate
-    # for the current process to save the model, using the multiprocess,
+    # for the current process to save the model, using the distributed,
     # device, and test_mode variables.
-    save_model(model, save_dir_path, multiprocess, device, test_mode)
+    save_model(model, save_dir_path, distributed, device, test_mode)
     
-    # If multiprocessing, then clean up by terminating the process group
-    if multiprocess:
+    # If distributed, then clean up by terminating the process group
+    if distributed:
         dist.destroy_process_group()
 
 
 def main(
     run_id: str,
     n_gpus: int = 0,
+    fixed_batch_size: bool = False,
     no_progressbars: bool = False,
     test_mode: bool = False
 ) -> None:
@@ -602,15 +615,18 @@ def main(
     Main execution.
 
     Args:
-    run_id:         A string which acts as a unique identifier of this training
-                    run. Used to name the directory in which the results from
-                    this run will be stored.
-    n_gpus          An integer value which signifies how many CUDA-capable
-                    devices are expected to be available.
-    no_progressbars Whether to suppress progressbar outputs to the output stream
-                    or not.
-    test_mode:      If true, the program will run using a set of hyperparameters
-                    meant specifically for testing (e.g. use toy data, etc.).
+    run_id:             A string which acts as a unique identifier of this
+                        training run. Used to name the directory in which the
+                        results from this run will be stored.
+    n_gpus              An integer value which signifies how many CUDA-capable
+                        devices are expected to be available.
+    fixed_batch_size    Disables adaptive batch_size modification in distributed
+                        training mode.
+    no_progressbars     Whether to suppress progressbar outputs to the output
+                        stream or not.
+    test_mode:          If true, the program will run using a set of
+                        hyperparameters meant specifically for testing (e.g. use
+                        toy data, etc.).
     '''
     # If the program is being run in testing mode, set the hyperparameters to
     # the test mode preset, along with setting the run ID to 'test'. Otherwise,
@@ -635,6 +651,10 @@ def main(
             'training...'
         )
 
+        # If not fixed_batch_size, modify the batch size based on how many CUDA
+        # devices the training process will be split over
+        if not fixed_batch_size: hp['batch_size'] //= n_gpus
+
         # Set the required environment variables to properly create a process
         # group
         set_env_vars(master_addr='localhost', master_port='7777')
@@ -642,7 +662,7 @@ def main(
         # Spawn parallel processes each running train() on a different GPU
         mp.spawn(
             train,
-            args=(hp, dirpath, no_progressbars, True, n_gpus, test_mode),
+            args=(hp, dirpath, no_progressbars, n_gpus, test_mode),
             nprocs=n_gpus
         )
 
@@ -677,4 +697,10 @@ if __name__ == '__main__':
     # Parse command line arguments
     args = parse_command_line_arguments()
     
-    main(args.run_id, args.gpus, args.no_progressbars, args.test)
+    main(
+        args.run_id,
+        args.gpus,
+        args.fixed_batch_size,
+        args.no_progressbars,
+        args.test
+    )
