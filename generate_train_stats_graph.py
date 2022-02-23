@@ -3,7 +3,7 @@ generate_train_stats_graph.py
 purpose: Executable script to generate a graph visualising the training
          statistics for a particular version of the CDR3 BERT model.
 author: Yuta Nagano
-ver: 3.0.0
+ver: 3.0.1
 '''
 
 
@@ -111,15 +111,15 @@ def draw_figure(train_stat_dfs: list) -> matplotlib.figure.Figure:
     # Plot top and middle panels (Loss and Accuracy)
     for df in train_stat_dfs:
         # Plot top panel (Loss)
-        loss.plot(df['train_loss'],c='tab:blue')
-        loss.plot(df['valid_loss'],c='tab:orange')
+        loss.plot(df['train_loss'],c='C0')
+        loss.plot(df['valid_loss'],c='C1')
 
         # Plot middle panel (Accuracy)
-        acc.plot(df['train_acc'],c='tab:blue')
-        acc.plot(df['valid_acc'],c='tab:orange')
+        acc.plot(df['train_acc'],c='C0')
+        acc.plot(df['valid_acc'],c='C1')
 
     # Plot bottom panel (Learning rate)
-    lr.plot(train_stat_dfs[0]['avg_lr'],c='tab:green')
+    lr.plot(train_stat_dfs[0]['avg_lr'],c='C2')
 
     # Create legends
     loss.legend(('training loss','validation loss'),loc='upper right')
