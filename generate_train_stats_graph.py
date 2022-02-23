@@ -3,7 +3,7 @@ generate_train_stats_graph.py
 purpose: Executable script to generate a graph visualising the training
          statistics for a particular version of the CDR3 BERT model.
 author: Yuta Nagano
-ver: 3.0.1
+ver: 3.0.2
 '''
 
 
@@ -76,9 +76,7 @@ def draw_figure(train_stat_dfs: list) -> matplotlib.figure.Figure:
     matplotlib figure that summarises the data, and return the figure object.
     '''
     # Take note of the number of epochs worth of data there is
-    # The '-1' is because the last row of every dataframe is for jumbled loss (
-    # not part of the training loop)
-    epochs = len(train_stat_dfs[0]) - 1
+    epochs = len(train_stat_dfs[0]['train_loss'].dropna())
 
     # Create figure
     fig = plt.figure(figsize=(8,8))
