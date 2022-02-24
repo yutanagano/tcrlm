@@ -3,7 +3,7 @@ pretrain.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 2.1.5
+ver: 2.1.6
 '''
 
 
@@ -33,7 +33,8 @@ hyperparams_test = {
     'd_model': 16,
     'nhead': 4,
     'dim_feedforward': 128,
-    'batch_size': 6,
+    'train_batch_size': 6,
+    'valid_batch_size': 6,
     'batch_optimisation': True,
     'lr_scheduling': True,
     'lr': 0.001,
@@ -467,14 +468,14 @@ def train(
         )
         train_dataloader = CDR3DataLoader(
             dataset=train_dataset,
-            batch_size=hyperparameters['batch_size'],
+            batch_size=hyperparameters['train_batch_size'],
             distributed_sampler=train_sampler
         )
     # Otherwise, create a standard dataloader
     else:
         train_dataloader = CDR3DataLoader(
             dataset=train_dataset,
-            batch_size=hyperparameters['batch_size'],
+            batch_size=hyperparameters['train_batch_size'],
             shuffle=True,
             batch_optimisation=hyperparameters['batch_optimisation']
         )
@@ -486,7 +487,7 @@ def train(
     )
     val_dataloader = CDR3DataLoader(
         dataset=val_dataset,
-        batch_size=hyperparameters['batch_size'],
+        batch_size=hyperparameters['valid_batch_size'],
         batch_optimisation=True
     )
 
@@ -659,7 +660,7 @@ def main(
 
         # If not fixed_batch_size, modify the batch size based on how many CUDA
         # devices the training process will be split over
-        if not fixed_batch_size: hp['batch_size'] //= n_gpus
+        if not fixed_batch_size: hp['train_batch_size'] //= n_gpus
 
         # Set the required environment variables to properly create a process
         # group
