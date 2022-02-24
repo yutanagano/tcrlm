@@ -3,7 +3,7 @@ pretrain.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 2.1.4
+ver: 2.1.5
 '''
 
 
@@ -649,6 +649,12 @@ def main(
         print(
             f'{n_gpus} CUDA devices expected, setting up distributed '\
             'training...'
+        )
+
+        # To help with debugging in case of funky device allocation (especially
+        # on the cluster) print the number of CUDA devices detected at runtime
+        print(
+            f'{torch.cuda.device_count()} CUDA devices detected...'
         )
 
         # If not fixed_batch_size, modify the batch size based on how many CUDA
