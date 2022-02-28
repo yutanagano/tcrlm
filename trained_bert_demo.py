@@ -4,7 +4,7 @@ purpose: Executable script to generate demo visualisations of a specified
          trained DR3 BERT model doing masked-residue modelling on a random
          selection of CDR3s from the testing set.
 author: Yuta Nagano
-ver: 3.0.0
+ver: 3.0.1
 '''
 
 
@@ -138,11 +138,13 @@ def main(run_id: str):
     '''
 
     # Load the trained model
+    print('Loading model...')
     model = torch.load(
         os.path.join('training_runs',run_id,'trained_model.ptnn')
     )
 
     # Load the testing set
+    print('Loading dataset...')
     ds = pd.read_csv(hyperparams['path_valid_data'])
 
     # Get a sample of CDR3s from the testing set
@@ -150,12 +152,16 @@ def main(run_id: str):
 
     # Generate a demo plot for each CDR3
     for cdr3 in cdr3s:
+        print(f'Generating plot for: {cdr3}...')
+
         fig = generate_plot(model, cdr3)
 
         # Save the generated figure
         fig.savefig(
             os.path.join('training_runs',run_id,f'{cdr3}.png')
         )
+    
+    print('Done!')
 
 
 if __name__ == '__main__':
