@@ -3,7 +3,7 @@ data_handling.py
 purpose: Python module with classes involved in the loading and preprocessing
          CDR3 data.
 author: Yuta Nagano
-ver: 3.1.1
+ver: 3.1.2
 '''
 
 
@@ -255,6 +255,7 @@ class CDR3DataLoader(DataLoader):
         self,
         dataset: CDR3Dataset,
         batch_size: int,
+        num_workers: int = 0,
         shuffle: bool = False,
         distributed_sampler = None,
         batch_optimisation: bool = False
@@ -276,7 +277,9 @@ class CDR3DataLoader(DataLoader):
                     batch_size=batch_size,
                     shuffle=shuffle
                 ),
-                collate_fn=self.collate_fn
+                num_workers=num_workers,
+                collate_fn=self.collate_fn,
+                pin_memory=True
             )
         elif distributed_sampler:
             assert(type(distributed_sampler) == DistributedSampler)
@@ -289,8 +292,8 @@ class CDR3DataLoader(DataLoader):
                 dataset=dataset,
                 batch_size=batch_size,
                 shuffle=False,
+                num_workers=num_workers,
                 collate_fn=self.collate_fn,
-                num_workers=0,
                 pin_memory=True,
                 sampler=distributed_sampler
             )
@@ -299,7 +302,9 @@ class CDR3DataLoader(DataLoader):
                 dataset=dataset,
                 batch_size=batch_size,
                 shuffle=shuffle,
-                collate_fn=self.collate_fn
+                num_workers=num_workers,
+                collate_fn=self.collate_fn,
+                pin_memory=True
             )
 
 

@@ -3,7 +3,7 @@ pretrain.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 2.1.6
+ver: 2.1.7
 '''
 
 
@@ -459,7 +459,10 @@ def train(
                 'distributed training mode.'
             )
         
-        train_sampler = DistributedSampler(
+        # NOTE: the set_epoch() method on the distributed sampler will need to
+        #       be called at the start of every epoch in order for the shuffling
+        #       to be done correctly at every epoch.
+        distributed_sampler = DistributedSampler(
             dataset=train_dataset,
             num_replicas=world_size,
             rank=device.index,
@@ -469,13 +472,15 @@ def train(
         train_dataloader = CDR3DataLoader(
             dataset=train_dataset,
             batch_size=hyperparameters['train_batch_size'],
-            distributed_sampler=train_sampler
+            num_workers=4,
+            distributed_sampler=distributed_sampler
         )
     # Otherwise, create a standard dataloader
     else:
         train_dataloader = CDR3DataLoader(
             dataset=train_dataset,
             batch_size=hyperparameters['train_batch_size'],
+            num_workers=4,
             shuffle=True,
             batch_optimisation=hyperparameters['batch_optimisation']
         )
@@ -488,6 +493,7 @@ def train(
     val_dataloader = CDR3DataLoader(
         dataset=val_dataset,
         batch_size=hyperparameters['valid_batch_size'],
+        num_workers=4,
         batch_optimisation=True
     )
 
@@ -519,8 +525,13 @@ def train(
 
     # Begin training loop
     for epoch in range(1, hyperparameters['num_epochs']+1):
-        # Do an epoch through the training data
         print_with_deviceid(f'Beginning epoch {epoch}...', device)
+
+        # If in distributed mode, inform the distributed sampler that a new
+        # epoch is beginning
+        if distributed: distributed_sampler.set_epoch(epoch)
+
+        # Do an epoch through the training data
         train_stats = train_epoch(
             model,
             train_dataloader,
