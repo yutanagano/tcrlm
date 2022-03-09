@@ -1,10 +1,10 @@
 import pytest
-from source.data_handling import CDR3Dataset, PadMinimalBatchSampler
+from source.data_handling import Cdr3PretrainDataset, PadMinimalBatchSampler
 
 
 @pytest.fixture(scope='module')
 def instantiate_dataset():
-    dataset = CDR3Dataset('tests/data/mock_data.csv')
+    dataset = Cdr3PretrainDataset('tests/data/mock_unlabelled_data.csv')
     yield dataset
 
 

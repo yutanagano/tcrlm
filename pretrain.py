@@ -3,7 +3,7 @@ pretrain.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 2.1.7
+ver: 2.1.8
 '''
 
 
@@ -21,14 +21,16 @@ from tqdm import tqdm
 import shutil
 
 from source.cdr3bert import Cdr3Bert
-from source.data_handling import CDR3Dataset, CDR3DataLoader
-from source.training import create_padding_mask, AdamWithScheduling
+from source.data_handling import Cdr3PretrainDataset, Cdr3PretrainDataLoader
+from source.training import AdamWithScheduling
 
 
 # Hyperparameter preset for testing mode
 hyperparams_test = {
-    'path_train_data': os.path.join('tests', 'data', 'mock_data.csv'),
-    'path_valid_data': os.path.join('tests', 'data', 'mock_data.csv'),
+    'path_train_data': os.path.join(
+        'tests', 'data', 'mock_unlabelled_data.csv'),
+    'path_valid_data': os.path.join(
+        'tests', 'data', 'mock_unlabelled_data.csv'),
     'num_encoder_layers': 16,
     'd_model': 16,
     'nhead': 4,
@@ -204,11 +206,8 @@ def train_epoch(
         x = x.to(device)
         y = y.to(device)
 
-        # Create padding mask for batch
-        padding_mask = create_padding_mask(x)
-
         # Forward pass
-        logits = model(x=x, padding_mask=padding_mask)
+        logits = model.fill_in(x)
         logits = logits.view(-1,logits.size(-1))
         y = y.view(-1)
 
@@ -261,11 +260,8 @@ def validate(
         x = x.to(device)
         y = y.to(device)
 
-        # Create padding mask for batch
-        padding_mask = create_padding_mask(x)
-
         # Forward pass
-        logits = model(x=x, padding_mask=padding_mask)
+        logits = model.fill_in(x)
         logits = logits.view(-1,logits.size(-1))
         y = y.view(-1)
 
@@ -438,7 +434,9 @@ def train(
 
     print_with_deviceid('Loading cdr3 data into memory...', device)
 
-    train_dataset = CDR3Dataset(path_to_csv=hyperparameters['path_train_data'])
+    train_dataset = Cdr3PretrainDataset(
+        path_to_csv=hyperparameters['path_train_data']
+    )
     # Create a split dataloader if distributed
     # NOTE: batch_optimisation is currently unsupported in distributed mode, as
     #       specifying distributed_sampler is mutually exclusive with having
@@ -469,7 +467,7 @@ def train(
             shuffle=True,
             seed=0
         )
-        train_dataloader = CDR3DataLoader(
+        train_dataloader = Cdr3PretrainDataLoader(
             dataset=train_dataset,
             batch_size=hyperparameters['train_batch_size'],
             num_workers=4,
@@ -477,7 +475,7 @@ def train(
         )
     # Otherwise, create a standard dataloader
     else:
-        train_dataloader = CDR3DataLoader(
+        train_dataloader = Cdr3PretrainDataLoader(
             dataset=train_dataset,
             batch_size=hyperparameters['train_batch_size'],
             num_workers=4,
@@ -485,12 +483,12 @@ def train(
             batch_optimisation=hyperparameters['batch_optimisation']
         )
 
-    val_dataset = CDR3Dataset(
+    val_dataset = Cdr3PretrainDataset(
         path_to_csv=hyperparameters['path_valid_data'],
         p_mask_random=0,
         p_mask_keep=0
     )
-    val_dataloader = CDR3DataLoader(
+    val_dataloader = Cdr3PretrainDataLoader(
         dataset=val_dataset,
         batch_size=hyperparameters['valid_batch_size'],
         num_workers=4,

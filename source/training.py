@@ -2,15 +2,11 @@
 training.py
 purpose: Python module with helper classes for training CDR3Bert.
 author: Yuta Nagano
-ver: 2.0.0
+ver: 2.1.0
 '''
 
 
 import torch
-
-
-def create_padding_mask(x: torch.Tensor) -> torch.Tensor:
-    return x == 21
 
 
 class AdamWithScheduling:

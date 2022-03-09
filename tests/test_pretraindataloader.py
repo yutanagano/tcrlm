@@ -2,23 +2,26 @@ import os
 import pytest
 import torch
 from torch.utils.data.distributed import DistributedSampler
-from source.data_handling import CDR3Dataset, CDR3DataLoader
+from source.data_handling import Cdr3PretrainDataset, Cdr3PretrainDataLoader
 
 
 @pytest.fixture(scope='module')
 def get_path_to_mock_csv(get_path_to_project):
-    return os.path.join(get_path_to_project, 'tests/data/mock_data.csv')
+    return os.path.join(
+        get_path_to_project,
+        'tests/data/mock_unlabelled_data.csv'
+    )
 
 
 @pytest.fixture(scope='module')
 def instantiate_dataset(get_path_to_mock_csv):
-    dataset = CDR3Dataset(path_to_csv=get_path_to_mock_csv)
+    dataset = Cdr3PretrainDataset(path_to_csv=get_path_to_mock_csv)
     yield dataset
 
 
 @pytest.fixture(scope='module')
 def instantiate_dataloader(instantiate_dataset):
-    dataloader = CDR3DataLoader(
+    dataloader = Cdr3PretrainDataLoader(
         dataset=instantiate_dataset,
         batch_size=5
     )
@@ -40,7 +43,7 @@ def test_dataloader(instantiate_dataloader):
 
 
 def test_dataloader_with_optim(instantiate_dataset):
-    dataloader = CDR3DataLoader(
+    dataloader = Cdr3PretrainDataLoader(
         dataset=instantiate_dataset,
         batch_size=5,
         batch_optimisation=True
@@ -85,7 +88,7 @@ def test_dataloader_with_distributed_sampler(instantiate_dataset):
         shuffle=True,
         seed=0
     )
-    dataloader = CDR3DataLoader(
+    dataloader = Cdr3PretrainDataLoader(
         dataset=instantiate_dataset,
         batch_size=5,
         distributed_sampler=test_sampler
@@ -93,9 +96,9 @@ def test_dataloader_with_distributed_sampler(instantiate_dataset):
 
     # Ensure that the dataloader length is half (becuase num_replicas = 2) of
     # the length of the dataset, divided by 5 (because batch_size = 5). The
-    # 'plus one' is to ensure that the integer division returns the ceiling of
+    # 'plus four' is to ensure that the integer division returns the ceiling of
     # the division, and not the floor.
-    assert(len(dataloader) == (len(instantiate_dataset) + 1) // (2 * 5))
+    assert(len(dataloader) == (len(instantiate_dataset) + 4) // (2 * 5))
 
     for i in range(2):
         for src_batch, tgt_batch in dataloader:
@@ -119,7 +122,7 @@ def test_get_set_jumble(instantiate_dataloader):
 def test_incorrect_dataset_type():
     dataset = torch.utils.data.Dataset()
     with pytest.raises(AssertionError):
-        dataloader = CDR3DataLoader(dataset, 5)
+        dataloader = Cdr3PretrainDataLoader(dataset, 5)
 
 
 def test_bad_jumble_value(instantiate_dataloader):
@@ -136,7 +139,7 @@ def test_set_both_distributed_sampler_batch_optim(instantiate_dataset):
         seed=0
     )
     with pytest.raises(RuntimeError):
-        dataloader = CDR3DataLoader(
+        dataloader = Cdr3PretrainDataLoader(
             dataset=instantiate_dataset,
             batch_size=5,
             distributed_sampler=test_sampler,
@@ -153,7 +156,7 @@ def test_set_both_distributed_sampler_shuffle(instantiate_dataset):
         seed=0
     )
     with pytest.raises(RuntimeError):
-        dataloader = CDR3DataLoader(
+        dataloader = Cdr3PretrainDataLoader(
             dataset=instantiate_dataset,
             batch_size=5,
             shuffle=True,
@@ -163,7 +166,7 @@ def test_set_both_distributed_sampler_shuffle(instantiate_dataset):
 
 def test_set_bad_distributed_sampler(instantiate_dataset):
     with pytest.raises(AssertionError):
-        dataloader = CDR3DataLoader(
+        dataloader = Cdr3PretrainDataLoader(
             dataset=instantiate_dataset,
             batch_size=5,
             distributed_sampler=5

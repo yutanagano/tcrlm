@@ -3,12 +3,15 @@ import random
 import re
 import pandas as pd
 import pytest
-from source.data_handling import CDR3Dataset
+from source.data_handling import Cdr3PretrainDataset
 
 
 @pytest.fixture(scope='module')
 def get_path_to_mock_csv(get_path_to_project):
-    return os.path.join(get_path_to_project, 'tests/data/mock_data.csv')
+    return os.path.join(
+        get_path_to_project,
+        'tests/data/mock_unlabelled_data.csv'
+    )
 
 
 @pytest.fixture(scope='module')
@@ -19,7 +22,7 @@ def get_dataframe(get_path_to_mock_csv):
 
 @pytest.fixture(scope='module')
 def instantiate_dataset(get_path_to_mock_csv):
-    dataset = CDR3Dataset(path_to_csv=get_path_to_mock_csv)
+    dataset = Cdr3PretrainDataset(path_to_csv=get_path_to_mock_csv)
     yield dataset
 
 
@@ -124,15 +127,22 @@ def test_jumble_mode(instantiate_dataset, get_dataframe):
 # Negative tests
 def test_bad_csv_path():
     with pytest.raises(RuntimeError):
-        CDR3Dataset('/some/bad/path')
+        Cdr3PretrainDataset('/some/bad/path')
 
 
 def test_nonexistent_csv_path(get_path_to_project):
     with pytest.raises(RuntimeError):
-        CDR3Dataset(os.path.join(get_path_to_project, 'README.md'))
+        Cdr3PretrainDataset(os.path.join(get_path_to_project, 'README.md'))
 
 
 def test_bad_jumble_set(instantiate_dataset):
     dataset = instantiate_dataset
     with pytest.raises(AssertionError):
         dataset.jumble = 'True'
+
+
+def test_bad_csv_format(get_path_to_project):
+    with pytest.raises(RuntimeError):
+        Cdr3PretrainDataset(
+            os.path.join(get_path_to_project, 'tests/data/bad_format.csv')
+        )
