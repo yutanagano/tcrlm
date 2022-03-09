@@ -3,7 +3,7 @@ pretrain.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 2.1.8
+ver: 2.1.9
 '''
 
 
@@ -20,7 +20,7 @@ from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm
 import shutil
 
-from source.cdr3bert import Cdr3Bert
+from source.cdr3bert import Cdr3Bert, Cdr3BertPretrainWrapper
 from source.data_handling import Cdr3PretrainDataset, Cdr3PretrainDataLoader
 from source.training import AdamWithScheduling
 
@@ -207,7 +207,7 @@ def train_epoch(
         y = y.to(device)
 
         # Forward pass
-        logits = model.fill_in(x)
+        logits = model(x)
         logits = logits.view(-1,logits.size(-1))
         y = y.view(-1)
 
@@ -261,7 +261,7 @@ def validate(
         y = y.to(device)
 
         # Forward pass
-        logits = model.fill_in(x)
+        logits = model(x)
         logits = logits.view(-1,logits.size(-1))
         y = y.view(-1)
 
@@ -335,8 +335,9 @@ def save_model(
         destination = os.path.join(dirpath, f'trained_model_{device}.ptnn')
         print_with_deviceid(f'Saving model to {destination}...', device)
 
-        # As above, the DDP object must be unwrapped before saving.
-        torch.save(model.module.cpu(), destination)
+        # As we are running in distributed mode, the DDP object must be
+        # unwrapped, then the wrapper class unwrapped before saving.
+        torch.save(model.module.bert.cpu(), destination)
 
     # Option 2: Save the model in the usual way (either the program is not
     # running in distributed mode, or if it is, it is the process with rank 0)
@@ -345,13 +346,12 @@ def save_model(
         destination = os.path.join(dirpath, 'trained_model.ptnn')
         print_with_deviceid(f'Saving model to {destination}...', device)
 
-        # If in distributed mode, the model will be wrapped in a Distributed-
-        # DataParallel wrapper. Therefore the module attribute of the DDP object
-        # (the actual model) should be saved, and not the DDP object.
-        if distributed: torch.save(model.module.cpu(), destination)
+        # If running in distributed mode, the DDP object must be unwrapped, then
+        # the pretrain wrapper class unwrapped before saving.
+        if distributed: torch.save(model.module.bert.cpu(), destination)
 
-        # Otherwise, the model is the model object itself, so save as usual.
-        else: torch.save(model.cpu(), destination)
+        # Otherwise, just unwrap the wrapper class and save.
+        else: torch.save(model.bert.cpu(), destination)
 
 
 def compare_models(n_gpus: int) -> None:
@@ -421,12 +421,13 @@ def train(
     # Instantiate model, dataloader and any other objects required for training
     print_with_deviceid('Instantiating cdr3bert model...', device)
 
-    model = Cdr3Bert(
+    bert = Cdr3Bert(
         num_encoder_layers=hyperparameters['num_encoder_layers'],
         d_model=hyperparameters['d_model'],
         nhead=hyperparameters['nhead'],
         dim_feedforward=hyperparameters['dim_feedforward']
-    ).to(device)
+    )
+    model = Cdr3BertPretrainWrapper(bert).to(device)
 
     # Wrap the model with DistributedDataParallel if distributed
     if distributed:

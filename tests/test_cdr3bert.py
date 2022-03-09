@@ -1,6 +1,7 @@
 import pytest
 import torch
-from source.cdr3bert import Cdr3Bert, masked_average_pool
+from source.cdr3bert import masked_average_pool, \
+    Cdr3Bert, Cdr3BertPretrainWrapper
 
 
 @pytest.fixture(scope='module')
@@ -75,3 +76,12 @@ def test_embed(instantiate_bert):
     out = bert.embed(x=batch)
 
     assert(out.size() == (3,6))
+
+
+def test_pretrain_wrapper(instantiate_bert):
+    bert = instantiate_bert
+    pretrain_bert = Cdr3BertPretrainWrapper(bert)
+    batch = torch.zeros((3,10), dtype=torch.int)
+    out = pretrain_bert(x=batch)
+
+    assert(out.size() == (3,10,20))
