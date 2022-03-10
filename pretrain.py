@@ -3,7 +3,7 @@ pretrain.py
 purpose: Main executable python script which trains a cdr3bert instance and
          saves checkpoint models and training logs.
 author: Yuta Nagano
-ver: 2.1.9
+ver: 2.1.10
 '''
 
 
@@ -35,6 +35,7 @@ hyperparams_test = {
     'd_model': 16,
     'nhead': 4,
     'dim_feedforward': 128,
+    'activation': 'gelu',
     'train_batch_size': 6,
     'valid_batch_size': 6,
     'batch_optimisation': True,
@@ -425,7 +426,8 @@ def train(
         num_encoder_layers=hyperparameters['num_encoder_layers'],
         d_model=hyperparameters['d_model'],
         nhead=hyperparameters['nhead'],
-        dim_feedforward=hyperparameters['dim_feedforward']
+        dim_feedforward=hyperparameters['dim_feedforward'],
+        activation=hyperparameters['activation']
     )
     model = Cdr3BertPretrainWrapper(bert).to(device)
 
