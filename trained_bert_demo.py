@@ -4,7 +4,7 @@ purpose: Executable script to generate demo visualisations of a specified
          trained DR3 BERT model doing masked-residue modelling on a random
          selection of CDR3s from the testing set.
 author: Yuta Nagano
-ver: 3.0.1
+ver: 3.0.2
 '''
 
 
@@ -72,7 +72,7 @@ def test_at_index(
     mask = torch.zeros(tokenised.size())
 
     # Run the masked sequence through the model
-    out = model(tokenised, mask)
+    out = model.fill_in(tokenised)
 
     # Get the confidence distribution for the masked token prediction
     dist = F.softmax(out[0, index],dim=-1)

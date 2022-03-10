@@ -6,7 +6,7 @@ purpose: This file contains various TCR/CDR3 algorithms wrapped in a wrapper
          performances of various TCR/CDR3 algorithms in their ability to
          identify similarities between those that respond to the same epitope.
 author: Yuta Nagano
-version: 1.0.0
+version: 1.1.0
 '''
 
 
@@ -15,8 +15,12 @@ from abc import ABC, abstractmethod
 import numpy as np
 from numpy import dot
 from numpy.linalg import norm
+import os
 from polyleven import levenshtein
+import torch
+
 from source.atchley_encoder import atchley_encode
+from source.data_handling import tokenise
 
 
 # Helper functions
@@ -33,22 +37,30 @@ class BenchmarkAlgo(ABC):
     takes two string arguments, cdr3_a and cdr3_b, and returns a numerical score
     that represents some similarity metric between the two.
     '''
-    name = ''
 
 
-    @staticmethod
+    @property
     @abstractmethod
-    def similarity_func(cdr3_a: str, cdr3_b: str): return 0
+    def name(self) -> str: return ''
+
+
+    @abstractmethod
+    def similarity_func(self, cdr3_a: str, cdr3_b: str): return 0
     
 
 # Children classes
 class NegativeLevenshtein(BenchmarkAlgo):
-    # Negative levenshtein distance wrapped.
-    name = 'Negative Levenshtein'
+    '''
+    Negative levenshtein distance wrapped.
+    '''
 
 
-    @staticmethod
-    def similarity_func(cdr3_a: str, cdr3_b: str) -> int:
+    @property
+    def name(self) -> str:
+        return 'Negative Levenshtein'
+
+
+    def similarity_func(self, cdr3_a: str, cdr3_b: str) -> int:
         return -levenshtein(cdr3_a, cdr3_b)
 
 
@@ -59,9 +71,48 @@ class AtchleyCs(BenchmarkAlgo):
     similarity score between two cdr3s are calculated as the cosine similarity
     between them. See source/atchley_encoder.py for more details.
     '''
-    name = 'Averaged Atchley Factors + Cosine Distance'
+
+
+    @property
+    def name(self) -> str:
+        return 'Averaged Atchley Factors + Cosine Distance'
 
     
-    @staticmethod
-    def similarity_func(cdr3_a: str, cdr3_b: str) -> float:
+    def similarity_func(self, cdr3_a: str, cdr3_b: str) -> float:
         return cosine_similarity(atchley_encode(cdr3_a), atchley_encode(cdr3_b))
+
+
+class PretrainCdr3Bert(BenchmarkAlgo):
+    '''
+    This is a wrapper to benchmark a pretrained instance of a Cdr3Bert model.
+    '''
+
+
+    def __init__(self, run_id: str = None, test_mode: bool = False):
+        # If in test mode, load toy model
+        if test_mode:
+            path_to_model = 'tests/models/trained_model.ptnn'
+        # Otherwise load model specified by run id
+        else:
+            if run_id is None:
+                raise RuntimeError(
+                    'Please specify a run id.'
+                )
+            path_to_model = os.path.join(
+                'training_runs', run_id, 'trained_model.ptnn'
+            )
+        self.model = torch.load(path_to_model)
+
+    
+    @property
+    def name(self) -> str:
+        return 'CDR3 BERT (Pretrained)'
+
+
+    def similarity_func(self, cdr3_a: str, cdr3_b: str) -> float:
+        cdr3_a_tokenised = tokenise(cdr3_a).unsqueeze(0)
+        cdr3_b_tokenised = tokenise(cdr3_b).unsqueeze(0)
+        return cosine_similarity(
+            self.model.embed(cdr3_a_tokenised).squeeze().detach().numpy(),
+            self.model.embed(cdr3_b_tokenised).squeeze().detach().numpy()
+        )

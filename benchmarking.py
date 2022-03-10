@@ -5,7 +5,7 @@ purpose: This script takes various different algorithms that can define
          performance in terms of their ability to recognise CDR3s that are
          functionally similar (i.e. they respond to the same epitope).
 author: Yuta Nagano
-version: 1.0.0
+version: 1.1.0
 '''
 
 
@@ -18,8 +18,9 @@ from tqdm import tqdm
 
 # Organise the algorithms into a list
 algo_list = (
-    algos.NegativeLevenshtein,
-    algos.AtchleyCs
+    algos.NegativeLevenshtein(),
+    algos.AtchleyCs(),
+    algos.PretrainCdr3Bert('22-03-09-20:12')
 )
 
 
@@ -34,10 +35,11 @@ def get_similarities_from_algo(similarity_func, test_set) -> list:
     similarities = []
 
     # Iterate through every row and save similarity between the cdr3 pair
-    for i, row in tqdm(test_set.iterrows(), total=len(test_set)):
+    for i, row in test_set.iterrows():
         cdr3_a = row['CDR3_A']
         cdr3_b = row['CDR3_B']
         similarity = similarity_func(cdr3_a, cdr3_b)
+        print(similarity)
         # Save the result in the list
         similarities.append(similarity)
 

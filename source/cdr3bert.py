@@ -4,7 +4,7 @@ purpose: Python module with classes that represent the code base for the BERT-
          based neural network models that will be able to learn and process TCR
          beta-chain CDR3 sequences.
 author: Yuta Nagano
-ver: 2.1.0
+ver: 2.1.1
 '''
 
 
@@ -37,8 +37,10 @@ def masked_average_pool(
     S - number of tokens in sequence i.e. sequence length
     V - vocabulary size (in this case 20 for 20 amino acids)
     '''
-    # Resize padding mask to make it broadcastable with token embeddings
-    padding_mask = padding_mask.unsqueeze(-1)
+    # Reverse the boolean values of the mask to mark where the tokens are, as
+    # opposed to where the tokens are not. Then, resize padding mask to make it
+    # broadcastable with token embeddings
+    padding_mask = padding_mask.logical_not().unsqueeze(-1)
 
     # Compute averages of token embeddings per sequence, ignoring padding tokens
     token_embeddings_masked = token_embeddings * padding_mask
