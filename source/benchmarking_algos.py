@@ -6,7 +6,7 @@ purpose: This file contains various TCR/CDR3 algorithms wrapped in a wrapper
          performances of various TCR/CDR3 algorithms in their ability to
          identify similarities between those that respond to the same epitope.
 author: Yuta Nagano
-version: 1.1.0
+version: 1.1.1
 '''
 
 
@@ -91,7 +91,7 @@ class PretrainCdr3Bert(BenchmarkAlgo):
     def __init__(self, run_id: str = None, test_mode: bool = False):
         # If in test mode, load toy model
         if test_mode:
-            path_to_model = 'tests/models/trained_model.ptnn'
+            path_to_model = 'tests/demo_models/pretrained.ptnn'
         # Otherwise load model specified by run id
         else:
             if run_id is None:
@@ -99,7 +99,7 @@ class PretrainCdr3Bert(BenchmarkAlgo):
                     'Please specify a run id.'
                 )
             path_to_model = os.path.join(
-                'training_runs', run_id, 'trained_model.ptnn'
+                'pretrain_runs', run_id, 'pretrained.ptnn'
             )
         self.model = torch.load(path_to_model)
 

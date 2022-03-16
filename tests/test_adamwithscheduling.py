@@ -6,28 +6,13 @@ from source.training import AdamWithScheduling
 @pytest.fixture(scope='function')
 def instantiate_scheduled_optimiser():
     model = Linear(4, 4)
-    scheduled_optim = AdamWithScheduling(params=model.parameters(),
-                                         lr=0.001,
-                                         betas=(0.9,0.999),
-                                         eps=1e-08,
-                                         lr_multiplier=2,
-                                         d_model=4,
-                                         n_warmup_steps=5)
+    scheduled_optim = AdamWithScheduling(
+        params=model.parameters(),
+        d_model=4,
+        n_warmup_steps=5,
+        lr_multiplier=2
+    )
     yield scheduled_optim
-
-
-@pytest.fixture(scope='function')
-def instantiate_unscheduled_optimiser():
-    model = Linear(4, 4)
-    optim = AdamWithScheduling(params=model.parameters(),
-                               lr=0.001,
-                               betas=(0.9, 0.999),
-                               eps=1e-08,
-                               lr_multiplier=2,
-                               d_model=4,
-                               n_warmup_steps=5,
-                               scheduling=False)
-    yield optim
 
 
 # Positive tests
@@ -56,8 +41,38 @@ def test_scheduled_lr(instantiate_scheduled_optimiser):
             assert(param_group['lr'] == calculate_lr(i))
 
 
-def test_unscheduled_lr(instantiate_unscheduled_optimiser):
-    optim = instantiate_unscheduled_optimiser
+def test_scheduled_lr_no_decay():
+    model = Linear(4, 4)
+    optim = AdamWithScheduling(
+        params=model.parameters(),
+        d_model=4,
+        n_warmup_steps=5,
+        decay=False
+    )
+
+    def calculate_lr(step_num):
+        return min(
+            0.001,
+            step_num / 5 * 0.001
+        )
+    
+    for i in range(1,1+10):
+        assert(optim.lr == calculate_lr(i))
+        optim.zero_grad()
+        optim.step()
+
+        for param_group in optim.optimiser.param_groups:
+            assert(param_group['lr'] == calculate_lr(i))
+
+
+def test_unscheduled_lr():
+    model = Linear(4, 4)
+    optim = AdamWithScheduling(
+        params=model.parameters(),
+        d_model=4,
+        n_warmup_steps=5,
+        scheduling=False
+    )
 
     for i in range(10):
         assert(optim.lr == 0.001)

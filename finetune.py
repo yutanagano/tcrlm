@@ -1,14 +1,14 @@
 '''
-pretrain.py
-purpose: Main executable python script which performs pretraining of a Cdr3Bert
-         model instance on unlabelled CDR3 data.
+finetune.py
+purpose: Main executable python script which performs finetuning of a Cdr3Bert
+         model instance on labelled CDR3 data.
 author: Yuta Nagano
-ver: 3.0.0
+ver: 1.0.0
 '''
 
 
 import argparse
-from hyperparams import pretrain_hyperparams
+from hyperparams import finetune_hyperparams
 import os
 import time
 import torch
@@ -19,27 +19,22 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm
 
-from source.cdr3bert import Cdr3Bert, Cdr3BertPretrainWrapper
-from source.data_handling import Cdr3PretrainDataset, Cdr3PretrainDataLoader
+from source.cdr3bert import Cdr3Bert, Cdr3BertFineTuneWrapper
+from source.data_handling import Cdr3FineTuneDataset, Cdr3FineTuneDataLoader
 from source.training import create_training_run_directory, \
-    write_hyperparameters, set_env_vars, print_with_deviceid, compare_models, \
-    save_log, save_model, AdamWithScheduling
+    print_with_deviceid, set_env_vars, write_hyperparameters, save_log, \
+    save_model, AdamWithScheduling
 
 
 # Hyperparameter preset for testing mode
 hyperparams_test = {
+    'pretrain_id': 'test',
     'path_train_data': os.path.join(
-        'tests', 'data', 'mock_unlabelled_data.csv'),
+        'tests', 'data', 'mock_labelled_data.csv'),
     'path_valid_data': os.path.join(
-        'tests', 'data', 'mock_unlabelled_data.csv'),
-    'num_encoder_layers': 16,
-    'd_model': 16,
-    'nhead': 4,
-    'dim_feedforward': 128,
-    'activation': 'gelu',
+        'tests', 'data', 'mock_labelled_data.csv'),
     'train_batch_size': 6,
     'valid_batch_size': 6,
-    'batch_optimisation': True,
     'lr_scheduling': True,
     'lr': 0.001,
     'optim_warmup': 5,
@@ -47,14 +42,13 @@ hyperparams_test = {
 }
 
 
-# Helper functions for training
+# Helper functions
 def parse_command_line_arguments() -> argparse.Namespace:
     '''
     Parse command line arguments using argparse.
     '''
-    # Create an argument parser
     parser = argparse.ArgumentParser(
-        description='Main training loop script for CDR3 BERT pre-training.'
+        description='Main training loop script for CDR3 BERT fine-tuning.'
     )
 
     # Add relevant arguments
@@ -72,8 +66,8 @@ def parse_command_line_arguments() -> argparse.Namespace:
             'distributed training mode, the batch size will be adaptively ' + \
             'modified based on how many CUDA devices are available. That ' + \
             'is, new_batch_size = old_batch_size // nGPUs. If this flag ' + \
-            'is specified, this feature is disabled and the batch size ' + \
-            'will be kept constant regardless of the number of CUDA devices.'
+            'is specified, this feature is disabled and the per-GPU batch ' + \
+            'size will be kept constant regardless of CUDA device numbers.'
     )
     parser.add_argument(
         '-q', '--no-progressbars',
@@ -92,7 +86,7 @@ def parse_command_line_arguments() -> argparse.Namespace:
             'run will always be set to "test" regardless of what is ' + \
             'specified in the command line argument. If a "test" training ' + \
             'run directory already exists, this will be deleted along with ' + \
-            'any contents.'
+            'any contents and replaced with the results of the new test run.'
     )
     parser.add_argument(
         'run_id',
@@ -104,37 +98,34 @@ def parse_command_line_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def instantiate_model(
+def load_pretrained_model(
     hyperparameters: dict,
     device: torch.device
-) -> Cdr3BertPretrainWrapper:
+) -> Cdr3BertFineTuneWrapper:
     '''
-    Instantiate a Cdr3Bert model and wrap it in a pretraining wrapper.
+    Load a pretrained Cdr3Bert model from a specified pretrain run.
     '''
-    bert = Cdr3Bert(
-        num_encoder_layers=hyperparameters['num_encoder_layers'],
-        d_model=hyperparameters['d_model'],
-        nhead=hyperparameters['nhead'],
-        dim_feedforward=hyperparameters['dim_feedforward'],
-        activation=hyperparameters['activation']
+    # Load pretrained model
+    saved_model_location = os.path.join(
+        'pretrain_runs', hyperparameters['pretrain_id'], 'pretrained.ptnn'
     )
-    return Cdr3BertPretrainWrapper(bert).to(device)
+    bert = torch.load(saved_model_location).bert
+    
+    return Cdr3BertFineTuneWrapper(bert).to(device)
 
 
 @torch.no_grad()
 def accuracy(x: torch.Tensor, y: torch.Tensor) -> float:
     '''
-    Calculate the accuracy of model predictions ignoring any padding tokens.
+    Calculate the accuracy of model predictions.
     '''
-    mask = (y != 21)
-    correct = torch.argmax(x,dim=-1) == y
-    correct_masked = correct & mask
-    return (correct_masked.sum() / mask.sum()).item()
+    correct = torch.argmax(x,dim=1) == y
+    return (correct.sum() / correct.size(0)).item()
 
 
 def train_epoch(
-    model: Cdr3BertPretrainWrapper,
-    dataloader: Cdr3PretrainDataLoader,
+    model: Module,
+    dataloader: Cdr3FineTuneDataLoader,
     criterion: Module,
     optimiser,
     device: torch.device,
@@ -152,23 +143,23 @@ def train_epoch(
     start_time = time.time()
 
     # Iterate through the dataloader
-    for x, y in tqdm(dataloader, desc=f'[{device}]', disable=no_progressbars):
-        x = x.to(device)
+    for x_a, x_b, y in \
+        tqdm(dataloader, desc=f'[{device}]', disable=no_progressbars):
+        x_a = x_a.to(device)
+        x_b = x_b.to(device)
         y = y.to(device)
 
         # Forward pass
-        logits = model(x)
-        logits = logits.view(-1,logits.size(-1))
-        y = y.view(-1)
+        logits = model(x_a, x_b)
 
         # Backward pass
         optimiser.zero_grad()
 
-        loss = criterion(logits,y)
+        loss = criterion(logits, y)
         loss.backward()
 
         optimiser.step()
-        
+
         # Increment stats
         total_loss += loss.item()
         total_acc += accuracy(logits,y)
@@ -178,7 +169,7 @@ def train_epoch(
 
     # Return a dictionary with stats averaged to represent per-sample values.
     # Since the loss value at each batch is averaged over the samples in it,
-    # the accumulated loss/accuracy values should be divided by the number of
+    # the accumulated loss/accuracy/lr values should be divided by the number of
     # batches in the dataloader.
     return {
         'train_loss': total_loss / len(dataloader),
@@ -190,8 +181,8 @@ def train_epoch(
 
 @torch.no_grad()
 def validate(
-    model: Cdr3BertPretrainWrapper,
-    dataloader: Cdr3PretrainDataLoader,
+    model: Cdr3BertFineTuneWrapper,
+    dataloader: Cdr3FineTuneDataLoader,
     criterion: Module,
     device: torch.device,
     no_progressbars: bool = False
@@ -206,14 +197,14 @@ def validate(
     total_acc = 0
 
     # Iterate through the dataloader
-    for x, y in tqdm(dataloader, desc=f'[{device}]', disable=no_progressbars):
-        x = x.to(device)
+    for x_a, x_b, y in \
+        tqdm(dataloader, desc=f'[{device}]', disable=no_progressbars):
+        x_a = x_a.to(device)
+        x_b = x_b.to(device)
         y = y.to(device)
 
         # Forward pass
-        logits = model(x)
-        logits = logits.view(-1,logits.size(-1))
-        y = y.view(-1)
+        logits = model(x_a, x_b)
 
         # Loss calculation
         loss = criterion(logits,y)
@@ -221,18 +212,14 @@ def validate(
         # Increment stats
         total_loss += loss.item()
         total_acc += accuracy(logits,y)
-
-    # Decide on appropriate name for the statistic calculated based on the
-    # dataloader's jumble status
-    if dataloader.jumble:
-        stat_names = ('jumble_loss','jumble_acc')
-    else:
-        stat_names = ('valid_loss','valid_acc')
     
-    # Return a dictionary with stats
+    # Return a dictionary with stats averaged to represent per-sample values.
+    # Since the loss value at each batch is averaged over the samples in it,
+    # the accumulated loss/accuracy/lr values should be divided by the number of
+    # batches in the dataloader.
     return {
-        stat_names[0]: total_loss / len(dataloader),
-        stat_names[1]: total_acc / len(dataloader)
+        'valid_loss': total_loss / len(dataloader),
+        'valid_acc' : total_acc / len(dataloader)
     }
 
 
@@ -245,7 +232,7 @@ def train(
     test_mode: bool = False
 ) -> None:
     '''
-    Pretrain an instance of a dr3Bert model using unlabelled CDR3 data. If
+    Fine-tune an instance of a Cdr3Bert model using labelled CDR3 data. If
     world_size > 1 (distributed training), perform necessary setup for
     synchronised parallel processing and splitting of the dataloader. Once
     training is finished, save the trained model as well as a log of training
@@ -254,20 +241,24 @@ def train(
     # If world_size is > 1, we are running in distributed mode
     distributed = (world_size > 1)
 
-    # Initialise process group if distributed
+    # Initialise process group if running in distributed mode
     if distributed:
         dist.init_process_group(
             backend='nccl',
             rank=device,
             world_size=world_size
         )
-
-    # Wrap device identifier with torch.device
+    
+    # For easier use, from here wrap the device identifier with torch.device
     device = torch.device(device)
 
-    # Instantiate model
-    print_with_deviceid('Instantiating cdr3bert model...', device)
-    model = instantiate_model(hyperparameters, device)
+    # Load model
+    print_with_deviceid(
+        'Loading pretrained model from pretrain run ID: '
+        f'{hyperparameters["pretrain_id"]}...',
+        device
+    )
+    model = load_pretrained_model(hyperparameters, device)
 
     # Wrap the model with DistributedDataParallel if distributed
     if distributed: model = DistributedDataParallel(model, device_ids=[device])
@@ -276,25 +267,11 @@ def train(
     print_with_deviceid('Loading cdr3 data into memory...', device)
 
     # Training data
-    train_dataset = Cdr3PretrainDataset(
-        path_to_csv=hyperparameters['path_train_data']
+    train_dataset = Cdr3FineTuneDataset(
+        path_to_csv = hyperparameters['path_train_data']
     )
-
-    # NOTE: batch_optimisation is currently unsupported in distributed mode, as
-    #       specifying distributed_sampler is mutually exclusive with having
-    #       batch_optimisation = True.
-    # TODO: implement randomised seeding for pseudorandom number generator at
-    #       runtime within main().
+    
     if distributed:
-        # The following warning message only needs to be printed by the main 
-        # process (rank 0).
-        if hyperparameters['batch_optimisation'] and device.index == 0:
-            print(
-                'WARNING: batch_optimisation has been set in hyperparameters, '\
-                'but this setting is currently unsupported when running in '\
-                'distributed training mode.'
-            )
-        
         # NOTE: the set_epoch() method on the distributed sampler will need to
         #       be called at the start of every epoch in order for the shuffling
         #       to be done correctly at every epoch.
@@ -305,32 +282,28 @@ def train(
             shuffle=True,
             seed=0
         )
-        train_dataloader = Cdr3PretrainDataLoader(
+        train_dataloader = Cdr3FineTuneDataLoader(
             dataset=train_dataset,
             batch_size=hyperparameters['train_batch_size'],
             num_workers=4,
             distributed_sampler=distributed_sampler
         )
     else:
-        train_dataloader = Cdr3PretrainDataLoader(
+        train_dataloader = Cdr3FineTuneDataLoader(
             dataset=train_dataset,
             batch_size=hyperparameters['train_batch_size'],
             num_workers=4,
-            shuffle=True,
-            batch_optimisation=hyperparameters['batch_optimisation']
+            shuffle=True
         )
 
     # Validation data
-    val_dataset = Cdr3PretrainDataset(
+    val_dataset = Cdr3FineTuneDataset(
         path_to_csv=hyperparameters['path_valid_data'],
-        p_mask_random=0,
-        p_mask_keep=0
     )
-    val_dataloader = Cdr3PretrainDataLoader(
+    val_dataloader = Cdr3FineTuneDataLoader(
         dataset=val_dataset,
         batch_size=hyperparameters['valid_batch_size'],
-        num_workers=4,
-        batch_optimisation=True
+        num_workers=4
     )
 
     # Instantiate loss function and optimiser
@@ -338,13 +311,13 @@ def train(
         'Instantiating other misc. objects for training...',
         device
     )
-    loss_fn = CrossEntropyLoss(ignore_index=21,label_smoothing=0.1)
+    loss_fn = CrossEntropyLoss()
     optimiser = AdamWithScheduling(
         params=model.parameters(),
-        d_model=hyperparameters['d_model'],
+        d_model=model.bert.d_model,
         n_warmup_steps=hyperparameters['optim_warmup'],
         lr=hyperparameters['lr'],
-        scheduling=hyperparameters['lr_scheduling']
+        decay=False
     )
 
     print_with_deviceid('Commencing training...', device)
@@ -391,36 +364,11 @@ def train(
             f'validation accuracy: {valid_stats["valid_acc"]:.3f}',
             device
         )
-
+        
         # Log stats
         stats_log[epoch] = {**train_stats, **valid_stats}
 
     print_with_deviceid('Training finished.', device)
-
-    # Evaluate the model on jumbled validation data to ensure that the model is
-    # learning something more than just amino acid residue frequencies.
-    print_with_deviceid(
-        'Evaluating model on jumbled validation data...',
-        device
-    )
-    val_dataloader.jumble = True
-    jumbled_valid_stats = validate(
-        model,
-        val_dataloader,
-        loss_fn,
-        device,
-        no_progressbars
-    )
-    
-    # Quick feedback
-    print_with_deviceid(
-        f'jumbled loss: {jumbled_valid_stats["jumble_loss"]:.3f} | '\
-        f'jumbled accuracy: {jumbled_valid_stats["jumble_acc"]:.3f}',
-        device
-    )
-
-    # Save the results of the jumbled data validation in the log.
-    stats_log[hyperparameters['num_epochs']+1] = jumbled_valid_stats
 
     time_taken = int(time.time() - start_time)
     print_with_deviceid(
@@ -432,13 +380,13 @@ def train(
     save_log(stats_log, save_dir_path, distributed, device)
     save_model(
         model,
-        'pretrained',
+        'finetuned',
         save_dir_path,
         distributed,
         device,
         test_mode
     )
-    
+
     # If distributed, then clean up by terminating the process group
     if distributed: dist.destroy_process_group()
 
@@ -468,19 +416,19 @@ def main(
                         toy data, etc.).
     '''
     # If the program is being run in testing mode, set the hyperparameters to
-    # the test mode preset, along with setting the run ID to 'test'. Otherwise,
+    # the testing preset, along with setting the run ID to 'test'. Otherwise,
     # set the hyperparameters to what is contained in the hyperparameters file.
     if test_mode:
         hp = hyperparams_test
         run_id = 'test'
     else:
-        hp = pretrain_hyperparams
+        hp = finetune_hyperparams
 
     # Claim space to store results of training run by creating a new directory
-    # based on the training id specified above
+    # based on the training ID specified above.
     dirpath = create_training_run_directory(
         run_id,
-        mode='pretrain',
+        mode='finetune',
         overwrite=test_mode
     )
 
@@ -543,9 +491,8 @@ def main(
 
 
 if __name__ == '__main__':
-    # Parse command line arguments
     args = parse_command_line_arguments()
-    
+
     main(
         args.run_id,
         args.gpus,

@@ -4,7 +4,7 @@ purpose: Python module with classes that represent the code base for the BERT-
          based neural network models that will be able to learn and process TCR
          beta-chain CDR3 sequences.
 author: Yuta Nagano
-ver: 2.1.1
+ver: 3.0.0
 '''
 
 
@@ -73,10 +73,12 @@ class PositionEncoder(nn.Module):
     Helper class that adds positional encoding to the token embedding to
     infuse the embeddings with information concerning token order.
     '''
-    def __init__(self,
-                 embedding_dim: int,
-                 dropout: float = 0.1,
-                 max_len: int = 200):
+    def __init__(
+        self,
+        embedding_dim: int,
+        dropout: float = 0.1,
+        max_len: int = 200
+    ):
         # Ensure that the embedding has an even number of dimensions
         assert(embedding_dim % 2 == 0)
 
@@ -120,11 +122,14 @@ class Cdr3Bert(nn.Module):
         nhead: int,
         dim_feedforward: int,
         dropout: float = 0.1,
-        activation: str = 'relu',
+        activation: str = 'gelu',
         layer_norm_eps: float = 1e-5
     ):
-        
         super(Cdr3Bert, self).__init__()
+
+        self._d_model = d_model
+        self._nhead = nhead
+        self._dim_feedforward = dim_feedforward
 
         # Create an instance of the encoder layer that we want
         encoder_layer = nn.TransformerEncoderLayer(
@@ -143,14 +148,6 @@ class Cdr3Bert(nn.Module):
             num_layers=num_encoder_layers
         )
         
-        # Create a fully-connected layer that will function as the final layer,
-        # which projects the fully processed token embeddings onto a probability
-        # distribution over all possible amino acid residues.
-        self.generator = nn.Linear(
-            in_features=d_model,
-            out_features=20
-        )
-        
         # Create an embedder that can take in a LongTensor representing a padded
         # batch of cdr3 sequences, and output a similar FloatTensor with an
         # extra dimension representing the embedding dimension.
@@ -166,6 +163,21 @@ class Cdr3Bert(nn.Module):
         for p in self.parameters():
             if p.dim() > 1:
                 nn.init.xavier_uniform_(p)
+
+
+    @property
+    def d_model(self) -> int:
+        return self._d_model
+    
+
+    @property
+    def nhead(self) -> int:
+        return self._nhead
+
+
+    @property
+    def dim_feedforward(self) -> int:
+        return self._dim_feedforward
 
 
     def forward(self, x: torch.Tensor) -> (torch.Tensor, torch.Tensor):
@@ -196,23 +208,6 @@ class Cdr3Bert(nn.Module):
         return out, padding_mask
 
 
-    def fill_in(self, x: torch.Tensor) -> torch.Tensor:
-        '''
-        Feed the model a batch of cdr3 sequences with certain amino acid
-        residues masked, and have the model generate a batch of sequences of
-        token probability distributions for those masked tokens.
-        Input: Batched and tokenised cdr3 sequences         (size: N,S)*
-        Output: Batched sequences of token probabilities    (size: N,S,V)*
-
-        * Dimensions are as follows:
-        N - number of items in batch i.e. batch size
-        S - number of tokens in sequence i.e. sequence length
-        V - vocabulary size (in this case 20 for 20 amino acids)
-        '''
-        # Return the generator projections of the BERT output
-        return self.generator(self.forward(x)[0])
-
-
     def embed(self, x: torch.Tensor) -> torch.Tensor:
         '''
         Use the model to generate fix-sized vector embeddings of CDR3s by
@@ -239,12 +234,81 @@ class Cdr3Bert(nn.Module):
 class Cdr3BertPretrainWrapper(nn.Module):
     '''
     Wrapper to put around a Cdr3Bert instance during pretraining to streamline
-    the forward pass.
+    the forward pass. In the pretraining process, the model will be trained on
+    masked amino-acid modelling, where a random subset of the tokens in the
+    input sequence will be masked, and it is the network's job to predict what
+    those masked tokens were using the remaining tokens as context.
     '''
     def __init__(self, bert: Cdr3Bert):
         super(Cdr3BertPretrainWrapper, self).__init__()
-        self.bert = bert
+        self._bert = bert
+
+        # The generator is a linear layer whose job is to take CDR3BERT's final
+        # layer output, then project that onto a probability distribution over
+        # the 20 possible amino acids.
+        self.generator = nn.Linear(
+            in_features=bert.d_model,
+            out_features=20
+        )
+    
+
+    @property
+    def bert(self) -> Cdr3Bert:
+        return self._bert
 
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.bert.fill_in(x)
+        '''
+        Feed the model a batch of cdr3 sequences with certain amino acid
+        residues masked, and have the model generate a batch of sequences of
+        token probability distributions for those masked tokens.
+        Input: Batched and tokenised cdr3 sequences         (size: N,S)*
+        Output: Batched sequences of token probabilities    (size: N,S,V)*
+
+        * Dimensions are as follows:
+        N - number of items in batch i.e. batch size
+        S - number of tokens in sequence i.e. sequence length
+        V - vocabulary size (in this case 20 for 20 amino acids)
+        '''
+        return self.generator(self._bert(x)[0])
+
+
+class Cdr3BertFineTuneWrapper(nn.Module):
+    '''
+    Wrapper to put around a Cdr3Bert instance during finetuning to streamline
+    the forward pass. In the finetuning process, the model will be trained by
+    embedding two CDR3 sequences into two fixed-size vectors, and then running
+    a concatenation of the two embeddings (plus a third difference vector)
+    through a single linear layer without bias to classify whether the two
+    CDR3s respond to the same epitope.
+    '''
+    def __init__(self, bert: Cdr3Bert):
+        super(Cdr3BertFineTuneWrapper, self).__init__()
+        self._bert = bert
+        self.classifier = nn.Linear(3 * bert.d_model, 2, bias=False)
+
+    
+    @property
+    def bert(self) -> Cdr3Bert:
+        return self._bert
+
+    
+    def forward(self, x_a: torch.Tensor, x_b: torch.Tensor) -> torch.Tensor:
+        '''
+        Feed the model two batches of CDR3 sequences, and have it predict
+        whether each pair (pair: two sequences found at the same indices in the
+        two input batches) responds to the same epitope or not.
+        Input: Two batches of tokenised CDR3 sequences  (size: (N,S), (N,S))*
+        Output: Prediction of epitope match             (size: N,1)*
+
+        * Dimensions are as follows:
+        N - number of items in batch i.e. batch size
+        S - number of tokens in sequence i.e. sequence length
+        '''
+        embed_a = self._bert.embed(x_a)
+        embed_b = self._bert.embed(x_b)
+        difference = embed_a - embed_b
+
+        combined = torch.cat((embed_a, embed_b, difference), dim=1)
+        
+        return self.classifier(combined)

@@ -3,8 +3,8 @@ __pycache__
 .pytest_cache
 .vscode
 .coverage
-*.ipynb
-SearchTable-2022-01-21\ 12\ 48\ 23.693.tsv
+/notebooks
 /benchmark_results
 /data
-/training_runs
+/finetune_runs
+/pretrain_runs

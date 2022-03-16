@@ -1,7 +1,7 @@
 import pytest
 import torch
 from source.cdr3bert import masked_average_pool, \
-    Cdr3Bert, Cdr3BertPretrainWrapper
+    Cdr3Bert, Cdr3BertPretrainWrapper, Cdr3BertFineTuneWrapper
 
 
 @pytest.fixture(scope='module')
@@ -53,7 +53,22 @@ def test_masked_average_pool(batch_list,mask_list,expected_list):
     assert(torch.equal(result, expected))
 
 
-def test_forward(instantiate_bert):
+def test_bert_get_d_model(instantiate_bert):
+    bert = instantiate_bert
+    assert(bert.d_model == 6)
+
+
+def test_bert_get_nhead(instantiate_bert):
+    bert = instantiate_bert
+    assert(bert.nhead == 2)
+
+
+def test_bert_get_dim_feedforward(instantiate_bert):
+    bert = instantiate_bert
+    assert(bert.dim_feedforward == 48)
+
+
+def test_bert_forward(instantiate_bert):
     bert = instantiate_bert
     batch = torch.zeros((3,10), dtype=torch.int)
     out, padding_mask = bert(x=batch)
@@ -62,15 +77,7 @@ def test_forward(instantiate_bert):
     assert(padding_mask.size() == (3,10))
 
 
-def test_fill_in(instantiate_bert):
-    bert = instantiate_bert
-    batch = torch.zeros((3,10), dtype=torch.int)
-    out = bert.fill_in(x=batch)
-
-    assert(out.size() == (3,10,20))
-
-
-def test_embed(instantiate_bert):
+def test_bert_embed(instantiate_bert):
     bert = instantiate_bert
     batch = torch.zeros((3,10), dtype=torch.int)
     out = bert.embed(x=batch)
@@ -85,3 +92,40 @@ def test_pretrain_wrapper(instantiate_bert):
     out = pretrain_bert(x=batch)
 
     assert(out.size() == (3,10,20))
+    assert(type(pretrain_bert.bert) == Cdr3Bert)
+
+    with pytest.raises(AttributeError):
+        pretrain_bert.bert = 5
+
+
+def test_fine_tune_wrapper(instantiate_bert):
+    bert = instantiate_bert
+    finetune_bert = Cdr3BertFineTuneWrapper(bert)
+    batch_a = torch.zeros((3,10), dtype=torch.int)
+    batch_b = torch.zeros((3,15), dtype=torch.int)
+    out = finetune_bert(x_a=batch_a, x_b=batch_b)
+
+    assert(out.size() == (3,2))
+    assert(type(finetune_bert.bert) == Cdr3Bert)
+
+    with pytest.raises(AttributeError):
+        finetune_bert.bert = 5
+
+
+# Negative tests
+def test_bert_set_d_model(instantiate_bert):
+    bert = instantiate_bert
+    with pytest.raises(AttributeError):
+        bert.d_model = 10
+
+
+def test_bert_set_nhead(instantiate_bert):
+    bert = instantiate_bert
+    with pytest.raises(AttributeError):
+        bert.nhead = 10
+
+
+def test_bert_set_dim_feedforward(instantiate_bert):
+    bert = instantiate_bert
+    with pytest.raises(AttributeError):
+        bert.dim_feedforward = 10
