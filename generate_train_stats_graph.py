@@ -3,7 +3,7 @@ generate_train_stats_graph.py
 purpose: Executable script to generate a graph visualising the training
          statistics for a particular version of the CDR3 BERT model.
 author: Yuta Nagano
-ver: 3.1.0
+ver: 3.2.0
 '''
 
 
@@ -24,42 +24,60 @@ def parse_command_line_arguments() -> str:
     '''
     parser = argparse.ArgumentParser(
         description='Generate a graph visualising the training statistics ' + \
-            'for a particular version of the CDR3 BERT model.'
+            'for a particular training run of CDR3 BERT.'
     )
     parser.add_argument(
-        'run_id',
-        help='Specify the run ID for which to make ' + \
+        '-p', '--pretrain-id',
+        help='Specify the pretrain run ID for which to make ' + \
             'a training statistics visualisation.'
     )
+    parser.add_argument(
+        '-f', '--finetune-id',
+        help='Specify the fine-tune run ID for which to make ' + \
+            'a training statistics visualisation.'
+    )
+    
     args = parser.parse_args()
 
-    if not os.path.isdir(os.path.join('training_runs',args.run_id)):
+    return args.pretrain_id, args.finetune_id
+
+
+def load_training_stats(pretrain_id: str = None, finetune_id: str = None) -> list:
+    '''
+    Given a pretrain or fine-tune training run ID, load all training stats csvs
+    available from that run using pandas, and return them all in a list.
+    '''
+    if pretrain_id:
+        if finetune_id:
+            raise RuntimeError(
+                'pretrain_id is mutually exclusive with finetune_id.'
+            )
+        path_to_directory = os.path.join('pretrain_runs',pretrain_id)
+    elif finetune_id:
+        path_to_directory = os.path.join('finetune_runs',finetune_id)
+    else:
         raise RuntimeError(
-            f'No local directory (training_runs/{args.run_id}) could be found '\
-            'which matches the run ID specified.'
+            'Please specify either a pretrain or fine-tune training run ID.'
         )
 
-    return args.run_id
-
-
-def load_training_stats(run_id: str) -> list:
-    '''
-    Given a run ID, load all training stats csvs available from that run using
-    pandas, and return them all in a list.
-    '''
-    path_to_directory = os.path.join('training_runs',run_id)
+    # Ensure that this directory exists
+    if not os.path.isdir(path_to_directory):
+        raise RuntimeError(
+            f'No local directory ({path_to_directory}) could be found '\
+            'which matches the run ID specified.'
+        )
 
     # Get a list of the contents of the train run directory
     contents = os.listdir(path_to_directory)
 
     # Only keep files that look like train_stats csvs
     train_stats = [os.path.join(path_to_directory, path) for path in contents \
-        if re.fullmatch('^train_stats.*\.csv$', path)]
+        if re.fullmatch('^training_log.*\.csv$', path)]
     
     # Raise error if no matches
     if len(train_stats) == 0:
         raise RuntimeError(
-            f'No train stats csvs could be found for training run id {run_id}.'
+            f'No train stats csvs could be found in {path_to_directory}.'
         )
     
     # Load each identified train stat csv using pandas
@@ -167,20 +185,30 @@ def draw_figure(train_stat_dfs: list) -> matplotlib.figure.Figure:
     return fig
 
 
-def main(run_id: str) -> None:
+def main(pretrain_id: str, finetune_id: str) -> None:
     '''
     Given a particular run ID, search for a local directory corresponding to
     that training run, fetch training stats data from that directory, produce
     a visualisation of the training statistics, and save the produced figure.
     '''
     # Read in the training stats
-    stats = load_training_stats(run_id)
+    stats = load_training_stats(
+        pretrain_id=pretrain_id,
+        finetune_id=finetune_id
+    )
 
     # Create the figure
     fig = draw_figure(stats)
 
     # Save figure
-    fig.savefig(os.path.join('training_runs',run_id,'train_stats.png'))
+    if pretrain_id:
+        parent_dir = 'pretrain_runs'
+        run_id = pretrain_id
+    else:
+        parent_dir = 'finetune_runs'
+        run_id = finetune_id
+
+    fig.savefig(os.path.join(parent_dir,run_id,'train_stats.png'))
 
 
 if __name__ == '__main__':
@@ -188,7 +216,7 @@ if __name__ == '__main__':
     plt.style.use('seaborn')
 
     # Get run ID from the command line
-    run_id = parse_command_line_arguments()
+    pretrain_id, finetune_id = parse_command_line_arguments()
     
     # Run the main function
-    main(run_id)
+    main(pretrain_id, finetune_id)

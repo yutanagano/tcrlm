@@ -16,15 +16,13 @@ pretrain_hyperparams = {
 }
 
 finetune_hyperparams = {
-    'pretrain_id': 'test',
-    'path_train_data': os.path.join(
-        'tests', 'data', 'mock_labelled_data.csv'),
-    'path_valid_data': os.path.join(
-        'tests', 'data', 'mock_labelled_data.csv'),
+    'pretrain_id': '22-03-16-02:46',
+    'path_train_data': 'data/labelled_train.csv',
+    'path_valid_data': 'data/labelled_test.csv',
     'train_batch_size': 2048,
     'valid_batch_size': 512,
     'lr_scheduling': True,
     'lr': 0.001,
     'optim_warmup': 5,
-    'num_epochs': 3,
+    'num_epochs': 10,
 }

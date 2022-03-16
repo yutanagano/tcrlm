@@ -4,7 +4,7 @@ purpose: Executable script to generate demo visualisations of a specified
          trained DR3 BERT model doing masked-residue modelling on a random
          selection of CDR3s from the testing set.
 author: Yuta Nagano
-ver: 3.0.3
+ver: 3.0.4
 '''
 
 
@@ -20,7 +20,7 @@ from torch.nn import functional as F
 
 from source.data_handling import tokenise, lookup
 
-from hyperparams import hyperparams
+from hyperparams import pretrain_hyperparams
 
 
 def parse_command_line_arguments() -> str:
@@ -36,19 +36,13 @@ def parse_command_line_arguments() -> str:
             'selection of CDR3s from the testing set.'
     )
     parser.add_argument(
-        'run_id',
-        help='Specify the run ID for which to make ' + \
+        'pretrain_id',
+        help='Specify the pretrain run ID for which to make ' + \
             'the demo visualisations.'
     )
     args = parser.parse_args()
 
-    if not os.path.isdir(os.path.join('training_runs',args.run_id)):
-        raise RuntimeError(
-            f'No local directory (training_runs/{args.run_id}) could be found '\
-            'which matches the run ID specified.'
-        )
-
-    return args.run_id
+    return args.pretrain_id
 
 
 @torch.no_grad()
@@ -140,12 +134,12 @@ def main(run_id: str):
     # Load the trained model
     print('Loading model...')
     model = torch.load(
-        os.path.join('training_runs',run_id,'pretrained.ptnn')
+        os.path.join('pretrain_runs',run_id,'pretrained.ptnn')
     )
 
     # Load the testing set
     print('Loading dataset...')
-    ds = pd.read_csv(hyperparams['path_valid_data'])
+    ds = pd.read_csv(pretrain_hyperparams['path_valid_data'])
 
     # Get a sample of CDR3s from the testing set
     cdr3s = random.sample(ds['CDR3'].to_list(),5)
@@ -158,7 +152,7 @@ def main(run_id: str):
 
         # Save the generated figure
         fig.savefig(
-            os.path.join('training_runs',run_id,f'{cdr3}.png')
+            os.path.join('pretrain_runs',run_id,f'{cdr3}.png')
         )
     
     print('Done!')
