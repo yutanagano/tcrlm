@@ -3,7 +3,7 @@ finetune.py
 purpose: Main executable python script which performs finetuning of a Cdr3Bert
          model instance on labelled CDR3 data.
 author: Yuta Nagano
-ver: 1.0.0
+ver: 1.0.1
 '''
 
 
@@ -260,6 +260,9 @@ def train(
     )
     model = load_pretrained_model(hyperparameters, device)
 
+    # Take note of d_model, used later when instantiating optimiser
+    d_model = model.bert.d_model
+
     # Wrap the model with DistributedDataParallel if distributed
     if distributed: model = DistributedDataParallel(model, device_ids=[device])
 
@@ -314,7 +317,7 @@ def train(
     loss_fn = CrossEntropyLoss()
     optimiser = AdamWithScheduling(
         params=model.parameters(),
-        d_model=model.bert.d_model,
+        d_model=d_model,
         n_warmup_steps=hyperparameters['optim_warmup'],
         lr=hyperparameters['lr'],
         decay=False
