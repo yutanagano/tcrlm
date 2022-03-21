@@ -3,12 +3,11 @@ pretrain.py
 purpose: Main executable python script which performs pretraining of a Cdr3Bert
          model instance on unlabelled CDR3 data.
 author: Yuta Nagano
-ver: 3.0.0
+ver: 3.1.0
 '''
 
 
 import argparse
-from hyperparams import pretrain_hyperparams
 import os
 import time
 import torch
@@ -22,29 +21,9 @@ from tqdm import tqdm
 from source.cdr3bert import Cdr3Bert, Cdr3BertPretrainWrapper
 from source.data_handling import Cdr3PretrainDataset, Cdr3PretrainDataLoader
 from source.training import create_training_run_directory, \
-    write_hyperparameters, set_env_vars, print_with_deviceid, compare_models, \
-    save_log, save_model, AdamWithScheduling
-
-
-# Hyperparameter preset for testing mode
-hyperparams_test = {
-    'path_train_data': os.path.join(
-        'tests', 'data', 'mock_unlabelled_data.csv'),
-    'path_valid_data': os.path.join(
-        'tests', 'data', 'mock_unlabelled_data.csv'),
-    'num_encoder_layers': 16,
-    'd_model': 16,
-    'nhead': 4,
-    'dim_feedforward': 128,
-    'activation': 'gelu',
-    'train_batch_size': 6,
-    'valid_batch_size': 6,
-    'batch_optimisation': True,
-    'lr_scheduling': True,
-    'lr': 0.001,
-    'optim_warmup': 5,
-    'num_epochs': 3,
-}
+    write_hyperparameters, set_env_vars, parse_hyperparams, \
+    print_with_deviceid, compare_models, save_log, save_model, \
+    AdamWithScheduling
 
 
 # Helper functions for training
@@ -90,13 +69,20 @@ def parse_command_line_arguments() -> argparse.Namespace:
         help='Run the training script in testing mode. Used for debugging. ' + \
             'Note that when using this flag, the run_id of the training ' + \
             'run will always be set to "test" regardless of what is ' + \
-            'specified in the command line argument. If a "test" training ' + \
-            'run directory already exists, this will be deleted along with ' + \
-            'any contents.'
+            'specified in the command line argument. The hyperparameters ' + \
+            'path will also always be set to ' + \
+            '"tests/data/pretrain_hyperparams.csv". If a "test" ' + \
+            'pretraining run directory already exists, this will be ' + \
+            'deleted along with any contents.'
     )
     parser.add_argument(
         'run_id',
         help='Give this particular pretrain run a unique ID.'
+    )
+    parser.add_argument(
+        'hyperparams_path',
+        help='Path to a csv file containing hyperparameter values to be ' + \
+            'used for this run.'
     )
 
     # Parse arguments read from sys.argv and return the resulting NameSpace
@@ -445,6 +431,7 @@ def train(
 
 def main(
     run_id: str,
+    hyperparams_path: str,
     n_gpus: int = 0,
     fixed_batch_size: bool = False,
     no_progressbars: bool = False,
@@ -457,6 +444,8 @@ def main(
     run_id:             A string which acts as a unique identifier of this
                         training run. Used to name the directory in which the
                         results from this run will be stored.
+    hyperparams_path    A path to a csv file containing hyperparameter values to
+                        be used for this run.
     n_gpus              An integer value which signifies how many CUDA-capable
                         devices are expected to be available.
     fixed_batch_size    Disables adaptive batch_size modification in distributed
@@ -471,10 +460,10 @@ def main(
     # the test mode preset, along with setting the run ID to 'test'. Otherwise,
     # set the hyperparameters to what is contained in the hyperparameters file.
     if test_mode:
-        hp = hyperparams_test
         run_id = 'test'
-    else:
-        hp = pretrain_hyperparams
+        hyperparams_path = 'tests/data/pretrain_hyperparams.csv'
+    
+    hp = parse_hyperparams(hyperparams_path)
 
     # Claim space to store results of training run by creating a new directory
     # based on the training id specified above
@@ -548,6 +537,7 @@ if __name__ == '__main__':
     
     main(
         args.run_id,
+        args.hyperparams_path,
         args.gpus,
         args.fixed_batch_size,
         args.no_progressbars,

@@ -2,7 +2,7 @@
 training.py
 purpose: Python module with helper classes for training CDR3Bert.
 author: Yuta Nagano
-ver: 3.0.0
+ver: 3.1.0
 '''
 
 
@@ -10,6 +10,28 @@ import os
 import pandas as pd
 import shutil
 import torch
+
+
+# Helper dictionary for parse_hyperparams
+def bool_convert(x: str):
+    '''
+    Converts string to bool values, where 'True' is mapped to True, and 'False'
+    is mapped to False. Helper function to hyperparams.
+    '''
+    if x == 'True':
+        return True
+    elif x == 'False':
+        return False
+    else:
+        raise RuntimeError(f'Unexpected value: {x} (must be "True" or "False")')
+
+
+type_dict = {
+    'bool': bool_convert,
+    'float': float,
+    'int': int,
+    'str': str
+}
 
 
 # Functions
@@ -111,6 +133,51 @@ def create_training_run_directory(
 
     # Return the path to that directory
     return tr_dir
+
+
+def parse_hyperparams(csv_path: str) -> dict:
+    '''
+    Read a csv file and extract a list of hyperparameters from it. Then save
+    that information in the form of a python dictionary. The csv should have
+    a header as follows: "param_name,type,value". The first column should
+    have the name of the hyperparameter (which will become the hyperparameter's
+    dictionary key), the second column should have the data type that the value
+    should be converted to (e.g. int, str, etc. See below for a list of
+    supported types.), and the third column should contain the value.
+
+    Supported types:
+    Type        Alias (to put in the csv)
+    -------------------------------------
+    Boolean     bool
+    Float       float
+    Integer     int
+    String      str
+    '''
+    # Check that the provided csv path is legitimate
+    if not csv_path.endswith('.csv') or not os.path.isfile(csv_path):
+        raise RuntimeError('Please provide a valid path to a csv file.')
+
+    # Read the csv file
+    df = pd.read_csv(csv_path)
+
+    # Check the header to ensure that it respects the format
+    if df.columns.tolist() != ['param_name', 'type', 'value']:
+        raise RuntimeError(
+            f'The csv file has an incorrect format ({df.columns.tolist()}). '
+            'The column names must be: ["param_name", "type", "value"].'
+        )
+
+    # Iterate over the csv and process each hyperparameter, save into dict
+    hyperparams = dict()
+
+    for idx, row in df.iterrows():
+        if not row['type'] in type_dict:
+            raise RuntimeError(f'Unrecognised data type: {row["type"]}')
+        
+        param_value = type_dict[row['type']](row['value'])
+        hyperparams[row['param_name']] = param_value
+
+    return hyperparams
 
 
 def print_with_deviceid(msg: str, device: torch.device) -> None:

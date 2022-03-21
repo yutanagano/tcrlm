@@ -1,0 +1,10 @@
+param_name,type,value
+pretrain_id,str,test
+path_train_data,str,tests/data/mock_labelled_data.csv
+path_valid_data,str,tests/data/mock_labelled_data.csv
+train_batch_size,int,6
+valid_batch_size,int,6
+lr_scheduling,bool,True
+lr,float,0.001
+optim_warmup,int,5
+num_epochs,int,3

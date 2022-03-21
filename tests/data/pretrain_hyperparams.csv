@@ -1,0 +1,16 @@
+param_name,type,value
+path_train_data,str,tests/data/mock_unlabelled_data.csv
+path_valid_data,str,tests/data/mock_unlabelled_data.csv
+num_encoder_layers,int,16
+d_model,int,16
+nhead,int,4
+dim_feedforward,int,128
+activation,str,gelu
+train_batch_size,int,6
+valid_batch_size,int,6
+batch_optimisation,bool,True
+lr_scheduling,bool,True
+lr,float,0.001
+optim_warmup,int,5
+num_epochs,int,3
+foo,bool,False

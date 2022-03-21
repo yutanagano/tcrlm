@@ -3,12 +3,11 @@ finetune.py
 purpose: Main executable python script which performs finetuning of a Cdr3Bert
          model instance on labelled CDR3 data.
 author: Yuta Nagano
-ver: 1.0.1
+ver: 1.1.0
 '''
 
 
 import argparse
-from hyperparams import finetune_hyperparams
 import os
 import time
 import torch
@@ -21,25 +20,9 @@ from tqdm import tqdm
 
 from source.cdr3bert import Cdr3Bert, Cdr3BertFineTuneWrapper
 from source.data_handling import Cdr3FineTuneDataset, Cdr3FineTuneDataLoader
-from source.training import create_training_run_directory, \
+from source.training import create_training_run_directory, parse_hyperparams, \
     print_with_deviceid, set_env_vars, write_hyperparameters, save_log, \
     save_model, AdamWithScheduling
-
-
-# Hyperparameter preset for testing mode
-hyperparams_test = {
-    'pretrain_id': 'test',
-    'path_train_data': os.path.join(
-        'tests', 'data', 'mock_labelled_data.csv'),
-    'path_valid_data': os.path.join(
-        'tests', 'data', 'mock_labelled_data.csv'),
-    'train_batch_size': 6,
-    'valid_batch_size': 6,
-    'lr_scheduling': True,
-    'lr': 0.001,
-    'optim_warmup': 5,
-    'num_epochs': 3,
-}
 
 
 # Helper functions
@@ -84,13 +67,20 @@ def parse_command_line_arguments() -> argparse.Namespace:
         help='Run the training script in testing mode. Used for debugging. ' + \
             'Note that when using this flag, the run_id of the training ' + \
             'run will always be set to "test" regardless of what is ' + \
-            'specified in the command line argument. If a "test" training ' + \
+            'specified in the command line argument. The hyperparameters ' + \
+            'path will also always be set to ' + \
+            '"tests/data/finetune_hyperparams.csv". If a "test" finetuning ' + \
             'run directory already exists, this will be deleted along with ' + \
-            'any contents and replaced with the results of the new test run.'
+            'any contents.'
     )
     parser.add_argument(
         'run_id',
         help='Give this particular pretrain run a unique ID.'
+    )
+    parser.add_argument(
+        'hyperparams_path',
+        help='Path to a csv file containing hyperparameter values to be ' + \
+            'used for this run.'
     )
 
     # Parse arguments read from sys.argv and return the resulting NameSpace
@@ -396,6 +386,7 @@ def train(
 
 def main(
     run_id: str,
+    hyperparams_path: str,
     n_gpus: int = 0,
     fixed_batch_size: bool = False,
     no_progressbars: bool = False,
@@ -408,6 +399,8 @@ def main(
     run_id:             A string which acts as a unique identifier of this
                         training run. Used to name the directory in which the
                         results from this run will be stored.
+    hyperparams_path    A path to a csv file containing hyperparameter values to
+                        be used for this run.
     n_gpus              An integer value which signifies how many CUDA-capable
                         devices are expected to be available.
     fixed_batch_size    Disables adaptive batch_size modification in distributed
@@ -422,10 +415,10 @@ def main(
     # the testing preset, along with setting the run ID to 'test'. Otherwise,
     # set the hyperparameters to what is contained in the hyperparameters file.
     if test_mode:
-        hp = hyperparams_test
         run_id = 'test'
-    else:
-        hp = finetune_hyperparams
+        hyperparams_path = 'tests/data/finetune_hyperparams.csv'
+    
+    hp = parse_hyperparams(hyperparams_path)
 
     # Claim space to store results of training run by creating a new directory
     # based on the training ID specified above.
@@ -498,6 +491,7 @@ if __name__ == '__main__':
 
     main(
         args.run_id,
+        args.hyperparams_path,
         args.gpus,
         args.fixed_batch_size,
         args.no_progressbars,

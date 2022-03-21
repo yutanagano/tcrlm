@@ -9,7 +9,7 @@ import sys
 
 from source.training import create_training_run_directory, \
     write_hyperparameters, set_env_vars, print_with_deviceid, compare_models, \
-    save_log, save_model
+    save_log, save_model, parse_hyperparams
 
 
 # Positive tests
@@ -194,6 +194,30 @@ def test_save_model_distributed():
     os.remove('tests/toy_models/model_cuda:0.ptnn')
 
     dist.destroy_process_group()
+
+
+def test_parse_hyperparams():
+    expected = {
+        'path_train_data': 'tests/data/mock_unlabelled_data.csv',
+        'path_valid_data': 'tests/data/mock_unlabelled_data.csv',
+        'num_encoder_layers': 16,
+        'd_model': 16,
+        'nhead': 4,
+        'dim_feedforward': 128,
+        'activation': 'gelu',
+        'train_batch_size': 6,
+        'valid_batch_size': 6,
+        'batch_optimisation': True,
+        'lr_scheduling': True,
+        'lr': 0.001,
+        'optim_warmup': 5,
+        'num_epochs': 3,
+        'foo': False
+    }
+    
+    hps = parse_hyperparams('tests/data/pretrain_hyperparams.csv')
+
+    assert(hps == expected)
     
 
 # Negative tests
@@ -210,3 +234,23 @@ def test_compare_models_wrong_gpu_number():
 def test_compare_models_nonidentical_models():
     with pytest.raises(RuntimeError):
         compare_models('tests/toy_models/different', n_gpus=2)
+
+
+def test_parse_hyperparams_bad_path():
+    with pytest.raises(RuntimeError):
+        parse_hyperparams('csv_path')
+
+
+def test_parse_hyperparams_bad_format():
+    with pytest.raises(RuntimeError):
+        parse_hyperparams('tests/data/bad_format.csv')
+
+
+def test_parse_hyperparams_bad_types():
+    with pytest.raises(RuntimeError):
+        parse_hyperparams('tests/data/bad_types_hyperparams.csv')
+
+
+def test_parse_hyperparams_bad_values():
+    with pytest.raises(RuntimeError):
+        parse_hyperparams('tests/data/bad_values_hyperparams.csv')
