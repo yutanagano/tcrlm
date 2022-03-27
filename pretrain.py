@@ -330,7 +330,7 @@ def train(
         d_model=hyperparameters['d_model'],
         n_warmup_steps=hyperparameters['optim_warmup'],
         lr=hyperparameters['lr'],
-        decay=hyperparameters['decay']
+        decay=hyperparameters['lr_decay']
     )
 
     print_with_deviceid('Commencing training...', device)

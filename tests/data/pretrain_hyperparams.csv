@@ -10,7 +10,7 @@ train_batch_size,int,6
 valid_batch_size,int,6
 batch_optimisation,bool,True
 lr,float,0.001
-decay,bool,True
+lr_decay,bool,True
 optim_warmup,int,5
 num_epochs,int,3
 foo,bool,False

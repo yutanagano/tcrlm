@@ -6,6 +6,6 @@ train_batch_size,int,6
 valid_batch_size,int,6
 lr_scheduling,bool,True
 lr,float,0.001
-decay,bool,False
+lr_decay,bool,False
 optim_warmup,int,5
 num_epochs,int,3
