@@ -208,8 +208,8 @@ def test_parse_hyperparams():
         'train_batch_size': 6,
         'valid_batch_size': 6,
         'batch_optimisation': True,
-        'lr_scheduling': True,
         'lr': 0.001,
+        'decay': True,
         'optim_warmup': 5,
         'num_epochs': 3,
         'foo': False

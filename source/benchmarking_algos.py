@@ -6,7 +6,7 @@ purpose: This file contains various TCR/CDR3 algorithms wrapped in a wrapper
          performances of various TCR/CDR3 algorithms in their ability to
          identify similarities between those that respond to the same epitope.
 author: Yuta Nagano
-version: 1.1.1
+version: 1.1.2
 '''
 
 
@@ -101,7 +101,7 @@ class PretrainCdr3Bert(BenchmarkAlgo):
             path_to_model = os.path.join(
                 'pretrain_runs', run_id, 'pretrained.ptnn'
             )
-        self.model = torch.load(path_to_model)
+        self.model = torch.load(path_to_model).bert.eval()
 
     
     @property
@@ -109,6 +109,7 @@ class PretrainCdr3Bert(BenchmarkAlgo):
         return 'CDR3 BERT (Pretrained)'
 
 
+    @torch.no_grad()
     def similarity_func(self, cdr3_a: str, cdr3_b: str) -> float:
         cdr3_a_tokenised = tokenise(cdr3_a).unsqueeze(0)
         cdr3_b_tokenised = tokenise(cdr3_b).unsqueeze(0)

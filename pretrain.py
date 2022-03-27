@@ -3,7 +3,7 @@ pretrain.py
 purpose: Main executable python script which performs pretraining of a Cdr3Bert
          model instance on unlabelled CDR3 data.
 author: Yuta Nagano
-ver: 3.1.0
+ver: 3.1.1
 '''
 
 
@@ -330,7 +330,7 @@ def train(
         d_model=hyperparameters['d_model'],
         n_warmup_steps=hyperparameters['optim_warmup'],
         lr=hyperparameters['lr'],
-        scheduling=hyperparameters['lr_scheduling']
+        decay=hyperparameters['decay']
     )
 
     print_with_deviceid('Commencing training...', device)

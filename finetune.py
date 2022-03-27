@@ -3,7 +3,7 @@ finetune.py
 purpose: Main executable python script which performs finetuning of a Cdr3Bert
          model instance on labelled CDR3 data.
 author: Yuta Nagano
-ver: 1.1.0
+ver: 1.1.1
 '''
 
 
@@ -124,7 +124,7 @@ def train_epoch(
     '''
     Train the given model through one epoch of data from the given dataloader.
     '''
-    model.train()
+    model.custom_trainmode()
 
     total_loss = 0
     total_acc = 0
@@ -310,7 +310,7 @@ def train(
         d_model=d_model,
         n_warmup_steps=hyperparameters['optim_warmup'],
         lr=hyperparameters['lr'],
-        decay=False
+        decay=hyperparameters['decay']
     )
 
     print_with_deviceid('Commencing training...', device)

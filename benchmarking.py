@@ -20,7 +20,7 @@ from tqdm import tqdm
 algo_list = (
     algos.NegativeLevenshtein(),
     algos.AtchleyCs(),
-    algos.PretrainCdr3Bert('22-03-09-20:12')
+    algos.PretrainCdr3Bert('22-03-24-00:01')
 )
 
 

@@ -4,7 +4,7 @@ purpose: Python module with classes that represent the code base for the BERT-
          based neural network models that will be able to learn and process TCR
          beta-chain CDR3 sequences.
 author: Yuta Nagano
-ver: 3.0.0
+ver: 3.0.1
 '''
 
 
@@ -284,7 +284,7 @@ class Cdr3BertFineTuneWrapper(nn.Module):
     '''
     def __init__(self, bert: Cdr3Bert):
         super(Cdr3BertFineTuneWrapper, self).__init__()
-        self._bert = bert
+        self._bert = bert.eval()
         self.classifier = nn.Linear(3 * bert.d_model, 2, bias=False)
 
     
@@ -312,3 +312,8 @@ class Cdr3BertFineTuneWrapper(nn.Module):
         combined = torch.cat((embed_a, embed_b, difference), dim=1)
         
         return self.classifier(combined)
+
+
+    def custom_trainmode(self):
+        self.train()
+        self._bert.eval()
