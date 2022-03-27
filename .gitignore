@@ -8,3 +8,4 @@ __pycache__
 /data
 /finetune_runs
 /pretrain_runs
+/hyperparams
