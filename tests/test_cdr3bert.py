@@ -100,16 +100,30 @@ def test_pretrain_wrapper(instantiate_bert):
 
 def test_fine_tune_wrapper(instantiate_bert):
     bert = instantiate_bert
-    finetune_bert = Cdr3BertFineTuneWrapper(bert)
-    batch_a = torch.zeros((3,10), dtype=torch.int)
-    batch_b = torch.zeros((3,15), dtype=torch.int)
-    out = finetune_bert(x_a=batch_a, x_b=batch_b)
+    finetune_bert = Cdr3BertFineTuneWrapper(bert,bert)
+    a = torch.zeros((3,10), dtype=torch.int)
+    b = torch.zeros((3,15), dtype=torch.int)
+    c = torch.zeros((3,12), dtype=torch.int)
+    d = torch.zeros((3,12), dtype=torch.int)
+    out = finetune_bert(
+        x_1a=a, x_1b=b,
+        x_2a=c, x_2b=d
+    )
 
     assert(out.size() == (3,2))
-    assert(type(finetune_bert.bert) == Cdr3Bert)
+    assert(type(finetune_bert.alpha_bert) == Cdr3Bert)
+    assert(type(finetune_bert.beta_bert) == Cdr3Bert)
 
     with pytest.raises(AttributeError):
-        finetune_bert.bert = 5
+        finetune_bert.alpha_bert = 5
+    
+    with pytest.raises(AttributeError):
+        finetune_bert.beta_bert = 5
+    
+    finetune_bert.custom_trainmode()
+    assert(not finetune_bert.alpha_bert.training)
+    assert(not finetune_bert.beta_bert.training)
+    assert(finetune_bert.classifier.training)
 
 
 # Negative tests

@@ -3,7 +3,7 @@ data_handling.py
 purpose: Python module with classes involved in the loading and preprocessing
          CDR3 data.
 author: Yuta Nagano
-ver: 4.0.0
+ver: 5.0.0
 '''
 
 
@@ -247,7 +247,10 @@ class Cdr3FineTuneDataset(Dataset):
         dataframe = pd.read_csv(path_to_csv)
 
         # Ensure that the input data is in the correct format
-        check_dataframe_format(dataframe, ['Epitope', 'CDR3', 'Dataset'])
+        check_dataframe_format(
+            dataframe,
+            ['Epitope', 'Alpha CDR3', 'Beta CDR3']
+        )
 
         # Save object attributes
         self._dataframe = dataframe
@@ -261,7 +264,7 @@ class Cdr3FineTuneDataset(Dataset):
 
     def __getitem__(self, idx: int) -> (str, str, int):
         # Fetch the relevant CDR3 from the dataframe.
-        epitope_1, cdr3_1 = self._dataframe.iloc[idx,0:2]
+        epitope_1, cdr3_1a, cdr3_1b = self._dataframe.iloc[idx,0:3]
 
         # Pick a second CDR3 sequence, which can either be an epitope-matched
         # CDR3 or a non-matched CDR3. How often matched or unmatched sequences
@@ -269,10 +272,10 @@ class Cdr3FineTuneDataset(Dataset):
         # value passed to the dataset at creation. Along with picking the second
         # CDR3, we should also produce a label indicating whether the produced
         # pair is epitope-matched or not.
-        epitope_2, cdr3_2, label = self._make_pair(idx)
+        epitope_2, cdr3_2a, cdr3_2b, label = self._make_pair(idx)
 
         # Return pair with label.
-        return cdr3_1, cdr3_2, label
+        return cdr3_1a, cdr3_1b, cdr3_2a, cdr3_2b, label
 
 
     def _make_pair(self, idx: int) -> (str, str, int):
@@ -302,14 +305,14 @@ class Cdr3FineTuneDataset(Dataset):
         # Get the epitope of the reference
         ref_epitope = self._dataframe.iloc[idx, 0]
 
-        # Get all members of the same epitope group except the reference itself
-        matched_cdr3s = self._epitope_groups.get_group(ref_epitope).drop(idx)
+        # Get all members of the same epitope group
+        matched_cdr3s = self._epitope_groups.get_group(ref_epitope)
 
         # Randomly sample one
-        epitope_2, cdr3_2, _ = matched_cdr3s.sample().iloc[0]
+        epitope_2, cdr3_2a, cdr3_2b = matched_cdr3s.sample().iloc[0]
 
         # Return the second CDR3 with its epitope, and a 'matched' label (1)
-        return epitope_2, cdr3_2, 1
+        return epitope_2, cdr3_2a, cdr3_2b, 1
 
 
     def _get_unmatched_cdr3(self, idx: int) -> (str, str, int):
@@ -326,10 +329,10 @@ class Cdr3FineTuneDataset(Dataset):
         ]
 
         # Randomly sample one
-        epitope_2, cdr3_2, _ = unmatched_cdr3s.sample().iloc[0]
+        epitope_2, cdr3_2a, cdr3_2b = unmatched_cdr3s.sample().iloc[0]
 
         # Return the second CDR3 with its epitope, and an 'unmatched' label (0)
-        return epitope_2, cdr3_2, 0
+        return epitope_2, cdr3_2a, cdr3_2b, 0
 
 
 # Sampler classes
@@ -533,22 +536,37 @@ class Cdr3FineTuneDataLoader(DataLoader):
         '''
         Helper function which collates individual samples into tensor batches.
         '''
-        x_1_batch, x_2_batch, y_batch = [], [], []
-        for x_1_sample, x_2_sample, y_sample in batch:
-            x_1_batch.append(tokenise(x_1_sample))
-            x_2_batch.append(tokenise(x_2_sample))
+        x_1a_batch, x_1b_batch, x_2a_batch, x_2b_batch, y_batch = \
+            [], [], [], [], []
+        
+        for x_1a_sample, x_1b_sample, \
+            x_2a_sample, x_2b_sample, y_sample in batch:
+            x_1a_batch.append(tokenise(x_1a_sample))
+            x_1b_batch.append(tokenise(x_1b_sample))
+            x_2a_batch.append(tokenise(x_2a_sample))
+            x_2b_batch.append(tokenise(x_2b_sample))
             y_batch.append(y_sample)
         
-        x_1_batch = pad_sequence(
-            sequences=x_1_batch,
+        x_1a_batch = pad_sequence(
+            sequences=x_1a_batch,
             batch_first=True,
             padding_value=21
         )
-        x_2_batch = pad_sequence(
-            sequences=x_2_batch,
+        x_1b_batch = pad_sequence(
+            sequences=x_1b_batch,
+            batch_first=True,
+            padding_value=21
+        )
+        x_2a_batch = pad_sequence(
+            sequences=x_2a_batch,
+            batch_first=True,
+            padding_value=21
+        )
+        x_2b_batch = pad_sequence(
+            sequences=x_2b_batch,
             batch_first=True,
             padding_value=21
         )
         y_batch = torch.tensor(y_batch, dtype=torch.long)
 
-        return x_1_batch, x_2_batch, y_batch
+        return x_1a_batch, x_1b_batch, x_2a_batch, x_2b_batch, y_batch

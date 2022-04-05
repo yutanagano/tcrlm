@@ -4,7 +4,7 @@ purpose: Python module with classes that represent the code base for the BERT-
          based neural network models that will be able to learn and process TCR
          beta-chain CDR3 sequences.
 author: Yuta Nagano
-ver: 3.0.1
+ver: 4.0.0
 '''
 
 
@@ -282,38 +282,66 @@ class Cdr3BertFineTuneWrapper(nn.Module):
     through a single linear layer without bias to classify whether the two
     CDR3s respond to the same epitope.
     '''
-    def __init__(self, bert: Cdr3Bert):
+    def __init__(self, alpha_bert: Cdr3Bert, beta_bert: Cdr3Bert):
         super(Cdr3BertFineTuneWrapper, self).__init__()
-        self._bert = bert.eval()
-        self.classifier = nn.Linear(3 * bert.d_model, 2, bias=False)
+
+        assert(alpha_bert.d_model == beta_bert.d_model)
+        assert(alpha_bert.nhead == beta_bert.nhead)
+        assert(alpha_bert.dim_feedforward == beta_bert.dim_feedforward)
+
+        self._alpha_bert = alpha_bert.eval()
+        self._beta_bert = beta_bert.eval()
+        self.classifier = nn.Linear(6 * alpha_bert.d_model, 2, bias=False)
 
     
     @property
-    def bert(self) -> Cdr3Bert:
-        return self._bert
+    def alpha_bert(self) -> Cdr3Bert:
+        return self._alpha_bert
 
     
-    def forward(self, x_a: torch.Tensor, x_b: torch.Tensor) -> torch.Tensor:
+    @property
+    def beta_bert(self) -> Cdr3Bert:
+        return self._beta_bert
+
+
+    @property
+    def d_model(self) -> int:
+        return self._alpha_bert.d_model
+
+    
+    def forward(
+        self,
+        x_1a: torch.Tensor, x_1b: torch.Tensor,
+        x_2a: torch.Tensor, x_2b: torch.Tensor
+    ) -> torch.Tensor:
         '''
-        Feed the model two batches of CDR3 sequences, and have it predict
-        whether each pair (pair: two sequences found at the same indices in the
-        two input batches) responds to the same epitope or not.
-        Input: Two batches of tokenised CDR3 sequences  (size: (N,S), (N,S))*
+        Feed the model two batches of paired alpha-beta CDR3 sequences
+        (henceforth referred to as 'receptors'), and have it predict whether
+        each pair of receptors (pair: two receptors found at the same indices in
+        the two input batches) responds to the same epitope or not.
+        Input: Two batches of tokenised receptors       (size: (N,S) x 4)*
         Output: Prediction of epitope match             (size: N,1)*
 
         * Dimensions are as follows:
         N - number of items in batch i.e. batch size
         S - number of tokens in sequence i.e. sequence length
         '''
-        embed_a = self._bert.embed(x_a)
-        embed_b = self._bert.embed(x_b)
-        difference = embed_a - embed_b
+        embed_x_1a = self._alpha_bert.embed(x_1a)
+        embed_x_1b = self._beta_bert.embed(x_1b)
 
-        combined = torch.cat((embed_a, embed_b, difference), dim=1)
+        embed_x_2a = self._alpha_bert.embed(x_2a)
+        embed_x_2b = self._beta_bert.embed(x_2b)
+
+        embed_x1 = torch.cat((embed_x_1a, embed_x_1b), dim=1)
+        embed_x2 = torch.cat((embed_x_2a, embed_x_2b), dim=1)
+        difference = embed_x1 - embed_x2
+
+        combined = torch.cat((embed_x1, embed_x2, difference), dim=1)
         
         return self.classifier(combined)
 
 
     def custom_trainmode(self):
         self.train()
-        self._bert.eval()
+        self._alpha_bert.eval()
+        self._beta_bert.eval()

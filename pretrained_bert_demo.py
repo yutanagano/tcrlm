@@ -4,7 +4,7 @@ purpose: Executable script to generate demo visualisations of a specified
          trained DR3 BERT model doing masked-residue modelling on a random
          selection of CDR3s from the testing set.
 author: Yuta Nagano
-ver: 3.0.4
+ver: 3.1.0
 '''
 
 
@@ -19,8 +19,6 @@ import torch
 from torch.nn import functional as F
 
 from source.data_handling import tokenise, lookup
-
-from hyperparams import pretrain_hyperparams
 
 
 def parse_command_line_arguments() -> str:
@@ -139,7 +137,10 @@ def main(run_id: str):
 
     # Load the testing set
     print('Loading dataset...')
-    ds = pd.read_csv(pretrain_hyperparams['path_valid_data'])
+    if 'alpha' in run_id:
+        ds = pd.read_csv('data/rds_alpha_test.csv')
+    elif 'beta' in run_id:
+        ds = pd.read_csv('data/rds_beta_test.csv')
 
     # Get a sample of CDR3s from the testing set
     cdr3s = random.sample(ds['CDR3'].to_list(),5)

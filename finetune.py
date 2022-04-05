@@ -3,7 +3,7 @@ finetune.py
 purpose: Main executable python script which performs finetuning of a Cdr3Bert
          model instance on labelled CDR3 data.
 author: Yuta Nagano
-ver: 1.1.2
+ver: 2.0.0
 '''
 
 
@@ -93,15 +93,20 @@ def load_pretrained_model(
     device: torch.device
 ) -> Cdr3BertFineTuneWrapper:
     '''
-    Load a pretrained Cdr3Bert model from a specified pretrain run.
+    Load a pretrained Cdr3Bert models from a specified pretrain runs, then
+    package them up into one finetuning model instance.
     '''
-    # Load pretrained model
-    saved_model_location = os.path.join(
-        'pretrain_runs', hyperparameters['pretrain_id'], 'pretrained.ptnn'
+    # Load pretrained models
+    alpha_location = os.path.join(
+        'pretrain_runs', hyperparameters['alpha_pretrain_id'], 'pretrained.ptnn'
     )
-    bert = torch.load(saved_model_location).bert
+    beta_location = os.path.join(
+        'pretrain_runs', hyperparameters['beta_pretrain_id'], 'pretrained.ptnn'
+    )
+    alpha_bert = torch.load(alpha_location).bert
+    beta_bert = torch.load(beta_location).bert
     
-    return Cdr3BertFineTuneWrapper(bert).to(device)
+    return Cdr3BertFineTuneWrapper(alpha_bert,beta_bert).to(device)
 
 
 @torch.no_grad()
@@ -136,14 +141,16 @@ def train_epoch(
     start_time = time.time()
 
     # Iterate through the dataloader
-    for x_a, x_b, y in \
+    for x_1a, x_1b, x_2a, x_2b, y in \
         tqdm(dataloader, desc=f'[{device}]', disable=no_progressbars):
-        x_a = x_a.to(device)
-        x_b = x_b.to(device)
+        x_1a = x_1a.to(device)
+        x_1b = x_1b.to(device)
+        x_2a = x_2a.to(device)
+        x_2b = x_2b.to(device)
         y = y.to(device)
 
         # Forward pass
-        logits = model(x_a, x_b)
+        logits = model(x_1a, x_1b, x_2a, x_2b)
 
         # Backward pass
         optimiser.zero_grad()
@@ -190,14 +197,16 @@ def validate(
     total_acc = 0
 
     # Iterate through the dataloader
-    for x_a, x_b, y in \
+    for x_1a, x_1b, x_2a, x_2b, y in \
         tqdm(dataloader, desc=f'[{device}]', disable=no_progressbars):
-        x_a = x_a.to(device)
-        x_b = x_b.to(device)
+        x_1a = x_1a.to(device)
+        x_1b = x_1b.to(device)
+        x_2a = x_2a.to(device)
+        x_2b = x_2b.to(device)
         y = y.to(device)
 
         # Forward pass
-        logits = model(x_a, x_b)
+        logits = model(x_1a, x_1b, x_2a, x_2b)
 
         # Loss calculation
         loss = criterion(logits,y)
@@ -247,14 +256,15 @@ def train(
 
     # Load model
     print_with_deviceid(
-        'Loading pretrained model from pretrain run ID: '
-        f'{hyperparameters["pretrain_id"]}...',
+        'Loading pretrained model from pretrain run IDs: '
+        f'alpha - {hyperparameters["alpha_pretrain_id"]}, '
+        f'beta - {hyperparameters["beta_pretrain_id"]}...',
         device
     )
     model = load_pretrained_model(hyperparameters, device)
 
     # Take note of d_model, used later when instantiating optimiser
-    d_model = model.bert.d_model
+    d_model = model.d_model
 
     # Wrap the model with DistributedDataParallel if distributed
     if distributed: model = DistributedDataParallel(model, device_ids=[device])

@@ -36,12 +36,12 @@ def test_get_matched_cdr3(get_dataframe, instantiate_dataset):
     for i in range(10):
         idx = random.randrange(len(df))
 
-        epitope_1, cdr3_1 = df.iloc[idx, 0:2]
-        epitope_2, cdr3_2, label = ds._get_matched_cdr3(idx)
+        epitope_1, cdr3_1a, cdr3_1b = df.iloc[idx, 0:3]
+        epitope_2, cdr3_2a, cdr3_2b, label = ds._get_matched_cdr3(idx)
 
         assert(epitope_1 == epitope_2)
         assert(label)
-        assert(epitope_1 in df[df['CDR3'] == cdr3_2]['Epitope'].unique())
+        assert(epitope_1 in df[df['Alpha CDR3'] == cdr3_2a]['Epitope'].unique())
 
 
 def test_get_unmatched_cdr3(get_dataframe, instantiate_dataset):
@@ -51,12 +51,12 @@ def test_get_unmatched_cdr3(get_dataframe, instantiate_dataset):
     for i in range(10):
         idx = random.randrange(len(df))
 
-        epitope_1, cdr3_1 = df.iloc[idx, 0:2]
-        epitope_2, cdr3_2, label = ds._get_unmatched_cdr3(idx)
+        epitope_1, cdr3_1a, cdr3_1b = df.iloc[idx, 0:3]
+        epitope_2, cdr3_2a, cdr3_2b, label = ds._get_unmatched_cdr3(idx)
 
         assert(epitope_1 != epitope_2)
         assert(not label)
-        assert(epitope_2 in df[df['CDR3'] == cdr3_2]['Epitope'].unique())
+        assert(epitope_2 in df[df['Alpha CDR3'] == cdr3_2a]['Epitope'].unique())
 
 
 def test_getitem(get_dataframe, instantiate_dataset):
@@ -66,13 +66,13 @@ def test_getitem(get_dataframe, instantiate_dataset):
     for i in range(10):
         idx = random.randrange(len(df))
 
-        cdr3_1, cdr3_2, label = ds[idx]
+        cdr3_1a, cdr3_1b, cdr3_2a, cdr3_2b, label = ds[idx]
 
         epitopes_1 = set(
-            df[df['CDR3'] == cdr3_1]['Epitope'].unique()
+            df[df['Alpha CDR3'] == cdr3_1a]['Epitope'].unique()
         )
         epitopes_2 = set(
-            df[df['CDR3'] == cdr3_2]['Epitope'].unique()
+            df[df['Alpha CDR3'] == cdr3_2a]['Epitope'].unique()
         )
 
         if label:
