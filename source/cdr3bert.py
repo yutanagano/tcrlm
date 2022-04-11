@@ -4,7 +4,7 @@ purpose: Python module with classes that represent the code base for the BERT-
          based neural network models that will be able to learn and process TCR
          beta-chain CDR3 sequences.
 author: Yuta Nagano
-ver: 4.0.0
+ver: 4.1.0
 '''
 
 
@@ -231,6 +231,44 @@ class Cdr3Bert(nn.Module):
         return masked_average_pool(token_embeddings, padding_mask)
 
 
+class TcrEmbedder(nn.Module):
+    '''
+    Neural network combination that takes two Cdr3Bert models, one pre-trained
+    on alpha CDR3s, and another pre-trained on beta CDR3s.
+    '''
+    def __init__(self, alpha_bert: Cdr3Bert, beta_bert: Cdr3Bert):
+        # Ensure that the alpha and beta bert models share the same model shape
+        assert(alpha_bert.d_model == beta_bert.d_model)
+        assert(alpha_bert.nhead == beta_bert.nhead)
+        assert(alpha_bert.dim_feedforward == beta_bert.dim_feedforward)
+
+        super(TcrEmbedder, self).__init__()
+        self._alpha_bert = alpha_bert
+        self._beta_bert = beta_bert
+    
+
+    @property
+    def d_model(self) -> int:
+        return self._alpha_bert.d_model
+    
+
+    @property
+    def alpha_bert(self) -> Cdr3Bert:
+        return self._alpha_bert
+    
+
+    @property
+    def beta_bert(self) -> Cdr3Bert:
+        return self._beta_bert
+    
+
+    def forward(self, x_a: torch.Tensor, x_b: torch.Tensor) -> torch.Tensor:
+        alpha_embedding = self._alpha_bert.embed(x_a)
+        beta_embedding = self._beta_bert.embed(x_b)
+
+        return torch.cat((alpha_embedding, beta_embedding), dim=1)
+
+
 class Cdr3BertPretrainWrapper(nn.Module):
     '''
     Wrapper to put around a Cdr3Bert instance during pretraining to streamline
@@ -282,31 +320,21 @@ class Cdr3BertFineTuneWrapper(nn.Module):
     through a single linear layer without bias to classify whether the two
     CDR3s respond to the same epitope.
     '''
-    def __init__(self, alpha_bert: Cdr3Bert, beta_bert: Cdr3Bert):
+    def __init__(self, tcr_embedder: TcrEmbedder):
         super(Cdr3BertFineTuneWrapper, self).__init__()
 
-        assert(alpha_bert.d_model == beta_bert.d_model)
-        assert(alpha_bert.nhead == beta_bert.nhead)
-        assert(alpha_bert.dim_feedforward == beta_bert.dim_feedforward)
-
-        self._alpha_bert = alpha_bert.eval()
-        self._beta_bert = beta_bert.eval()
-        self.classifier = nn.Linear(6 * alpha_bert.d_model, 2, bias=False)
-
-    
-    @property
-    def alpha_bert(self) -> Cdr3Bert:
-        return self._alpha_bert
-
-    
-    @property
-    def beta_bert(self) -> Cdr3Bert:
-        return self._beta_bert
+        self._embedder = tcr_embedder
+        self.classifier = nn.Linear(6 * tcr_embedder.d_model, 2, bias=False)
 
 
     @property
     def d_model(self) -> int:
-        return self._alpha_bert.d_model
+        return self._embedder.d_model
+
+    
+    @property
+    def embedder(self) -> TcrEmbedder:
+        return self._embedder
 
     
     def forward(
@@ -326,22 +354,15 @@ class Cdr3BertFineTuneWrapper(nn.Module):
         N - number of items in batch i.e. batch size
         S - number of tokens in sequence i.e. sequence length
         '''
-        embed_x_1a = self._alpha_bert.embed(x_1a)
-        embed_x_1b = self._beta_bert.embed(x_1b)
+        x_1_embedding = self._embedder(x_1a, x_1b)
+        x_2_embedding = self._embedder(x_2a, x_2b)
+        difference = x_1_embedding - x_2_embedding
 
-        embed_x_2a = self._alpha_bert.embed(x_2a)
-        embed_x_2b = self._beta_bert.embed(x_2b)
-
-        embed_x1 = torch.cat((embed_x_1a, embed_x_1b), dim=1)
-        embed_x2 = torch.cat((embed_x_2a, embed_x_2b), dim=1)
-        difference = embed_x1 - embed_x2
-
-        combined = torch.cat((embed_x1, embed_x2, difference), dim=1)
+        combined = torch.cat((x_1_embedding, x_2_embedding, difference), dim=1)
         
         return self.classifier(combined)
 
 
     def custom_trainmode(self):
         self.train()
-        self._alpha_bert.eval()
-        self._beta_bert.eval()
+        self._embedder.eval()

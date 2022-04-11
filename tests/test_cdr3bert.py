@@ -1,7 +1,7 @@
 import pytest
 import torch
 from source.cdr3bert import masked_average_pool, \
-    Cdr3Bert, Cdr3BertPretrainWrapper, Cdr3BertFineTuneWrapper
+    Cdr3Bert, TcrEmbedder, Cdr3BertPretrainWrapper, Cdr3BertFineTuneWrapper
 
 
 @pytest.fixture(scope='module')
@@ -85,6 +85,21 @@ def test_bert_embed(instantiate_bert):
     assert(out.size() == (3,6))
 
 
+def test_tcr_embedder(instantiate_bert):
+    bert = instantiate_bert
+    embedder = TcrEmbedder(bert, bert)
+
+    assert(embedder.d_model == 6)
+    assert(embedder.alpha_bert == bert)
+    assert(embedder.beta_bert == bert)
+
+    alpha_batch = torch.zeros((3,10), dtype=torch.int)
+    beta_batch = torch.zeros((3,10), dtype=torch.int)
+    out = embedder(alpha_batch, beta_batch)
+
+    assert(out.size() == (3,12))
+
+
 def test_pretrain_wrapper(instantiate_bert):
     bert = instantiate_bert
     pretrain_bert = Cdr3BertPretrainWrapper(bert)
@@ -100,7 +115,9 @@ def test_pretrain_wrapper(instantiate_bert):
 
 def test_fine_tune_wrapper(instantiate_bert):
     bert = instantiate_bert
-    finetune_bert = Cdr3BertFineTuneWrapper(bert,bert)
+    embedder = TcrEmbedder(bert, bert)
+    finetune_bert = Cdr3BertFineTuneWrapper(embedder)
+
     a = torch.zeros((3,10), dtype=torch.int)
     b = torch.zeros((3,15), dtype=torch.int)
     c = torch.zeros((3,12), dtype=torch.int)
@@ -111,18 +128,16 @@ def test_fine_tune_wrapper(instantiate_bert):
     )
 
     assert(out.size() == (3,2))
-    assert(type(finetune_bert.alpha_bert) == Cdr3Bert)
-    assert(type(finetune_bert.beta_bert) == Cdr3Bert)
+    assert(finetune_bert.embedder == embedder)
 
     with pytest.raises(AttributeError):
-        finetune_bert.alpha_bert = 5
+        finetune_bert.d_model = 5
     
     with pytest.raises(AttributeError):
-        finetune_bert.beta_bert = 5
+        finetune_bert.embedder = 5
     
     finetune_bert.custom_trainmode()
-    assert(not finetune_bert.alpha_bert.training)
-    assert(not finetune_bert.beta_bert.training)
+    assert(not finetune_bert._embedder.training)
     assert(finetune_bert.classifier.training)
 
 

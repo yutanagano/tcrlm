@@ -3,7 +3,7 @@ finetune.py
 purpose: Main executable python script which performs finetuning of a Cdr3Bert
          model instance on labelled CDR3 data.
 author: Yuta Nagano
-ver: 2.0.0
+ver: 2.0.1
 '''
 
 
@@ -18,7 +18,7 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm
 
-from source.cdr3bert import Cdr3Bert, Cdr3BertFineTuneWrapper
+from source.cdr3bert import Cdr3Bert, TcrEmbedder, Cdr3BertFineTuneWrapper
 from source.data_handling import Cdr3FineTuneDataset, Cdr3FineTuneDataLoader
 from source.training import create_training_run_directory, parse_hyperparams, \
     print_with_deviceid, set_env_vars, write_hyperparameters, save_log, \
@@ -105,8 +105,9 @@ def load_pretrained_model(
     )
     alpha_bert = torch.load(alpha_location).bert
     beta_bert = torch.load(beta_location).bert
+    embedder = TcrEmbedder(alpha_bert, beta_bert)
     
-    return Cdr3BertFineTuneWrapper(alpha_bert,beta_bert).to(device)
+    return Cdr3BertFineTuneWrapper(embedder).to(device)
 
 
 @torch.no_grad()
