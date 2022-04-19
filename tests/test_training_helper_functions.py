@@ -7,9 +7,7 @@ from torch.nn.parallel import DistributedDataParallel
 import shutil
 import sys
 
-from source.training import create_training_run_directory, \
-    write_hyperparameters, set_env_vars, print_with_deviceid, compare_models, \
-    save_log, save_model, parse_hyperparams
+import source.training as training
 
 
 # Positive tests
@@ -24,32 +22,32 @@ def test_create_new_training_run_directory():
     if os.path.isdir('finetune_runs'): shutil.rmtree('finetune_runs')
 
     # 1. Test that function creates pretrain run directories
-    dirpath = create_training_run_directory('foo', mode='pretrain')
+    dirpath = training.create_training_run_directory('foo', mode='pretrain')
     assert(dirpath == 'pretrain_runs/foo')
     assert(os.path.isdir('pretrain_runs/foo'))
-    dirpath = create_training_run_directory('bar', mode='pretrain')
+    dirpath = training.create_training_run_directory('bar', mode='pretrain')
     assert(dirpath == 'pretrain_runs/bar')
     assert(os.path.isdir('pretrain_runs/bar'))
 
     # 2. Test that function creates finetune run directories
-    dirpath = create_training_run_directory('foo', mode='finetune')
+    dirpath = training.create_training_run_directory('foo', mode='finetune')
     assert(dirpath == 'finetune_runs/foo')
     assert(os.path.isdir('finetune_runs/foo'))
-    dirpath = create_training_run_directory('bar', mode='finetune')
+    dirpath = training.create_training_run_directory('bar', mode='finetune')
     assert(dirpath == 'finetune_runs/bar')
     assert(os.path.isdir('finetune_runs/bar'))
 
     # 3. Test that function can dynamically alter run ID if clash
-    dirpath = create_training_run_directory('foo', mode='pretrain')
+    dirpath = training.create_training_run_directory('foo', mode='pretrain')
     assert(dirpath == 'pretrain_runs/foo_1')
     assert(os.path.isdir('pretrain_runs/foo_1'))
-    dirpath = create_training_run_directory('foo', mode='pretrain')
+    dirpath = training.create_training_run_directory('foo', mode='pretrain')
     assert(dirpath == 'pretrain_runs/foo_2')
     assert(os.path.isdir('pretrain_runs/foo_2'))
 
     # 4. Test that function can overwrite clash if in overwrite mode
     os.mkdir('pretrain_runs/foo/baz')
-    dirpath = create_training_run_directory(
+    dirpath = training.create_training_run_directory(
         'foo',
         mode='pretrain',
         overwrite=True
@@ -68,7 +66,7 @@ def test_write_hyperparameters():
         'baz': 'foobar'
     }
 
-    write_hyperparameters(hp, 'tests/data')
+    training.write_hyperparameters(hp, 'tests/data')
 
     with open('tests/data/hyperparams.txt', 'r') as f:
         for param in hp:
@@ -79,7 +77,7 @@ def test_write_hyperparameters():
 
 
 def test_set_env_vars():
-    set_env_vars('localhost', '123456')
+    training.set_env_vars('localhost', '123456')
 
     assert(os.getenv('MASTER_ADDR') == 'localhost')
     assert(os.getenv('MASTER_PORT') == '123456')
@@ -88,14 +86,14 @@ def test_set_env_vars():
 def test_print_with_deviceid():
     out = io.StringIO()
     sys.stdout = out
-    print_with_deviceid('test', device=torch.device('cpu'))
+    training.print_with_deviceid('test', device=torch.device('cpu'))
     sys.stdout = sys.__stdout__
 
     assert(out.getvalue() == '[cpu]: test\n')
 
 
 def test_compare_models():
-    compare_models('tests/toy_models/identical', n_gpus=2)
+    training.compare_models('tests/toy_models/identical', n_gpus=2)
 
 
 def test_save_log():
@@ -107,14 +105,14 @@ def test_save_log():
 
     expected = 'epoch,foo,bar\n0,foo,bar\n1,foo,bar\n2,foo,bar\n'
 
-    save_log(log, 'tests/data', False, torch.device('cpu'))
+    training.save_log(log, 'tests/data', False, torch.device('cpu'))
 
     assert(os.path.isfile('tests/data/training_log.csv'))
     assert(open('tests/data/training_log.csv','r').read() == expected)
 
     os.remove('tests/data/training_log.csv')
 
-    save_log(log, 'tests/data', True, torch.device('cpu'))
+    training.save_log(log, 'tests/data', True, torch.device('cpu'))
 
     assert(os.path.isfile('tests/data/training_log_cpu.csv'))
     assert(open('tests/data/training_log_cpu.csv','r').read() == expected)
@@ -130,7 +128,7 @@ def test_save_model():
             if not torch.equal(p1, p2): return False
         return True
 
-    save_model(
+    training.save_model(
         model,
         'model',
         'tests/toy_models',
@@ -151,7 +149,7 @@ def test_save_model_distributed():
 
     model = torch.nn.Linear(3,3).to('cuda:0')
 
-    set_env_vars('localhost', '12345')
+    training.set_env_vars('localhost', '12345')
     dist.init_process_group(
         backend='nccl',
         rank=0,
@@ -164,7 +162,7 @@ def test_save_model_distributed():
             if not torch.equal(p1, p2): return False
         return True
 
-    save_model(
+    training.save_model(
         distributed_model,
         'model',
         'tests/toy_models',
@@ -179,7 +177,7 @@ def test_save_model_distributed():
     os.remove('tests/toy_models/model.ptnn')
 
     # Save distributed and testing mode
-    save_model(
+    training.save_model(
         distributed_model,
         'model',
         'tests/toy_models',
@@ -215,42 +213,537 @@ def test_parse_hyperparams():
         'foo': False
     }
     
-    hps = parse_hyperparams('tests/data/pretrain_hyperparams.csv')
+    hps = training.parse_hyperparams('tests/data/pretrain_hyperparams.csv')
 
     assert(hps == expected)
+
+
+@pytest.mark.parametrize(
+    ('x', 'y', 'expected'),
+    (
+        (
+            torch.tensor(
+                [
+                    [
+                        [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                    ],
+                    [
+                        [0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0]
+                    ]
+                ],
+                dtype=torch.float
+            ),
+            torch.tensor(
+                [
+                    [0,1,2,3,4],
+                    [5,6,7,8,9]
+                ],
+                dtype=torch.long
+            ),
+            (torch.tensor(8) / torch.tensor(10)).item()
+        ),
+        (
+            torch.tensor(
+                [
+                    [
+                        [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                    ],
+                    [
+                        [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                    ],
+                    [
+                        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0]
+                    ],
+                    [
+                        [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0]
+                    ]
+                ],
+                dtype=torch.float
+            ),
+            torch.tensor(
+                [
+                    [0,1,2],
+                    [3,4,5],
+                    [6,7,8],
+                    [9,21,21]
+                ],
+                dtype=torch.long
+            ),
+            (torch.tensor(6) / torch.tensor(10)).item()
+        )
+    )
+)
+def test_pretrain_accuracy(x,y,expected):
+    calculated = training.pretrain_accuracy(x, y)
+    assert(calculated == expected)
+
+
+@pytest.mark.parametrize(
+    ('x', 'y', 'k', 'expected'),
+    (
+        (
+            torch.tensor(
+                [
+                    [
+                        [0.1,0.4,0,0,0,0.3,0,0,0,0.2,0,0,0,0,0,0,0,0,0,0],
+                        [0,0.4,0.3,0.2,0.1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0.1,0,0.2,0,0,0,0,0.3,0,0,0,0,0.4,0,0,0,0,0,0,0],
+                        [0,0,0,0.3,0,0,0,0,0,0,0,0,0,0,0.2,0,0.4,0,0.1,0],
+                        [0.2,0,0,0.3,0.4,0,0,0,0,0,0,0,0,0,0,0,0,0.1,0,0]
+                    ],
+                    [
+                        [0,0.3,0,0,0,0.2,0,0,0,0.1,0,0,0,0,0.4,0,0,0,0,0],
+                        [0,0,0,0,0,0,0.4,0,0,0.3,0,0,0.2,0,0,0.1,0,0,0,0],
+                        [0,0,0,0,0.4,0,0,0.3,0,0,0,0.2,0,0,0,0.1,0,0,0,0],
+                        [0,0,0,0.3,0,0,0,0,0.4,0,0,0,0,0,0.2,0,0.1,0,0,0],
+                        [0,0,0,0,0.4,0,0.3,0,0,0,0,0.2,0,0.1,0,0,0,0,0,0]
+                    ]
+                ],
+                dtype=torch.float
+            ),
+            torch.tensor(
+                [
+                    [0,1,2,3,4],
+                    [5,6,7,8,9]
+                ],
+                dtype=torch.long
+            ),
+            3,
+            (torch.tensor(8) / torch.tensor(10)).item()
+        ),
+        (
+            torch.tensor(
+                [
+                    [
+                        [0.1,0.4,0,0,0,0.3,0,0,0,0.2,0,0,0,0,0,0,0,0,0,0],
+                        [0,0.4,0.3,0.2,0.1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0.1,0,0.2,0,0,0,0,0.3,0,0,0,0,0.4,0,0,0,0,0,0,0]
+                    ],
+                    [
+                        [0,0,0,0.3,0,0,0,0,0,0,0,0,0,0,0.2,0,0.4,0,0.1,0],
+                        [0.2,0,0,0.3,0.4,0,0,0,0,0,0,0,0,0,0,0,0,0.1,0,0],
+                        [0,0.3,0,0,0,0.2,0,0,0,0.1,0,0,0,0,0.4,0,0,0,0,0]
+                    ],
+                    [
+                        [0,0,0.4,0,0,0,0,0,0,0.3,0,0,0.2,0,0,0.1,0,0,0,0],
+                        [0,0,0,0,0.4,0,0,0.3,0,0,0,0.2,0,0,0,0.1,0,0,0,0],
+                        [0,0,0,0.3,0,0,0,0,0.1,0,0,0,0,0,0.2,0,0,0,0.4,0]
+                    ],
+                    [
+                        [0,0,0,0,0.4,0,0.3,0,0,0,0,0.2,0,0.1,0,0,0,0,0,0],
+                        [0,0,0,0.3,0,0,0,0,0.4,0,0,0,0,0,0.2,0,0.1,0,0,0],
+                        [0,0,0,0,0.4,0,0.3,0,0,0,0,0.2,0,0.1,0,0,0,0,0,0]
+                    ]
+                ],
+                dtype=torch.float
+            ),
+            torch.tensor(
+                [
+                    [0,1,2],
+                    [3,4,5],
+                    [6,7,8],
+                    [9,21,21]
+                ],
+                dtype=torch.long
+            ),
+            3,
+            (torch.tensor(6) / torch.tensor(10)).item()
+        )
+    )
+)
+def test_pretrain_topk_accuracy(x,y,k,expected):
+    calculated = training.pretrain_topk_accuracy(x, y, k)
+    assert(calculated == expected)
+
+
+@pytest.mark.parametrize(
+    ('y', 'expected'),
+    (
+        (
+            torch.tensor(
+                [
+                    [2,6,4,21,21],
+                    [1,2,3,4,5],
+                    [8,3,21,21,21],
+                    [21,21,21,21,21]
+                ],
+                dtype=torch.long
+            ),
+            torch.tensor([3,5,2,0])
+        ),
+        (
+            torch.tensor(
+                [
+                    [0,1,2,3,4],
+                    [0,1,2,3,21],
+                    [0,1,2,21,21],
+                    [0,1,21,21,21],
+                    [0,21,21,21,21],
+                    [21,21,21,21,21]
+                ],
+                dtype=torch.long
+            ),
+            torch.tensor([5,4,3,2,1,0])
+        )
+    )
+)
+def test_get_cdr3_lens(y,expected):
+    calculated = training._get_cdr3_lens(y)
+    assert(torch.equal(calculated, expected))
+
+
+@pytest.mark.parametrize(
+    ('lens', 'third', 'expected'),
+    (
+        (
+            torch.tensor([10,20,30]),
+            0,
+            (
+                torch.tensor([0,0,0]),
+                torch.tensor([3,7,10])
+            )
+        ),
+        (
+            torch.tensor([10,20,30]),
+            1,
+            (
+                torch.tensor([3,7,10]),
+                torch.tensor([7,13,20])
+            )
+        ),
+        (
+            torch.tensor([10,20,30]),
+            2,
+            (
+                torch.tensor([7,13,20]),
+                torch.tensor([10,20,30])
+            )
+        )
+    )
+)
+def test_get_cdr3_third(lens,third,expected):
+    calculated = training._get_cdr3_third(lens, third)
+    assert(torch.equal(calculated[0],expected[0]))
+    assert(torch.equal(calculated[1],expected[1]))
+
+
+@pytest.mark.parametrize(
+    ('y','start_indices','end_indices','expected'),
+    (
+        (
+            torch.zeros(5,5),
+            torch.tensor([0,0,0,0,0]),
+            torch.tensor([1,2,1,3,3]),
+            torch.tensor(
+                [
+                    [1,0,0,0,0],
+                    [1,1,0,0,0],
+                    [1,0,0,0,0],
+                    [1,1,1,0,0],
+                    [1,1,1,0,0]
+                ]
+            )
+        ),
+        (
+            torch.zeros(5,5),
+            torch.tensor([2,1,4,3,5]),
+            torch.tensor([5,1,5,4,5]),
+            torch.tensor(
+                [
+                    [0,0,1,1,1],
+                    [0,0,0,0,0],
+                    [0,0,0,0,1],
+                    [0,0,0,1,0],
+                    [0,0,0,0,0]
+                ]
+            )
+        )
+    )
+)
+def test_get_cdr3_partial_mask(y,start_indices,end_indices,expected):
+    calculated = training._get_cdr3_partial_mask(y, start_indices, end_indices)
+    assert(torch.equal(calculated, expected))
+
+
+@pytest.mark.parametrize(
+    ('x', 'y', 'third', 'expected'),
+    (
+        (
+            torch.tensor(
+                [
+                    [
+                        [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                    ],
+                    [
+                        [0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0]
+                    ]
+                ],
+                dtype=torch.float
+            ),
+            torch.tensor(
+                [
+                    [0,1,2,3,4],
+                    [5,6,7,8,9]
+                ],
+                dtype=torch.long
+            ),
+            0,
+            (torch.tensor(3) / torch.tensor(4)).item()
+        ),
+        (
+            torch.tensor(
+                [
+                    [
+                        [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                    ],
+                    [
+                        [0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0]
+                    ]
+                ],
+                dtype=torch.float
+            ),
+            torch.tensor(
+                [
+                    [0,1,2,3,4],
+                    [5,6,7,8,9]
+                ],
+                dtype=torch.long
+            ),
+            1,
+            (torch.tensor(1) / torch.tensor(2)).item()
+        ),
+
+        (
+            torch.tensor(
+                [
+                    [
+                        [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                    ],
+                    [
+                        [0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0]
+                    ]
+                ],
+                dtype=torch.float
+            ),
+            torch.tensor(
+                [
+                    [0,1,2,3,4],
+                    [5,6,7,8,9]
+                ],
+                dtype=torch.long
+            ),
+            2,
+            (torch.tensor(4) / torch.tensor(4)).item()
+        )
+    )
+)
+def test_pretrain_accuracy_third(x,y,third,expected):
+    calculated = training.pretrain_accuracy_third(x, y, third)
+    assert(calculated == expected)
+
+
+@pytest.mark.parametrize(
+    ('x', 'y', 'third', 'k', 'expected'),
+    (
+        (
+            torch.tensor(
+                [
+                    [
+                        [0.1,0.4,0,0,0,0.3,0,0,0,0.2,0,0,0,0,0,0,0,0,0,0],
+                        [0,0.4,0.3,0.2,0.1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0.1,0,0.2,0,0,0,0,0.3,0,0,0,0,0.4,0,0,0,0,0,0,0],
+                        [0,0,0,0.3,0,0,0,0,0,0,0,0,0,0,0.2,0,0.4,0,0.1,0],
+                        [0.2,0,0,0.3,0.4,0,0,0,0,0,0,0,0,0,0,0,0,0.1,0,0]
+                    ],
+                    [
+                        [0,0.3,0,0,0,0.2,0,0,0,0.1,0,0,0,0,0.4,0,0,0,0,0],
+                        [0,0,0,0,0,0,0.4,0,0,0.3,0,0,0.2,0,0,0.1,0,0,0,0],
+                        [0,0,0,0,0.4,0,0,0.3,0,0,0,0.2,0,0,0,0.1,0,0,0,0],
+                        [0,0,0,0.3,0,0,0,0,0.4,0,0,0,0,0,0.2,0,0.1,0,0,0],
+                        [0,0,0,0,0.4,0,0.3,0,0,0,0,0.2,0,0.1,0,0,0,0,0,0]
+                    ]
+                ],
+                dtype=torch.float
+            ),
+            torch.tensor(
+                [
+                    [0,1,2,3,4],
+                    [5,6,7,8,9]
+                ],
+                dtype=torch.long
+            ),
+            0,
+            3,
+            (torch.tensor(3) / torch.tensor(4)).item()
+        ),
+        (
+            torch.tensor(
+                [
+                    [
+                        [0.1,0.4,0,0,0,0.3,0,0,0,0.2,0,0,0,0,0,0,0,0,0,0],
+                        [0,0.4,0.3,0.2,0.1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0.1,0,0.2,0,0,0,0,0.3,0,0,0,0,0.4,0,0,0,0,0,0,0]
+                    ],
+                    [
+                        [0,0,0,0.3,0,0,0,0,0,0,0,0,0,0,0.2,0,0.4,0,0.1,0],
+                        [0.2,0,0,0.3,0.4,0,0,0,0,0,0,0,0,0,0,0,0,0.1,0,0],
+                        [0,0.3,0,0,0,0.2,0,0,0,0.1,0,0,0,0,0.4,0,0,0,0,0]
+                    ],
+                    [
+                        [0,0,0.4,0,0,0,0,0,0,0.3,0,0,0.2,0,0,0.1,0,0,0,0],
+                        [0,0,0,0,0.4,0,0,0.3,0,0,0,0.2,0,0,0,0.1,0,0,0,0],
+                        [0,0,0,0.3,0,0,0,0,0.1,0,0,0,0,0,0.2,0,0,0,0.4,0]
+                    ],
+                    [
+                        [0,0,0,0,0.4,0,0.3,0,0,0,0,0.2,0,0.1,0,0,0,0,0,0],
+                        [0,0,0,0.3,0,0,0,0,0.4,0,0,0,0,0,0.2,0,0.1,0,0,0],
+                        [0,0,0,0,0.4,0,0.3,0,0,0,0,0.2,0,0.1,0,0,0,0,0,0]
+                    ]
+                ],
+                dtype=torch.float
+            ),
+            torch.tensor(
+                [
+                    [0,1,2],
+                    [3,4,5],
+                    [6,7,8],
+                    [9,21,21]
+                ],
+                dtype=torch.long
+            ),
+            2,
+            3,
+            (torch.tensor(2) / torch.tensor(3)).item()
+        )
+    )
+)
+def test_pretrain_topk_accuracy_third(x,y,third,k,expected):
+    calculated = training.pretrain_topk_accuracy_third(x, y, third, k)
+    assert(calculated == expected)
+
+
+@pytest.mark.parametrize(
+    ('x', 'y', 'expected'),
+    (
+        (
+            torch.tensor(
+                [
+                    [1,0],
+                    [1,0],
+                    [1,0],
+                    [0,1],
+                    [0,1]
+                ],
+                dtype=torch.float
+            ),
+            torch.tensor(
+                [0,0,0,0,1],
+                dtype=torch.long
+            ),
+            (torch.tensor(4) / torch.tensor(5)).item()
+        ),
+        (
+            torch.tensor(
+                [
+                    [1,0],
+                    [1,0],
+                    [1,0],
+                    [0,1],
+                    [0,1]
+                ],
+                dtype=torch.float
+            ),
+            torch.tensor(
+                [1,1,0,0,0],
+                dtype=torch.long
+            ),
+            (torch.tensor(1) / torch.tensor(5)).item()
+        )
+    )
+)
+def test_finetune_accuracy(x,y,expected):
+    calculated = training.finetune_accuracy(x, y)
+    assert(calculated == expected)
     
 
 # Negative tests
 def test_create_new_training_run_directory_bad_mode():
     with pytest.raises(RuntimeError):
-        create_training_run_directory('foo', mode='bar')
+        training.create_training_run_directory('foo', mode='bar')
 
 
 def test_compare_models_wrong_gpu_number():
     with pytest.raises(AssertionError):
-        compare_models('tests/toy_models/identical', n_gpus=5)
+        training.compare_models('tests/toy_models/identical', n_gpus=5)
 
 
 def test_compare_models_nonidentical_models():
     with pytest.raises(RuntimeError):
-        compare_models('tests/toy_models/different', n_gpus=2)
+        training.compare_models('tests/toy_models/different', n_gpus=2)
 
 
 def test_parse_hyperparams_bad_path():
     with pytest.raises(RuntimeError):
-        parse_hyperparams('csv_path')
+        training.parse_hyperparams('csv_path')
 
 
 def test_parse_hyperparams_bad_format():
     with pytest.raises(RuntimeError):
-        parse_hyperparams('tests/data/bad_format.csv')
+        training.parse_hyperparams('tests/data/bad_format.csv')
 
 
 def test_parse_hyperparams_bad_types():
     with pytest.raises(RuntimeError):
-        parse_hyperparams('tests/data/bad_types_hyperparams.csv')
+        training.parse_hyperparams('tests/data/bad_types_hyperparams.csv')
 
 
 def test_parse_hyperparams_bad_values():
     with pytest.raises(RuntimeError):
-        parse_hyperparams('tests/data/bad_values_hyperparams.csv')
+        training.parse_hyperparams('tests/data/bad_values_hyperparams.csv')
+
+
+def test_get_cdr3_third_bad_third():
+    with pytest.raises(RuntimeError):
+        training._get_cdr3_third(torch.arange(3), 10)
+    with pytest.raises(RuntimeError):
+        training._get_cdr3_third(torch.arange(3), -1)

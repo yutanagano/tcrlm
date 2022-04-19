@@ -3,7 +3,7 @@ pretrain.py
 purpose: Main executable python script which performs pretraining of a Cdr3Bert
          model instance on unlabelled CDR3 data.
 author: Yuta Nagano
-ver: 3.1.1
+ver: 3.2.0
 '''
 
 
@@ -20,10 +20,7 @@ from tqdm import tqdm
 
 from source.cdr3bert import Cdr3Bert, Cdr3BertPretrainWrapper
 from source.data_handling import Cdr3PretrainDataset, Cdr3PretrainDataLoader
-from source.training import create_training_run_directory, \
-    write_hyperparameters, set_env_vars, parse_hyperparams, \
-    print_with_deviceid, compare_models, save_log, save_model, \
-    AdamWithScheduling
+import source.training as training
 
 
 # Helper functions for training
@@ -107,17 +104,6 @@ def instantiate_model(
     return Cdr3BertPretrainWrapper(bert).to(device)
 
 
-@torch.no_grad()
-def accuracy(x: torch.Tensor, y: torch.Tensor) -> float:
-    '''
-    Calculate the accuracy of model predictions ignoring any padding tokens.
-    '''
-    mask = (y != 21)
-    correct = torch.argmax(x,dim=-1) == y
-    correct_masked = correct & mask
-    return (correct_masked.sum() / mask.sum()).item()
-
-
 def train_epoch(
     model: Cdr3BertPretrainWrapper,
     dataloader: Cdr3PretrainDataLoader,
@@ -132,7 +118,19 @@ def train_epoch(
     model.train()
 
     total_loss = 0
+
     total_acc = 0
+    total_top5_acc = 0
+
+    total_acc_third0 = 0
+    total_top5_acc_third0 = 0
+
+    total_acc_third1 = 0
+    total_top5_acc_third1 = 0
+
+    total_acc_third2 = 0
+    total_top5_acc_third2 = 0
+
     total_lr = 0
 
     start_time = time.time()
@@ -144,20 +142,36 @@ def train_epoch(
 
         # Forward pass
         logits = model(x)
-        logits = logits.view(-1,logits.size(-1))
-        y = y.view(-1)
 
         # Backward pass
         optimiser.zero_grad()
 
-        loss = criterion(logits,y)
+        loss = criterion(
+            logits.view(-1,20),
+            y.view(-1)
+        )
         loss.backward()
 
         optimiser.step()
         
         # Increment stats
         total_loss += loss.item()
-        total_acc += accuracy(logits,y)
+
+        total_acc += training.pretrain_accuracy(logits,y)
+        total_top5_acc += training.pretrain_topk_accuracy(logits,y,5)
+
+        total_acc_third0 += training.pretrain_accuracy_third(logits,y,0)
+        total_top5_acc_third0 = training.pretrain_topk_accuracy_third(
+                                                                logits,y,0,5)
+
+        total_acc_third1 += training.pretrain_accuracy_third(logits,y,1)
+        total_top5_acc_third1 = training.pretrain_topk_accuracy_third(
+                                                                logits,y,1,5)
+
+        total_acc_third2 += training.pretrain_accuracy_third(logits,y,2)
+        total_top5_acc_third2 = training.pretrain_topk_accuracy_third(
+                                                                logits,y,2,5)
+
         total_lr += optimiser.lr
 
     elapsed = time.time() - start_time
@@ -166,11 +180,20 @@ def train_epoch(
     # Since the loss value at each batch is averaged over the samples in it,
     # the accumulated loss/accuracy values should be divided by the number of
     # batches in the dataloader.
+    divisor = len(dataloader)
+
     return {
-        'train_loss': total_loss / len(dataloader),
-        'train_acc' : total_acc / len(dataloader),
-        'avg_lr'    : total_lr / len(dataloader),
-        'epoch_time': elapsed
+        'train_loss'            : total_loss / divisor,
+        'train_acc'             : total_acc / divisor,
+        'train_top5_acc'        : total_top5_acc / divisor,
+        'train_acc_third0'      : total_acc_third0 / divisor,
+        'train_top5_acc_third0' : total_top5_acc_third0 / divisor,
+        'train_acc_third1'      : total_acc_third1 / divisor,
+        'train_top5_acc_third1' : total_top5_acc_third1 / divisor,
+        'train_acc_third2'      : total_acc_third2 / divisor,
+        'train_top5_acc_third2' : total_top5_acc_third2 / divisor,
+        'avg_lr'                : total_lr / divisor,
+        'epoch_time'            : elapsed
     }
 
 
@@ -189,7 +212,18 @@ def validate(
     model.eval()
     
     total_loss = 0
+
     total_acc = 0
+    total_top5_acc = 0
+
+    total_acc_third0 = 0
+    total_top5_acc_third0 = 0
+
+    total_acc_third1 = 0
+    total_top5_acc_third1 = 0
+
+    total_acc_third2 = 0
+    total_top5_acc_third2 = 0
 
     # Iterate through the dataloader
     for x, y in tqdm(dataloader, desc=f'[{device}]', disable=no_progressbars):
@@ -198,27 +232,51 @@ def validate(
 
         # Forward pass
         logits = model(x)
-        logits = logits.view(-1,logits.size(-1))
-        y = y.view(-1)
 
         # Loss calculation
-        loss = criterion(logits,y)
+        loss = criterion(
+            logits.view(-1,20),
+            y.view(-1)
+        )
 
         # Increment stats
         total_loss += loss.item()
-        total_acc += accuracy(logits,y)
+
+        total_acc += training.pretrain_accuracy(logits,y)
+        total_top5_acc += training.pretrain_topk_accuracy(logits,y,5)
+
+        total_acc_third0 += training.pretrain_accuracy_third(logits,y,0)
+        total_top5_acc_third0 = training.pretrain_topk_accuracy_third(
+                                                                logits,y,0,5)
+
+        total_acc_third1 += training.pretrain_accuracy_third(logits,y,1)
+        total_top5_acc_third1 = training.pretrain_topk_accuracy_third(
+                                                                logits,y,1,5)
+
+        total_acc_third2 += training.pretrain_accuracy_third(logits,y,2)
+        total_top5_acc_third2 = training.pretrain_topk_accuracy_third(
+                                                                logits,y,2,5)
 
     # Decide on appropriate name for the statistic calculated based on the
     # dataloader's jumble status
     if dataloader.jumble:
-        stat_names = ('jumble_loss','jumble_acc')
+        stat_prefix = 'jumble'
     else:
-        stat_names = ('valid_loss','valid_acc')
+        stat_prefix = 'valid'
     
     # Return a dictionary with stats
+    divisor = len(dataloader)
+
     return {
-        stat_names[0]: total_loss / len(dataloader),
-        stat_names[1]: total_acc / len(dataloader)
+        f'{stat_prefix}_loss'               : total_loss / divisor,
+        f'{stat_prefix}_acc'                : total_acc / divisor,
+        f'{stat_prefix}_top5_acc'           : total_top5_acc / divisor,
+        f'{stat_prefix}_acc_third0'         : total_acc_third0 / divisor,
+        f'{stat_prefix}_top5_acc_third0'    : total_top5_acc_third0 / divisor,
+        f'{stat_prefix}_acc_third1'         : total_acc_third1 / divisor,
+        f'{stat_prefix}_top5_acc_third1'    : total_top5_acc_third1 / divisor,
+        f'{stat_prefix}_acc_third2'         : total_acc_third2 / divisor,
+        f'{stat_prefix}_top5_acc_third2'    : total_top5_acc_third2 / divisor
     }
 
 
@@ -252,14 +310,14 @@ def train(
     device = torch.device(device)
 
     # Instantiate model
-    print_with_deviceid('Instantiating cdr3bert model...', device)
+    training.print_with_deviceid('Instantiating cdr3bert model...', device)
     model = instantiate_model(hyperparameters, device)
 
     # Wrap the model with DistributedDataParallel if distributed
     if distributed: model = DistributedDataParallel(model, device_ids=[device])
 
     # Load training and validation data
-    print_with_deviceid('Loading cdr3 data into memory...', device)
+    training.print_with_deviceid('Loading cdr3 data into memory...', device)
 
     # Training data
     train_dataset = Cdr3PretrainDataset(
@@ -320,12 +378,12 @@ def train(
     )
 
     # Instantiate loss function and optimiser
-    print_with_deviceid(
+    training.print_with_deviceid(
         'Instantiating other misc. objects for training...',
         device
     )
     loss_fn = CrossEntropyLoss(ignore_index=21,label_smoothing=0.1)
-    optimiser = AdamWithScheduling(
+    optimiser = training.AdamWithScheduling(
         params=model.parameters(),
         d_model=hyperparameters['d_model'],
         n_warmup_steps=hyperparameters['optim_warmup'],
@@ -333,14 +391,14 @@ def train(
         decay=hyperparameters['lr_decay']
     )
 
-    print_with_deviceid('Commencing training...', device)
+    training.print_with_deviceid('Commencing training...', device)
 
     stats_log = dict()
     start_time = time.time()
 
     # Main training loop
     for epoch in range(1, hyperparameters['num_epochs']+1):
-        print_with_deviceid(f'Beginning epoch {epoch}...', device)
+        training.print_with_deviceid(f'Beginning epoch {epoch}...', device)
 
         # If in distributed mode, inform the distributed sampler that a new
         # epoch is beginning
@@ -357,7 +415,7 @@ def train(
         )
 
         # Validate model performance
-        print_with_deviceid('Validating model...', device)
+        training.print_with_deviceid('Validating model...', device)
         valid_stats = validate(
             model,
             val_dataloader,
@@ -367,12 +425,12 @@ def train(
         )
 
         # Quick feedback
-        print_with_deviceid(
+        training.print_with_deviceid(
             f'training loss: {train_stats["train_loss"]:.3f} | '\
             f'training accuracy: {train_stats["train_acc"]:.3f}',
             device
         )
-        print_with_deviceid(
+        training.print_with_deviceid(
             f'validation loss: {valid_stats["valid_loss"]:.3f} | '\
             f'validation accuracy: {valid_stats["valid_acc"]:.3f}',
             device
@@ -381,11 +439,11 @@ def train(
         # Log stats
         stats_log[epoch] = {**train_stats, **valid_stats}
 
-    print_with_deviceid('Training finished.', device)
+    training.print_with_deviceid('Training finished.', device)
 
     # Evaluate the model on jumbled validation data to ensure that the model is
     # learning something more than just amino acid residue frequencies.
-    print_with_deviceid(
+    training.print_with_deviceid(
         'Evaluating model on jumbled validation data...',
         device
     )
@@ -399,7 +457,7 @@ def train(
     )
     
     # Quick feedback
-    print_with_deviceid(
+    training.print_with_deviceid(
         f'jumbled loss: {jumbled_valid_stats["jumble_loss"]:.3f} | '\
         f'jumbled accuracy: {jumbled_valid_stats["jumble_acc"]:.3f}',
         device
@@ -409,14 +467,14 @@ def train(
     stats_log[hyperparameters['num_epochs']+1] = jumbled_valid_stats
 
     time_taken = int(time.time() - start_time)
-    print_with_deviceid(
+    training.print_with_deviceid(
         f'Total time taken: {time_taken}s ({time_taken / 60} min)',
         device
     )
 
     # Save results
-    save_log(stats_log, save_dir_path, distributed, device)
-    save_model(
+    training.save_log(stats_log, save_dir_path, distributed, device)
+    training.save_model(
         model,
         'pretrained',
         save_dir_path,
@@ -463,18 +521,18 @@ def main(
         run_id = 'test'
         hyperparams_path = 'tests/data/pretrain_hyperparams.csv'
     
-    hp = parse_hyperparams(hyperparams_path)
+    hp = training.parse_hyperparams(hyperparams_path)
 
     # Claim space to store results of training run by creating a new directory
     # based on the training id specified above
-    dirpath = create_training_run_directory(
+    dirpath = training.create_training_run_directory(
         run_id,
         mode='pretrain',
         overwrite=test_mode
     )
 
     # Save a text file containing info of current run's hyperparameters
-    write_hyperparameters(hp, dirpath)
+    training.write_hyperparameters(hp, dirpath)
 
     # If multiple GPUs are expected:
     if n_gpus > 1:
@@ -495,7 +553,7 @@ def main(
 
         # Set the required environment variables to properly create a process
         # group
-        set_env_vars(master_addr='localhost', master_port='7777')
+        training.set_env_vars(master_addr='localhost', master_port='7777')
 
         # Spawn parallel processes each running train() on a different GPU
         mp.spawn(
@@ -506,7 +564,7 @@ def main(
 
         # If in test mode, verify that the trained models saved from all
         # processes are equivalent (i.e. they all have the same weights).
-        if test_mode: compare_models(dirpath, n_gpus)
+        if test_mode: training.compare_models(dirpath, n_gpus)
 
     # If there is one GPU available:
     elif n_gpus == 1:

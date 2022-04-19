@@ -39,7 +39,7 @@ for t, i in zip(tokens, range(len(tokens))):
 # Helper functions
 def tokenise(cdr3) -> torch.Tensor:
     '''
-    Turn a cdr3 sequence from string form to tokenised tensor form.
+    Turn a cdr3 sequence from list form to tokenised tensor form.
     '''
     cdr3 = map(lambda x: token_to_index[x], cdr3)
     return torch.tensor(list(cdr3), dtype=torch.long)
