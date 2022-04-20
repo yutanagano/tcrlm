@@ -3,7 +3,7 @@ generate_train_stats_graph.py
 purpose: Executable script to generate a graph visualising the training
          statistics for a particular version of the CDR3 BERT model.
 author: Yuta Nagano
-ver: 3.2.0
+ver: 4.0.0
 '''
 
 
@@ -129,10 +129,10 @@ def draw_figure(train_stat_dfs: list) -> matplotlib.figure.Figure:
     tick_maj, tick_min = calculate_ticks(epochs)
 
     # Create figure
-    fig = plt.figure(figsize=(8,8))
+    fig = plt.figure(figsize=(8,12))
 
     # Create top panel (Loss)
-    loss = plt.subplot(5,1,(1,2))
+    loss = plt.subplot(7,1,(1,2))
     loss.set_xticks(ticks=tick_maj)
     loss.set_xticks(ticks=tick_min,minor=True)
     loss.grid(which='minor',linewidth=0.5)
@@ -143,8 +143,8 @@ def draw_figure(train_stat_dfs: list) -> matplotlib.figure.Figure:
     )
     loss.set_title('Loss')
 
-    # Create middle panel (Accuracy)
-    acc = plt.subplot(5,1,(3,4))
+    # Create second panel (Accuracy)
+    acc = plt.subplot(7,1,(3,4))
     acc.set_xticks(ticks=tick_maj)
     acc.set_xticks(ticks=tick_min,minor=True)
     acc.grid(which='minor',linewidth=0.5)
@@ -155,12 +155,24 @@ def draw_figure(train_stat_dfs: list) -> matplotlib.figure.Figure:
     )
     acc.set_title('Accuracy')
 
+    # Create third panel (Accuracy)
+    acc_thirds = plt.subplot(7,1,(5,6))
+    acc_thirds.set_xticks(ticks=tick_maj)
+    acc_thirds.set_xticks(ticks=tick_min,minor=True)
+    acc_thirds.grid(which='minor',linewidth=0.5)
+    acc_thirds.tick_params(
+        axis='x',
+        bottom=False,
+        labelbottom=False
+    )
+    acc_thirds.set_title('Accuracy by CDR3 segment (only validation)')
+
     # Create bottom panel (Learning rate)
-    lr = plt.subplot(5,1,5)
+    lr = plt.subplot(7,1,7)
     lr.set_xticks(ticks=tick_maj)
     lr.set_xticks(ticks=tick_min,minor=True)
     lr.grid(which='minor',linewidth=0.5)
-    lr.set_title('Average Learning Rate')
+    lr.set_title('Average learning rate')
 
     # Plot top and middle panels (Loss and Accuracy)
     for df in train_stat_dfs:
@@ -168,16 +180,51 @@ def draw_figure(train_stat_dfs: list) -> matplotlib.figure.Figure:
         loss.plot(df['train_loss'],c='C0')
         loss.plot(df['valid_loss'],c='C1')
 
-        # Plot middle panel (Accuracy)
+        # Plot second panel (Accuracy)
         acc.plot(df['train_acc'],c='C0')
+        acc.plot(df['train_top5_acc'],c='C0',linestyle=':')
         acc.plot(df['valid_acc'],c='C1')
+        acc.plot(df['valid_top5_acc'],c='C1',linestyle=':')
+
+        # Plot third panel (Accuracy by CDR3 segment)
+        acc_thirds.plot(df['valid_acc_third0'],c='C2')
+        acc_thirds.plot(df['valid_top5_acc_third0'],c='C2',linestyle=':')
+        acc_thirds.plot(df['valid_acc_third1'],c='C3')
+        acc_thirds.plot(df['valid_top5_acc_third1'],c='C3',linestyle=':')
+        acc_thirds.plot(df['valid_acc_third2'],c='C4')
+        acc_thirds.plot(df['valid_top5_acc_third2'],c='C4',linestyle=':')
 
     # Plot bottom panel (Learning rate)
     lr.plot(train_stat_dfs[0]['avg_lr'],c='C2')
 
     # Create legends
-    loss.legend(('training loss','validation loss'),loc='upper right')
-    acc.legend(('training accuracy','validation accuracy'),loc='lower right')
+    loss.legend(
+        (
+            'loss (training)',
+            'loss (validation)'
+        ),
+        loc='upper right'
+    )
+    acc.legend(
+        (
+            'accuracy (training)',
+            'top-5 accuracy (training)',
+            'accuracy (validation)',
+            'top-5 accuracy (validation)'
+        ),
+        loc='lower right'
+    )
+    acc_thirds.legend(
+        (
+            'accuracy (first third)',
+            'top-5 accuracy (first third)',
+            'accuracy (middle third)',
+            'top-5 accuracy (middle third)',
+            'accuracy (final third)',
+            'top-5 accuracy (final third)'
+        ),
+        loc='upper left'
+    )
 
     # Clean up figure
     fig.tight_layout()

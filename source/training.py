@@ -2,13 +2,14 @@
 training.py
 purpose: Python module with helper classes for training CDR3Bert.
 author: Yuta Nagano
-ver: 3.2.0
+ver: 3.2.1
 '''
 
 
 import os
 import pandas as pd
 import shutil
+from statistics import fmean
 import torch
 
 
@@ -282,65 +283,73 @@ def write_hyperparameters(hyperparameters: dict, dirpath: str) -> None:
 
 # Training metric functions
 @torch.no_grad()
-def _pretrain_accuracy_with_mask(
-    x: torch.Tensor,
+def pretrain_accuracy(
+    logits: torch.Tensor,
     y: torch.Tensor,
-    mask: torch.Tensor
+    mask: torch.Tensor = None
 ) -> float:
     '''
-    Calculate the accuracy of model predictions given a particular mask.
+    Calculate the accuracy of model predictions ignoring any padding tokens. If
+    a mask is supplied, then only those residues that fall within the area where
+    the mask evaluates to True will be considered.
     '''
-    correct = (torch.argmax(x,dim=-1) == y)
-    correct_masked = (correct & mask)
+    final_mask = (y != 21) # ignore any padding tokens
+    if mask is not None:
+        # combine with supplied mask if exists
+        final_mask = final_mask & mask
 
-    return (correct_masked.sum() / mask.sum()).item()
+    # If no residues can be considered for the current batch, return None
+    total_residues_considered = final_mask.sum()
+    if total_residues_considered.item() == 0:
+        return None
+    
+    correct = (torch.argmax(logits,dim=-1) == y)
+    correct_masked = (correct & final_mask)
+
+    return (correct_masked.sum() / total_residues_considered).item()
 
 
 @torch.no_grad()
-def _pretrain_topk_accuracy_with_mask(
-    x: torch.Tensor,
+def pretrain_topk_accuracy(
+    logits: torch.Tensor,
     y: torch.Tensor,
-    mask: torch.Tensor,
-    k: int
+    k: int,
+    mask: torch.Tensor = None
 ) -> float:
-    '''
-    Calculate the top-5 accuracy of model predictions given a particular mask
-    where a prediction is considered correct if the correct option is within the
-    top 5 predictions of the model.
-    '''
-    y = y.unsqueeze(-1)
-    mask = mask.unsqueeze(-1)
-
-    x_topk_values, x_topk_indices = x.topk(k, dim=-1, sorted=False)
-    correct = (x_topk_indices == y)
-    correct_masked = (correct & mask)
-
-    return (correct_masked.sum() / mask.sum()).item()
-
-
-def pretrain_accuracy(x: torch.Tensor, y: torch.Tensor) -> float:
-    '''
-    Calculate the accuracy of model predictions ignoring any padding tokens.
-    '''
-    return _pretrain_accuracy_with_mask(x, y, (y != 21))
-
-
-def pretrain_topk_accuracy(x: torch.Tensor, y: torch.Tensor, k: int) -> float:
     '''
     Calculate the top-5 accuracy of model predictions ignoring any padding
     tokens, where a prediction is considered correct if the correct option is
-    within the top 5 predictions of the model.
+    within the top 5 predictions of the model. If a mask is supplied, then only
+    those residues that fall within the area where the mask evaluates to True
+    will be considered.
     '''
-    return _pretrain_topk_accuracy_with_mask(x, y, (y != 21), k)
+    final_mask = (y != 21) # ignore any padding tokens
+    if mask is not None:
+        # combine with supplied mask if exists
+        final_mask = final_mask & mask
+
+    # If no residues can be considered for teh current batch, return None
+    total_residues_considered = final_mask.sum()
+    if total_residues_considered.item() == 0:
+        return None
+
+    y = y.unsqueeze(-1)
+    final_mask = final_mask.unsqueeze(-1)
+
+    x_topk_values, x_topk_indices = logits.topk(k, dim=-1, sorted=False)
+    correct = (x_topk_indices == y)
+    correct_masked = (correct & final_mask)
+
+    return (correct_masked.sum() / total_residues_considered).item()
 
 
 @torch.no_grad()
-def _get_cdr3_lens(y: torch.Tensor) -> torch.Tensor:
+def _get_cdr3_lens(x: torch.Tensor) -> torch.Tensor:
     '''
     Given a 2D tensor representing a batch of tokenised CDR3s with padding, get
     the lengths of each CDR3 collected as a 1D tensor.
     '''
-    cdr3_mask = (y != 21)
+    cdr3_mask = (x != 21)
     return torch.count_nonzero(cdr3_mask, dim=-1)
 
 
@@ -375,7 +384,7 @@ def _get_cdr3_third(
 
 @torch.no_grad()
 def _get_cdr3_partial_mask(
-    y: torch.Tensor,
+    x: torch.Tensor,
     start_indices: torch.Tensor,
     end_indices: torch.Tensor
 ) -> torch.Tensor:
@@ -385,9 +394,9 @@ def _get_cdr3_partial_mask(
     highlighting only the region of interest for each CDR3.
     '''
     mask = torch.zeros(
-        size=(y.size(0), y.size(1) + 1),
+        size=(x.size(0), x.size(1) + 1),
         dtype=torch.long,
-        device=y.device
+        device=x.device
     )
     mask[(torch.arange(mask.size(0)),start_indices)] = 1
     mask[(torch.arange(mask.size(0)),end_indices)] += -1
@@ -397,7 +406,8 @@ def _get_cdr3_partial_mask(
 
 
 def pretrain_accuracy_third(
-    x: torch.Tensor,
+    logits: torch.Tensor,
+    x: torch.tensor,
     y: torch.Tensor,
     third: int
 ) -> float:
@@ -405,18 +415,19 @@ def pretrain_accuracy_third(
     Calculate the accuracy of model predictions specifically looking at either
     the first, middle or final third segments of the CDR3s.
     '''
-    cdr3_lens = _get_cdr3_lens(y)
+    cdr3_lens = _get_cdr3_lens(x)
     start_indices, end_indices = _get_cdr3_third(cdr3_lens, third)
-    mask = _get_cdr3_partial_mask(y, start_indices, end_indices)
+    mask = _get_cdr3_partial_mask(x, start_indices, end_indices)
 
-    return _pretrain_accuracy_with_mask(x, y, mask)
+    return pretrain_accuracy(logits, y, mask)
 
 
 def pretrain_topk_accuracy_third(
+    logits: torch.Tensor,
     x: torch.Tensor,
     y: torch.Tensor,
-    third: int,
-    k: int
+    k: int,
+    third: int
 ) -> float:
     '''
     Calculate the top-5 accuracy of model predictions specifically of either the
@@ -424,11 +435,22 @@ def pretrain_topk_accuracy_third(
     considered correct if the correct option is within the top 5 predictions of
     the model.
     '''
-    cdr3_lens = _get_cdr3_lens(y)
+    cdr3_lens = _get_cdr3_lens(x)
     start_indices, end_indices = _get_cdr3_third(cdr3_lens, third)
-    mask = _get_cdr3_partial_mask(y, start_indices, end_indices)
+    mask = _get_cdr3_partial_mask(x, start_indices, end_indices)
 
-    return _pretrain_topk_accuracy_with_mask(x, y, mask, k)
+    return pretrain_topk_accuracy(logits, y, k, mask)
+
+
+def dynamic_fmean(l: list):
+    '''
+    Dynamically calculate average of list containing training metric values.
+    First, cleans the list of any invalid (None) values, then calculates average
+    of remaining values. If no values remain, output string 'n/a'.
+    '''
+    l = [x for x in l if x is not None]
+    if len(l) == 0: return 'n/a'
+    return fmean(l)
 
 
 @torch.no_grad()

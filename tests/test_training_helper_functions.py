@@ -219,7 +219,7 @@ def test_parse_hyperparams():
 
 
 @pytest.mark.parametrize(
-    ('x', 'y', 'expected'),
+    ('logits', 'y', 'expected'),
     (
         (
             torch.tensor(
@@ -289,13 +289,13 @@ def test_parse_hyperparams():
         )
     )
 )
-def test_pretrain_accuracy(x,y,expected):
-    calculated = training.pretrain_accuracy(x, y)
+def test_pretrain_accuracy(logits,y,expected):
+    calculated = training.pretrain_accuracy(logits, y)
     assert(calculated == expected)
 
 
 @pytest.mark.parametrize(
-    ('x', 'y', 'k', 'expected'),
+    ('logits', 'y', 'k', 'expected'),
     (
         (
             torch.tensor(
@@ -367,13 +367,13 @@ def test_pretrain_accuracy(x,y,expected):
         )
     )
 )
-def test_pretrain_topk_accuracy(x,y,k,expected):
-    calculated = training.pretrain_topk_accuracy(x, y, k)
+def test_pretrain_topk_accuracy(logits,y,k,expected):
+    calculated = training.pretrain_topk_accuracy(logits, y, k)
     assert(calculated == expected)
 
 
 @pytest.mark.parametrize(
-    ('y', 'expected'),
+    ('x', 'expected'),
     (
         (
             torch.tensor(
@@ -403,8 +403,8 @@ def test_pretrain_topk_accuracy(x,y,k,expected):
         )
     )
 )
-def test_get_cdr3_lens(y,expected):
-    calculated = training._get_cdr3_lens(y)
+def test_get_cdr3_lens(x,expected):
+    calculated = training._get_cdr3_lens(x)
     assert(torch.equal(calculated, expected))
 
 
@@ -444,7 +444,7 @@ def test_get_cdr3_third(lens,third,expected):
 
 
 @pytest.mark.parametrize(
-    ('y','start_indices','end_indices','expected'),
+    ('x','start_indices','end_indices','expected'),
     (
         (
             torch.zeros(5,5),
@@ -476,13 +476,13 @@ def test_get_cdr3_third(lens,third,expected):
         )
     )
 )
-def test_get_cdr3_partial_mask(y,start_indices,end_indices,expected):
-    calculated = training._get_cdr3_partial_mask(y, start_indices, end_indices)
+def test_get_cdr3_partial_mask(x,start_indices,end_indices,expected):
+    calculated = training._get_cdr3_partial_mask(x, start_indices, end_indices)
     assert(torch.equal(calculated, expected))
 
 
 @pytest.mark.parametrize(
-    ('x', 'y', 'third', 'expected'),
+    ('logits', 'x', 'y', 'third', 'expected'),
     (
         (
             torch.tensor(
@@ -492,7 +492,7 @@ def test_get_cdr3_partial_mask(y,start_indices,end_indices,expected):
                         [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                         [0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                         [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                        [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
                     ],
                     [
                         [0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
@@ -507,12 +507,18 @@ def test_get_cdr3_partial_mask(y,start_indices,end_indices,expected):
             torch.tensor(
                 [
                     [0,1,2,3,4],
-                    [5,6,7,8,9]
+                    [5,6,7,21,21]
+                ]
+            ),
+            torch.tensor(
+                [
+                    [0,1,2,3,4],
+                    [5,6,21,21,21]
                 ],
                 dtype=torch.long
             ),
             0,
-            (torch.tensor(3) / torch.tensor(4)).item()
+            (torch.tensor(2) / torch.tensor(3)).item()
         ),
         (
             torch.tensor(
@@ -522,14 +528,14 @@ def test_get_cdr3_partial_mask(y,start_indices,end_indices,expected):
                         [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                         [0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                         [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                        [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
                     ],
                     [
                         [0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                         [0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],
                         [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0]
+                        [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0]
                     ]
                 ],
                 dtype=torch.float
@@ -537,14 +543,19 @@ def test_get_cdr3_partial_mask(y,start_indices,end_indices,expected):
             torch.tensor(
                 [
                     [0,1,2,3,4],
-                    [5,6,7,8,9]
+                    [5,6,7,21,21]
+                ]
+            ),
+            torch.tensor(
+                [
+                    [0,1,2,3,4],
+                    [5,6,21,21,21]
                 ],
                 dtype=torch.long
             ),
             1,
-            (torch.tensor(1) / torch.tensor(2)).item()
+            (torch.tensor(2) / torch.tensor(2)).item()
         ),
-
         (
             torch.tensor(
                 [
@@ -553,14 +564,14 @@ def test_get_cdr3_partial_mask(y,start_indices,end_indices,expected):
                         [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                         [0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                         [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                        [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
                     ],
                     [
                         [0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                         [0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],
                         [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0]
+                        [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0]
                     ]
                 ],
                 dtype=torch.float
@@ -568,22 +579,64 @@ def test_get_cdr3_partial_mask(y,start_indices,end_indices,expected):
             torch.tensor(
                 [
                     [0,1,2,3,4],
-                    [5,6,7,8,9]
+                    [5,6,7,21,21]
+                ]
+            ),
+            torch.tensor(
+                [
+                    [0,1,2,3,4],
+                    [5,6,21,21,21]
                 ],
                 dtype=torch.long
             ),
             2,
-            (torch.tensor(4) / torch.tensor(4)).item()
+            (torch.tensor(1) / torch.tensor(2)).item()
+        ),
+        (
+            torch.tensor(
+                [
+                    [
+                        [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+                    ],
+                    [
+                        [0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0]
+                    ]
+                ],
+                dtype=torch.float
+            ),
+            torch.tensor(
+                [
+                    [0,1,2,3,4],
+                    [5,6,7,21,21]
+                ]
+            ),
+            torch.tensor(
+                [
+                    [0,1,2,21,21],
+                    [5,6,21,21,21]
+                ],
+                dtype=torch.long
+            ),
+            2,
+            None
         )
     )
 )
-def test_pretrain_accuracy_third(x,y,third,expected):
-    calculated = training.pretrain_accuracy_third(x, y, third)
+def test_pretrain_accuracy_third(logits,x,y,third,expected):
+    calculated = training.pretrain_accuracy_third(logits, x, y, third)
     assert(calculated == expected)
 
 
 @pytest.mark.parametrize(
-    ('x', 'y', 'third', 'k', 'expected'),
+    ('logits', 'x', 'y', 'k', 'third', 'expected'),
     (
         (
             torch.tensor(
@@ -593,7 +646,7 @@ def test_pretrain_accuracy_third(x,y,third,expected):
                         [0,0.4,0.3,0.2,0.1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                         [0.1,0,0.2,0,0,0,0,0.3,0,0,0,0,0.4,0,0,0,0,0,0,0],
                         [0,0,0,0.3,0,0,0,0,0,0,0,0,0,0,0.2,0,0.4,0,0.1,0],
-                        [0.2,0,0,0.3,0.4,0,0,0,0,0,0,0,0,0,0,0,0,0.1,0,0]
+                        [0.2,0,0,0.4,0,0,0,0.3,0,0,0,0,0,0,0,0,0,0.1,0,0]
                     ],
                     [
                         [0,0.3,0,0,0,0.2,0,0,0,0.1,0,0,0,0,0.4,0,0,0,0,0],
@@ -608,13 +661,19 @@ def test_pretrain_accuracy_third(x,y,third,expected):
             torch.tensor(
                 [
                     [0,1,2,3,4],
-                    [5,6,7,8,9]
+                    [5,6,7,21,21]
+                ]
+            ),
+            torch.tensor(
+                [
+                    [0,1,2,3,4],
+                    [5,6,21,21,21]
                 ],
                 dtype=torch.long
             ),
-            0,
             3,
-            (torch.tensor(3) / torch.tensor(4)).item()
+            0,
+            (torch.tensor(2) / torch.tensor(3)).item()
         ),
         (
             torch.tensor(
@@ -622,20 +681,14 @@ def test_pretrain_accuracy_third(x,y,third,expected):
                     [
                         [0.1,0.4,0,0,0,0.3,0,0,0,0.2,0,0,0,0,0,0,0,0,0,0],
                         [0,0.4,0.3,0.2,0.1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                        [0.1,0,0.2,0,0,0,0,0.3,0,0,0,0,0.4,0,0,0,0,0,0,0]
-                    ],
-                    [
+                        [0.1,0,0.2,0,0,0,0,0.3,0,0,0,0,0.4,0,0,0,0,0,0,0],
                         [0,0,0,0.3,0,0,0,0,0,0,0,0,0,0,0.2,0,0.4,0,0.1,0],
-                        [0.2,0,0,0.3,0.4,0,0,0,0,0,0,0,0,0,0,0,0,0.1,0,0],
-                        [0,0.3,0,0,0,0.2,0,0,0,0.1,0,0,0,0,0.4,0,0,0,0,0]
+                        [0.2,0,0,0.4,0,0,0,0.3,0,0,0,0,0,0,0,0,0,0.1,0,0]
                     ],
                     [
-                        [0,0,0.4,0,0,0,0,0,0,0.3,0,0,0.2,0,0,0.1,0,0,0,0],
+                        [0,0.3,0,0,0,0.2,0,0,0,0.1,0,0,0,0,0.4,0,0,0,0,0],
+                        [0,0,0,0,0,0,0.4,0,0,0.3,0,0,0.2,0,0,0.1,0,0,0,0],
                         [0,0,0,0,0.4,0,0,0.3,0,0,0,0.2,0,0,0,0.1,0,0,0,0],
-                        [0,0,0,0.3,0,0,0,0,0.1,0,0,0,0,0,0.2,0,0,0,0.4,0]
-                    ],
-                    [
-                        [0,0,0,0,0.4,0,0.3,0,0,0,0,0.2,0,0.1,0,0,0,0,0,0],
                         [0,0,0,0.3,0,0,0,0,0.4,0,0,0,0,0,0.2,0,0.1,0,0,0],
                         [0,0,0,0,0.4,0,0.3,0,0,0,0,0.2,0,0.1,0,0,0,0,0,0]
                     ]
@@ -644,21 +697,125 @@ def test_pretrain_accuracy_third(x,y,third,expected):
             ),
             torch.tensor(
                 [
-                    [0,1,2],
-                    [3,4,5],
-                    [6,7,8],
-                    [9,21,21]
+                    [0,1,2,3,4],
+                    [5,6,7,21,21]
+                ]
+            ),
+            torch.tensor(
+                [
+                    [0,1,2,3,4],
+                    [5,6,21,21,21]
                 ],
                 dtype=torch.long
             ),
-            2,
             3,
-            (torch.tensor(2) / torch.tensor(3)).item()
+            1,
+            (torch.tensor(2) / torch.tensor(2)).item()
+        ),
+        (
+            torch.tensor(
+                [
+                    [
+                        [0.1,0.4,0,0,0,0.3,0,0,0,0.2,0,0,0,0,0,0,0,0,0,0],
+                        [0,0.4,0.3,0.2,0.1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0.1,0,0.2,0,0,0,0,0.3,0,0,0,0,0.4,0,0,0,0,0,0,0],
+                        [0,0,0,0.3,0,0,0,0,0,0,0,0,0,0,0.2,0,0.4,0,0.1,0],
+                        [0.2,0,0,0.4,0,0,0,0.3,0,0,0,0,0,0,0,0,0,0.1,0,0]
+                    ],
+                    [
+                        [0,0.3,0,0,0,0.2,0,0,0,0.1,0,0,0,0,0.4,0,0,0,0,0],
+                        [0,0,0,0,0,0,0.4,0,0,0.3,0,0,0.2,0,0,0.1,0,0,0,0],
+                        [0,0,0,0,0.4,0,0,0.3,0,0,0,0.2,0,0,0,0.1,0,0,0,0],
+                        [0,0,0,0.3,0,0,0,0,0.4,0,0,0,0,0,0.2,0,0.1,0,0,0],
+                        [0,0,0,0,0.4,0,0.3,0,0,0,0,0.2,0,0.1,0,0,0,0,0,0]
+                    ]
+                ],
+                dtype=torch.float
+            ),
+            torch.tensor(
+                [
+                    [0,1,2,3,4],
+                    [5,6,7,21,21]
+                ]
+            ),
+            torch.tensor(
+                [
+                    [0,1,2,3,4],
+                    [5,6,21,21,21]
+                ],
+                dtype=torch.long
+            ),
+            3,
+            2,
+            (torch.tensor(1) / torch.tensor(2)).item()
+        ),
+        (
+            torch.tensor(
+                [
+                    [
+                        [0.1,0.4,0,0,0,0.3,0,0,0,0.2,0,0,0,0,0,0,0,0,0,0],
+                        [0,0.4,0.3,0.2,0.1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [0.1,0,0.2,0,0,0,0,0.3,0,0,0,0,0.4,0,0,0,0,0,0,0],
+                        [0,0,0,0.3,0,0,0,0,0,0,0,0,0,0,0.2,0,0.4,0,0.1,0],
+                        [0.2,0,0,0.4,0,0,0,0.3,0,0,0,0,0,0,0,0,0,0.1,0,0]
+                    ],
+                    [
+                        [0,0.3,0,0,0,0.2,0,0,0,0.1,0,0,0,0,0.4,0,0,0,0,0],
+                        [0,0,0,0,0,0,0.4,0,0,0.3,0,0,0.2,0,0,0.1,0,0,0,0],
+                        [0,0,0,0,0.4,0,0,0.3,0,0,0,0.2,0,0,0,0.1,0,0,0,0],
+                        [0,0,0,0.3,0,0,0,0,0.4,0,0,0,0,0,0.2,0,0.1,0,0,0],
+                        [0,0,0,0,0.4,0,0.3,0,0,0,0,0.2,0,0.1,0,0,0,0,0,0]
+                    ]
+                ],
+                dtype=torch.float
+            ),
+            torch.tensor(
+                [
+                    [0,1,2,3,4],
+                    [5,6,7,21,21]
+                ]
+            ),
+            torch.tensor(
+                [
+                    [0,1,2,21,21],
+                    [5,6,21,21,21]
+                ],
+                dtype=torch.long
+            ),
+            3,
+            2,
+            None
         )
     )
 )
-def test_pretrain_topk_accuracy_third(x,y,third,k,expected):
-    calculated = training.pretrain_topk_accuracy_third(x, y, third, k)
+def test_pretrain_topk_accuracy_third(logits,x,y,k,third,expected):
+    calculated = training.pretrain_topk_accuracy_third(logits, x, y, k, third)
+    assert(calculated == expected)
+
+
+@pytest.mark.parametrize(
+    ('l','expected'),
+    (
+        (
+            [1,1,1,1,1,3,3,3,3,3,None,None],
+            2
+        ),
+        (
+            [0,1,2,3,4,5,6,7,8,9],
+            4.5
+        ),
+        (
+            [None, None, None],
+            'n/a'
+        ),
+        (
+            [],
+            'n/a'
+        )
+    )
+)
+def test_dynamic_fmean(l, expected):
+    calculated = training.dynamic_fmean(l)
     assert(calculated == expected)
 
 

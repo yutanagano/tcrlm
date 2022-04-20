@@ -3,7 +3,7 @@ pretrain.py
 purpose: Main executable python script which performs pretraining of a Cdr3Bert
          model instance on unlabelled CDR3 data.
 author: Yuta Nagano
-ver: 3.2.0
+ver: 3.2.1
 '''
 
 
@@ -122,14 +122,14 @@ def train_epoch(
     total_acc = 0
     total_top5_acc = 0
 
-    total_acc_third0 = 0
-    total_top5_acc_third0 = 0
+    total_acc_third0 = []
+    total_top5_acc_third0 = []
 
-    total_acc_third1 = 0
-    total_top5_acc_third1 = 0
+    total_acc_third1 = []
+    total_top5_acc_third1 = []
 
-    total_acc_third2 = 0
-    total_top5_acc_third2 = 0
+    total_acc_third2 = []
+    total_top5_acc_third2 = []
 
     total_lr = 0
 
@@ -160,17 +160,17 @@ def train_epoch(
         total_acc += training.pretrain_accuracy(logits,y)
         total_top5_acc += training.pretrain_topk_accuracy(logits,y,5)
 
-        total_acc_third0 += training.pretrain_accuracy_third(logits,y,0)
-        total_top5_acc_third0 = training.pretrain_topk_accuracy_third(
-                                                                logits,y,0,5)
+        total_acc_third0.append(training.pretrain_accuracy_third(logits,x,y,0))
+        total_top5_acc_third0.append(training.pretrain_topk_accuracy_third(
+                                                                logits,x,y,5,0))
 
-        total_acc_third1 += training.pretrain_accuracy_third(logits,y,1)
-        total_top5_acc_third1 = training.pretrain_topk_accuracy_third(
-                                                                logits,y,1,5)
+        total_acc_third1.append(training.pretrain_accuracy_third(logits,x,y,1))
+        total_top5_acc_third1.append(training.pretrain_topk_accuracy_third(
+                                                                logits,x,y,5,1))
 
-        total_acc_third2 += training.pretrain_accuracy_third(logits,y,2)
-        total_top5_acc_third2 = training.pretrain_topk_accuracy_third(
-                                                                logits,y,2,5)
+        total_acc_third2.append(training.pretrain_accuracy_third(logits,x,y,2))
+        total_top5_acc_third2.append(training.pretrain_topk_accuracy_third(
+                                                                logits,x,y,5,2))
 
         total_lr += optimiser.lr
 
@@ -179,19 +179,21 @@ def train_epoch(
     # Return a dictionary with stats averaged to represent per-sample values.
     # Since the loss value at each batch is averaged over the samples in it,
     # the accumulated loss/accuracy values should be divided by the number of
-    # batches in the dataloader.
+    # batches in the dataloader. The exception here are the accuracy values
+    # calculated per CDR3 segment (thirds), as these metrics are not always
+    # available for every batch. These are filtered and averaged as available.
     divisor = len(dataloader)
 
     return {
         'train_loss'            : total_loss / divisor,
         'train_acc'             : total_acc / divisor,
         'train_top5_acc'        : total_top5_acc / divisor,
-        'train_acc_third0'      : total_acc_third0 / divisor,
-        'train_top5_acc_third0' : total_top5_acc_third0 / divisor,
-        'train_acc_third1'      : total_acc_third1 / divisor,
-        'train_top5_acc_third1' : total_top5_acc_third1 / divisor,
-        'train_acc_third2'      : total_acc_third2 / divisor,
-        'train_top5_acc_third2' : total_top5_acc_third2 / divisor,
+        'train_acc_third0'      : training.dynamic_fmean(total_acc_third0),
+        'train_top5_acc_third0' : training.dynamic_fmean(total_top5_acc_third0),
+        'train_acc_third1'      : training.dynamic_fmean(total_acc_third1),
+        'train_top5_acc_third1' : training.dynamic_fmean(total_top5_acc_third1),
+        'train_acc_third2'      : training.dynamic_fmean(total_acc_third2),
+        'train_top5_acc_third2' : training.dynamic_fmean(total_top5_acc_third2),
         'avg_lr'                : total_lr / divisor,
         'epoch_time'            : elapsed
     }
@@ -216,14 +218,14 @@ def validate(
     total_acc = 0
     total_top5_acc = 0
 
-    total_acc_third0 = 0
-    total_top5_acc_third0 = 0
+    total_acc_third0 = []
+    total_top5_acc_third0 = []
 
-    total_acc_third1 = 0
-    total_top5_acc_third1 = 0
+    total_acc_third1 = []
+    total_top5_acc_third1 = []
 
-    total_acc_third2 = 0
-    total_top5_acc_third2 = 0
+    total_acc_third2 = []
+    total_top5_acc_third2 = []
 
     # Iterate through the dataloader
     for x, y in tqdm(dataloader, desc=f'[{device}]', disable=no_progressbars):
@@ -245,17 +247,17 @@ def validate(
         total_acc += training.pretrain_accuracy(logits,y)
         total_top5_acc += training.pretrain_topk_accuracy(logits,y,5)
 
-        total_acc_third0 += training.pretrain_accuracy_third(logits,y,0)
-        total_top5_acc_third0 = training.pretrain_topk_accuracy_third(
-                                                                logits,y,0,5)
+        total_acc_third0.append(training.pretrain_accuracy_third(logits,x,y,0))
+        total_top5_acc_third0.append(training.pretrain_topk_accuracy_third(
+                                                                logits,x,y,5,0))
 
-        total_acc_third1 += training.pretrain_accuracy_third(logits,y,1)
-        total_top5_acc_third1 = training.pretrain_topk_accuracy_third(
-                                                                logits,y,1,5)
+        total_acc_third1.append(training.pretrain_accuracy_third(logits,x,y,1))
+        total_top5_acc_third1.append(training.pretrain_topk_accuracy_third(
+                                                                logits,x,y,5,1))
 
-        total_acc_third2 += training.pretrain_accuracy_third(logits,y,2)
-        total_top5_acc_third2 = training.pretrain_topk_accuracy_third(
-                                                                logits,y,2,5)
+        total_acc_third2.append(training.pretrain_accuracy_third(logits,x,y,2))
+        total_top5_acc_third2.append(training.pretrain_topk_accuracy_third(
+                                                                logits,x,y,5,2))
 
     # Decide on appropriate name for the statistic calculated based on the
     # dataloader's jumble status
@@ -271,12 +273,18 @@ def validate(
         f'{stat_prefix}_loss'               : total_loss / divisor,
         f'{stat_prefix}_acc'                : total_acc / divisor,
         f'{stat_prefix}_top5_acc'           : total_top5_acc / divisor,
-        f'{stat_prefix}_acc_third0'         : total_acc_third0 / divisor,
-        f'{stat_prefix}_top5_acc_third0'    : total_top5_acc_third0 / divisor,
-        f'{stat_prefix}_acc_third1'         : total_acc_third1 / divisor,
-        f'{stat_prefix}_top5_acc_third1'    : total_top5_acc_third1 / divisor,
-        f'{stat_prefix}_acc_third2'         : total_acc_third2 / divisor,
-        f'{stat_prefix}_top5_acc_third2'    : total_top5_acc_third2 / divisor
+        f'{stat_prefix}_acc_third0'         : training.dynamic_fmean(
+                                                        total_acc_third0),
+        f'{stat_prefix}_top5_acc_third0'    : training.dynamic_fmean(
+                                                        total_top5_acc_third0),
+        f'{stat_prefix}_acc_third1'         : training.dynamic_fmean(
+                                                        total_acc_third1),
+        f'{stat_prefix}_top5_acc_third1'    : training.dynamic_fmean(
+                                                        total_top5_acc_third1),
+        f'{stat_prefix}_acc_third2'         : training.dynamic_fmean(
+                                                        total_acc_third2),
+        f'{stat_prefix}_top5_acc_third2'    : training.dynamic_fmean(
+                                                        total_top5_acc_third2),
     }
 
 
