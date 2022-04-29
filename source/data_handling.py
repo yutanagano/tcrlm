@@ -3,7 +3,7 @@ data_handling.py
 purpose: Python module with classes involved in the loading and preprocessing
          CDR3 data.
 author: Yuta Nagano
-ver: 5.0.0
+ver: 5.1.0
 '''
 
 
@@ -88,6 +88,7 @@ class Cdr3PretrainDataset(Dataset):
     def __init__(
         self,
         path_to_csv: str,
+        respect_frequencies: bool = False,
         p_mask: float = 0.15,
         p_mask_random: float = 0.1,
         p_mask_keep: float = 0.1,
@@ -116,6 +117,12 @@ class Cdr3PretrainDataset(Dataset):
         # Save a series containing the lengths of all CDR3s in the dataset
         self._cdr3_lens = dataframe['CDR3'].map(len)
 
+        # Save a series containing the cumulative sum - 1 of frequency column
+        self._freq_cumsum = dataframe['frequency'].cumsum()
+
+        # Respect/ignore CDR3 frequencies
+        self._respect_frequencies = respect_frequencies
+
         # Save the p_mask and related values as attributes of the object
         self._p_mask = p_mask
         self._p_random_threshold = p_mask_random
@@ -135,15 +142,46 @@ class Cdr3PretrainDataset(Dataset):
         assert(type(b) == bool)
         self._jumble = b
 
+    
+    @property
+    def respect_frequencies(self) -> bool:
+        return self._respect_frequencies
+
+    
+    @respect_frequencies.setter
+    def respect_frequencies(self, b: bool):
+        assert(type(b) == bool)
+        self._respect_frequencies = b
+
 
     def __len__(self) -> int:
-        # Return the length of the df as its own length
+        # If respecting CDR3 frequencies, return effective length
+        if self._respect_frequencies: return self._freq_cumsum.iloc[-1]
+        # Otherwise, return length of dataframe
         return len(self._dataframe)
+
+
+    def _dynamic_index(self, idx: int) -> str:
+        '''
+        If respect_frequencies is on, then transform idx with consideration of
+        certain sequences (rows) appearing multiple times.
+        '''
+        if self._respect_frequencies:
+            if idx >= self._freq_cumsum.iloc[-1] or \
+                idx < -self._freq_cumsum.iloc[-1]:
+                raise IndexError(
+                    f'Index out of bounds: {idx} (len: {len(self)})'
+                )
+            
+            idx %= self._freq_cumsum.iloc[-1]
+            idx = self._freq_cumsum[self._freq_cumsum > idx].index[0]
+
+        return idx
 
 
     def __getitem__(self, idx: int) -> (list, list):
         # Fetch the relevant cdr3 sequence from the dataframe
-        cdr3 = self._dataframe.iloc[idx, 0]
+        cdr3 = self._dataframe.iloc[self._dynamic_index(idx), 0]
         
         # If jumble mode is enabled, shuffle the sequence
         if self._jumble:
@@ -171,7 +209,7 @@ class Cdr3PretrainDataset(Dataset):
         '''
         Return the length of the CDR3 sequence at the specified index
         '''
-        return self._cdr3_lens.iloc[idx]
+        return self._cdr3_lens.iloc[self._dynamic_index(idx)]
 
 
     def _pick_masking_indices(self, cdr3_len: int) -> list:
@@ -464,6 +502,16 @@ class Cdr3PretrainDataLoader(DataLoader):
     @jumble.setter
     def jumble(self, b: bool):
         self.dataset.jumble = b
+
+
+    @property
+    def respect_frequencies(self) -> bool:
+        return self.dataset.respect_frequencies
+    
+
+    @respect_frequencies.setter
+    def respect_frequencies(self, b: bool):
+        self.dataset.respect_frequencies = b
     
 
     def collate_fn(self, batch) -> (torch.Tensor, torch.Tensor):

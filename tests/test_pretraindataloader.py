@@ -118,6 +118,18 @@ def test_get_set_jumble(instantiate_dataloader):
     assert(dataloader.jumble == False)
 
 
+def test_get_set_respect_frequencies(instantiate_dataloader):
+    dataloader = instantiate_dataloader
+
+    dataloader.respect_frequencies = True
+    assert(dataloader.respect_frequencies == True)
+    assert(len(dataloader) == 7)
+
+    dataloader.respect_frequencies = False
+    assert(dataloader.respect_frequencies == False)
+    assert(len(dataloader) == 6)
+
+
 # Negative tests
 def test_incorrect_dataset_type():
     dataset = torch.utils.data.Dataset()

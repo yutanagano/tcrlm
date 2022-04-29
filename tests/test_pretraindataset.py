@@ -1,3 +1,4 @@
+from collections import Counter
 import os
 import random
 import re
@@ -24,6 +25,19 @@ def get_dataframe(get_path_to_mock_csv):
 def instantiate_dataset(get_path_to_mock_csv):
     dataset = Cdr3PretrainDataset(path_to_csv=get_path_to_mock_csv)
     yield dataset
+
+
+def reconstruct(x, y):
+    '''
+    Using the x and y outputs of the pretrain dataset, reconstruct the original
+    CDR3 sequence before masking.
+    '''
+    unmasked_in_y = [p for p in enumerate(y) if p[1] != '-']
+    reconstructed = list(x)
+    for idx, a_a in unmasked_in_y:
+        assert(a_a in 'ACDEFGHIKLMNPQRSTVWY')
+        reconstructed[idx] = a_a
+    return ''.join(reconstructed)
 
 
 # Positive tests
@@ -72,17 +86,9 @@ def test_getitem(instantiate_dataset, get_dataframe):
         unmasked_in_y = [p for p in enumerate(y) if p[1] != '-']
         assert(len(unmasked_in_y) in (2,3))
 
-        # Ensure that that unmaked residue is a valid token/amino acid, and also
-        # attempt constructing the original amino acid sequence by combining the
-        # x and y sequences
-        reconstructed = list(x)
-        for idx, a_a in unmasked_in_y:
-            assert(a_a in 'ACDEFGHIKLMNPQRSTVWY')
-            reconstructed[idx] = a_a
-
         # Ensure that combining the masked token from y wth the rest of x is a
         # reconstruction of the original cdr3
-        assert(''.join(reconstructed) == cdr3)
+        assert(reconstruct(x, y) == cdr3)
 
 
 def test_jumble_mode(instantiate_dataset, get_dataframe):
@@ -108,20 +114,51 @@ def test_jumble_mode(instantiate_dataset, get_dataframe):
         unmasked_in_y = [p for p in enumerate(y) if p[1] != '-']
         assert(len(unmasked_in_y) in (2,3))
 
-        # Ensure that that unmaked residue is a valid token/amino acid, and also
-        # attempt constructing the original amino acid sequence by combining the
-        # x and y sequences
-        reconstructed = list(x)
-        for idx, a_a in unmasked_in_y:
-            assert(a_a in 'ACDEFGHIKLMNPQRSTVWY')
-            reconstructed[idx] = a_a
-
         # Ensure that combining the masked token from y wth the rest of x is an
         # anagram of the original cdr3 (but not identical)
         with pytest.raises(AssertionError):
-            assert(''.join(reconstructed) == cdr3)
+            assert(reconstruct(x, y) == cdr3)
         
-        assert(sorted(reconstructed) == sorted(cdr3))
+        assert(sorted(reconstruct(x, y)) == sorted(cdr3))
+
+
+def test_respect_frequencies(instantiate_dataset, get_dataframe):
+    dataset = instantiate_dataset
+    dataset.jumble = False
+    dataframe = get_dataframe
+    
+    # Enable respect_frequencies
+    dataset.respect_frequencies = True
+
+    # Test getter
+    assert(dataset.respect_frequencies == True)
+    
+    # Test length
+    assert(len(dataset) == dataframe['frequency'].sum())
+
+    # Test indexing limits
+    assert(reconstruct(*dataset[len(dataset) - 1]) == \
+        reconstruct(*dataset[-1]) == \
+        dataframe['CDR3'].iloc[-1])
+    
+    assert(reconstruct(*dataset[0]) == \
+        reconstruct(*dataset[-len(dataset)]) == \
+        dataframe['CDR3'].iloc[0])
+
+    with pytest.raises(IndexError):
+        dataset[len(dataset)]
+    
+    with pytest.raises(IndexError):
+        dataset[-len(dataset) - 1]
+
+    # Test the number of times CDR3s are seen in one full loop through dataset
+    cdr3_counter = Counter()
+
+    for x, y in dataset:
+        cdr3_counter[reconstruct(x, y)] += 1
+
+    for idx, row in dataframe.iterrows():
+        assert(cdr3_counter[row['CDR3']] == row['frequency'])
 
 
 # Negative tests
