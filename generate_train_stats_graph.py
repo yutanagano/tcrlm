@@ -3,7 +3,7 @@ generate_train_stats_graph.py
 purpose: Executable script to generate a graph visualising the training
          statistics for a particular version of the CDR3 BERT model.
 author: Yuta Nagano
-ver: 4.0.1
+ver: 4.0.2
 '''
 
 
@@ -162,11 +162,6 @@ def draw_figure(train_stat_dfs: list) -> matplotlib.figure.Figure:
     acc_thirds.set_xticks(ticks=tick_maj)
     acc_thirds.set_xticks(ticks=tick_min,minor=True)
     acc_thirds.grid(which='minor',linewidth=0.5)
-    acc_thirds.tick_params(
-        axis='x',
-        bottom=False,
-        labelbottom=False
-    )
     acc_thirds.set_title('Accuracy by CDR3 segment (only validation)')
 
     # Create bottom panel (Learning rate)
@@ -211,8 +206,8 @@ def draw_figure(train_stat_dfs: list) -> matplotlib.figure.Figure:
     acc.legend(
         (
             'accuracy (training)',
-            'top-5 accuracy (training)',
             'accuracy (validation)',
+            'top-5 accuracy (training)',
             'top-5 accuracy (validation)'
         ),
         loc='lower right',
