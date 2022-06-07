@@ -464,7 +464,7 @@ def main(
 
         # If in test mode, verify that the trained models saved from all
         # processes are equivalent (i.e. they all have the same weights).
-        if test_mode: compare_models(dirpath, n_gpus)
+        if test_mode: training.compare_models(dirpath, n_gpus)
 
     # If there is one GPU available:
     elif n_gpus == 1:

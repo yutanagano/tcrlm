@@ -3,7 +3,7 @@ generate_train_stats_graph.py
 purpose: Executable script to generate a graph visualising the training
          statistics for a particular version of the CDR3 BERT model.
 author: Yuta Nagano
-ver: 4.0.2
+ver: 5.0.0
 '''
 
 
@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import os
 import pandas as pd
 import re
+from typing import Tuple
 
 
 def parse_command_line_arguments() -> str:
@@ -91,7 +92,7 @@ def load_training_stats(pretrain_id: str = None, finetune_id: str = None) -> lis
 def calculate_ticks(
     num_epochs: int,
     min_divisions: int = 10
-) -> (list, list):
+) -> Tuple[list, list]:
     '''
     Given the number of epochs, and the minimum number of divisions that must be
     made by the x-axis ticks, calculate the intervals for the major and minor
@@ -117,7 +118,7 @@ def calculate_ticks(
     )
 
 
-def draw_figure(train_stat_dfs: list) -> matplotlib.figure.Figure:
+def draw_pretrain_figure(train_stat_dfs: list) -> matplotlib.figure.Figure:
     '''
     Given a set of pandas dataframes containing training statistics, draw a
     matplotlib figure that summarises the data, and return the figure object.
@@ -131,7 +132,7 @@ def draw_figure(train_stat_dfs: list) -> matplotlib.figure.Figure:
     # Create figure
     fig = plt.figure(figsize=(12,8))
 
-    # Create top panel (Loss)
+    # Create top left panel (Loss)
     loss = plt.subplot(2,2,1)
     loss.set_xticks(ticks=tick_maj)
     loss.set_xticks(ticks=tick_min,minor=True)
@@ -141,9 +142,16 @@ def draw_figure(train_stat_dfs: list) -> matplotlib.figure.Figure:
         bottom=False,
         labelbottom=False
     )
-    loss.set_title('Loss')
+    loss.set_title('a. Loss')
 
-    # Create second panel (Accuracy)
+    # Create bottom left panel (Learning rate)
+    lr = plt.subplot(2,2,3)
+    lr.set_xticks(ticks=tick_maj)
+    lr.set_xticks(ticks=tick_min,minor=True)
+    lr.grid(which='minor',linewidth=0.5)
+    lr.set_title('b. Average learning rate')
+
+    # Create top right panel (Accuracy)
     acc = plt.subplot(2,2,2)
     acc.set_ylim(bottom=0, top=1)
     acc.set_xticks(ticks=tick_maj)
@@ -154,22 +162,15 @@ def draw_figure(train_stat_dfs: list) -> matplotlib.figure.Figure:
         bottom=False,
         labelbottom=False
     )
-    acc.set_title('Accuracy')
+    acc.set_title('c. Accuracy')
 
-    # Create third panel (Accuracy)
+    # Create bottom right panel (Accuracy)
     acc_thirds = plt.subplot(2,2,4)
     acc_thirds.set_ylim(bottom=0, top=1)
     acc_thirds.set_xticks(ticks=tick_maj)
     acc_thirds.set_xticks(ticks=tick_min,minor=True)
     acc_thirds.grid(which='minor',linewidth=0.5)
-    acc_thirds.set_title('Accuracy by CDR3 segment (only validation)')
-
-    # Create bottom panel (Learning rate)
-    lr = plt.subplot(2,2,3)
-    lr.set_xticks(ticks=tick_maj)
-    lr.set_xticks(ticks=tick_min,minor=True)
-    lr.grid(which='minor',linewidth=0.5)
-    lr.set_title('Average learning rate')
+    acc_thirds.set_title('d. Accuracy by CDR3 segment (only validation)')
 
     # Plot top and middle panels (Loss and Accuracy)
     for df in train_stat_dfs:
@@ -234,6 +235,75 @@ def draw_figure(train_stat_dfs: list) -> matplotlib.figure.Figure:
     return fig
 
 
+def draw_finetune_figure(train_stat_dfs: list) -> matplotlib.figure.Figure:
+    '''
+    Given a set of pandas dataframes containing training statistics, draw a
+    matplotlib figure that summarises the data, and return the figure object.
+    '''
+    # Take note of the number of epochs worth of data there is
+    epochs = len(train_stat_dfs[0]['train_loss'].dropna())
+
+    # Calculate the major and minor ticks of the x axis
+    tick_maj, tick_min = calculate_ticks(epochs)
+
+    # Create figure
+    fig = plt.figure(figsize=(8,8))
+
+    # Create top panel (Loss)
+    loss = plt.subplot(5,1,(1,2))
+    loss.set_xticks(ticks=tick_maj)
+    loss.set_xticks(ticks=tick_min,minor=True)
+    loss.grid(which='minor',linewidth=0.5)
+    loss.tick_params(
+        axis='x',
+        bottom=False,
+        labelbottom=False
+    )
+    loss.set_title('a. Loss')
+
+    # Create middle panel (Accuracy)
+    acc = plt.subplot(5,1,(3,4))
+    acc.set_xticks(ticks=tick_maj)
+    acc.set_xticks(ticks=tick_min,minor=True)
+    acc.grid(which='minor',linewidth=0.5)
+    acc.tick_params(
+        axis='x',
+        bottom=False,
+        labelbottom=False
+    )
+    acc.set_title('b. Accuracy')
+
+    # Create bottom panel (Learning rate)
+    lr = plt.subplot(5,1,5)
+    lr.set_xticks(ticks=tick_maj)
+    lr.set_xticks(ticks=tick_min,minor=True)
+    lr.grid(which='minor',linewidth=0.5)
+    lr.set_title('c. Average Learning Rate')
+
+    # Plot top and middle panels (Loss and Accuracy)
+    for df in train_stat_dfs:
+        # Plot top panel (Loss)
+        loss.plot(df['train_loss'],c='C0')
+        loss.plot(df['valid_loss'],c='C1')
+
+        # Plot middle panel (Accuracy)
+        acc.plot(df['train_acc'],c='C0')
+        acc.plot(df['valid_acc'],c='C1')
+
+    # Plot bottom panel (Learning rate)
+    lr.plot(train_stat_dfs[0]['avg_lr'],c='C2')
+
+    # Create legends
+    loss.legend(('training loss','validation loss'),loc='upper right')
+    acc.legend(('training accuracy','validation accuracy'),loc='lower right')
+
+    # Clean up figure
+    fig.tight_layout()
+
+    return fig
+
+
+
 def main(pretrain_id: str, finetune_id: str) -> None:
     '''
     Given a particular run ID, search for a local directory corresponding to
@@ -247,7 +317,10 @@ def main(pretrain_id: str, finetune_id: str) -> None:
     )
 
     # Create the figure
-    fig = draw_figure(stats)
+    if pretrain_id:
+        fig = draw_pretrain_figure(stats)
+    else:
+        fig = draw_finetune_figure(stats)
 
     # Save figure
     if pretrain_id:

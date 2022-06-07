@@ -11,6 +11,7 @@ import pandas as pd
 import shutil
 from statistics import fmean
 import torch
+from typing import Tuple
 
 
 # Helper dictionary for parse_hyperparams
@@ -357,7 +358,7 @@ def _get_cdr3_lens(x: torch.Tensor) -> torch.Tensor:
 def _get_cdr3_third(
     lens: torch.Tensor,
     third: int
-) -> (torch.Tensor, torch.Tensor):
+) -> Tuple[torch.Tensor, torch.Tensor]:
     '''
     Given the lengths of various CDR3s, calculate where the first, second or
     final thirds of the sequence would begin and end, and output the results
@@ -473,7 +474,7 @@ class AdamWithScheduling:
         d_model: int,
         n_warmup_steps: int,
         lr: float = 0.001,
-        betas: (float, float) = (0.9, 0.999),
+        betas: Tuple[float, float] = (0.9, 0.999),
         eps: float = 1e-08,
         lr_multiplier: float = 1,
         scheduling: bool = True,

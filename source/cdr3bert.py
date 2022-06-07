@@ -11,6 +11,7 @@ ver: 4.1.0
 import math
 import torch
 from torch import nn
+from typing import Tuple
 
 
 # Helper functions
@@ -142,13 +143,13 @@ class Cdr3Bert(nn.Module):
             batch_first=True
         )
         
-        # Create a stack of num_layers * encoder layer, this is our main network
+        # Create a stack of num_layers * encoder layer, our main network
         self.encoder_stack = nn.TransformerEncoder(
             encoder_layer=encoder_layer,
             num_layers=num_encoder_layers
         )
         
-        # Create an embedder that can take in a LongTensor representing a padded
+        # Create an embedder that can take in a LongTensor representing padded
         # batch of cdr3 sequences, and output a similar FloatTensor with an
         # extra dimension representing the embedding dimension.
         self.embedder = AaEmbedder(embedding_dim=d_model)
@@ -180,7 +181,7 @@ class Cdr3Bert(nn.Module):
         return self._dim_feedforward
 
 
-    def forward(self, x: torch.Tensor) -> (torch.Tensor, torch.Tensor):
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         '''
         Forward method of the network.
         Input: Batched and tokenised cdr3 sequences (size: N,S)*

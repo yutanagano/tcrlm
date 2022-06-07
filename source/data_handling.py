@@ -14,6 +14,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader, Sampler
 from torch.utils.data.distributed import DistributedSampler
 from torch.nn.utils.rnn import pad_sequence
+from typing import Tuple
 
 
 # Some useful data objects
@@ -54,9 +55,10 @@ def lookup(i: int) -> str:
 
 def batch(data: list, batch_size: int) -> list:
     '''
-    Take a list of items and segment it into smaller lists of size <= batch_size
-    where all segments are of length batch_size until the very last batch which
-    may be smaller if the length of the dataset is not exactly divisible.
+    Take a list of items and segment it into smaller lists of size <=
+    batch_size where all segments are of length batch_size until the very last
+    batch which may be smaller if the length of the dataset is not exactly
+    divisible.
     '''
     num_batches = (len(data) + batch_size - 1) // batch_size
     batched = []
@@ -179,7 +181,7 @@ class Cdr3PretrainDataset(Dataset):
         return idx
 
 
-    def __getitem__(self, idx: int) -> (list, list):
+    def __getitem__(self, idx: int) -> Tuple[list, list]:
         # Fetch the relevant cdr3 sequence from the dataframe
         cdr3 = self._dataframe.iloc[self._dynamic_index(idx), 0]
         
@@ -227,19 +229,19 @@ class Cdr3PretrainDataset(Dataset):
         sequence of tokens for model training, following the below convention:
 
         If an index i is chosen for masking, the residue at i is:
-        - replaced with a random distinct token |self._p_mask_random of the time
-        - kept as the original token            |self._p_mask_keep of the time
-        - replaced with the mask token          |the rest of the time
+        - replaced with a random distinct token|self._p_mask_random of the time
+        - kept as the original token           |self._p_mask_keep of the time
+        - replaced with the mask token         |the rest of the time
         '''
         x = list(cdr3) # convert cdr3 str into a list of chars
 
         for i in indices: # for each residue to be replaced
             r = random.random() # generate a random float in range [0,1)
 
-            if r < self._p_random_threshold: # opt.1:random distinct replacement
+            if r < self._p_random_threshold: # opt1:random distinct replacement
                 x[i] = random.sample(tuple(amino_acids - {x[i]}),1)[0]
 
-            elif r > self._p_keep_threshold: # opt.2:no replacement
+            elif r > self._p_keep_threshold: # opt2:no replacement
                 pass
 
             else: # opt.3:masking
@@ -272,8 +274,8 @@ class Cdr3FineTuneDataset(Dataset):
         # Ensure p_matched_pair takes on a well-defined value as a probability
         if not (p_matched_pair > 0 and p_matched_pair < 1):
             raise RuntimeError(
-                f'Bad value for p_matched_pair: {p_matched_pair}. Value must be'
-                'greater than 0 and less than 1.'
+                f'Bad value for p_matched_pair: {p_matched_pair}. Value must'
+                'be greater than 0 and less than 1.'
             )
 
         # Execute parent class initialisation
@@ -300,23 +302,23 @@ class Cdr3FineTuneDataset(Dataset):
         return len(self._dataframe)
 
 
-    def __getitem__(self, idx: int) -> (str, str, int):
+    def __getitem__(self, idx: int) -> Tuple[str, str, int]:
         # Fetch the relevant CDR3 from the dataframe.
         epitope_1, cdr3_1a, cdr3_1b = self._dataframe.iloc[idx,0:3]
 
         # Pick a second CDR3 sequence, which can either be an epitope-matched
         # CDR3 or a non-matched CDR3. How often matched or unmatched sequences
         # are picked as the second one will be influenced by the p_matched_pair
-        # value passed to the dataset at creation. Along with picking the second
-        # CDR3, we should also produce a label indicating whether the produced
-        # pair is epitope-matched or not.
+        # value passed to the dataset at creation. Along with picking the
+        # second CDR3, we should also produce a label indicating whether the
+        # produced pair is epitope-matched or not.
         epitope_2, cdr3_2a, cdr3_2b, label = self._make_pair(idx)
 
         # Return pair with label.
         return cdr3_1a, cdr3_1b, cdr3_2a, cdr3_2b, label
 
 
-    def _make_pair(self, idx: int) -> (str, str, int):
+    def _make_pair(self, idx: int) -> Tuple[str, str, int]:
         '''
         Given the index to a reference epitope and CDR3, pick a second cdr3 to
         pair with the reference. The second CDR3 can be epitope-matched to the
@@ -335,7 +337,7 @@ class Cdr3FineTuneDataset(Dataset):
             return self._get_unmatched_cdr3(idx)
 
 
-    def _get_matched_cdr3(self, idx: int) -> (str, str, int):
+    def _get_matched_cdr3(self, idx: int) -> Tuple[str, str, int]:
         '''
         Given the index to a reference epitope and CDR3, pick a second epitope-
         matched CDR3 to pair with the reference.
@@ -353,7 +355,7 @@ class Cdr3FineTuneDataset(Dataset):
         return epitope_2, cdr3_2a, cdr3_2b, 1
 
 
-    def _get_unmatched_cdr3(self, idx: int) -> (str, str, int):
+    def _get_unmatched_cdr3(self, idx: int) -> Tuple[str, str, int]:
         '''
         Given the index to a reference epitope and CDR3, pick a second non-
         epitope-matched CDR3 to pair with the reference.
@@ -514,7 +516,7 @@ class Cdr3PretrainDataLoader(DataLoader):
         self.dataset.respect_frequencies = b
     
 
-    def collate_fn(self, batch) -> (torch.Tensor, torch.Tensor):
+    def collate_fn(self, batch) -> Tuple[torch.Tensor, torch.Tensor]:
         '''
         Helper collation function to be passed to the dataloader when loading
         batches from the Cdr3PretrainDataset.
@@ -580,7 +582,10 @@ class Cdr3FineTuneDataLoader(DataLoader):
             )
     
 
-    def collate_fn(self, batch) -> (torch.Tensor, torch.Tensor, torch.Tensor):
+    def collate_fn(
+        self,
+        batch
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         '''
         Helper function which collates individual samples into tensor batches.
         '''
