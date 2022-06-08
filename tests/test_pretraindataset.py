@@ -23,7 +23,7 @@ def get_dataframe(get_path_to_mock_csv):
 
 @pytest.fixture(scope='module')
 def instantiate_dataset(get_path_to_mock_csv):
-    dataset = Cdr3PretrainDataset(path_to_csv=get_path_to_mock_csv)
+    dataset = Cdr3PretrainDataset(data=get_path_to_mock_csv)
     yield dataset
 
 
@@ -47,6 +47,14 @@ def test_loads_csv(instantiate_dataset,get_dataframe):
 
     assert(dataset._dataframe.equals(dataframe))
 
+
+def test_loads_csv_directly(get_dataframe):
+    dataframe = get_dataframe
+    dataset = Cdr3PretrainDataset(
+        data=dataframe
+    )
+
+    assert(dataset._dataframe.equals(dataframe))
 
 def test_length(instantiate_dataset,get_dataframe):
     dataset = instantiate_dataset
@@ -159,6 +167,25 @@ def test_respect_frequencies(instantiate_dataset, get_dataframe):
 
     for idx, row in dataframe.iterrows():
         assert(cdr3_counter[row['CDR3']] == row['frequency'])
+
+
+def test_no_masking(get_dataframe):
+    dataframe = get_dataframe
+    dataset = Cdr3PretrainDataset(
+        data=dataframe,
+        p_mask=0
+    )
+
+    random.seed(42)
+
+    for i in range(len(dataframe)):
+        cdr3 = dataframe['CDR3'].iloc[i]
+        x, y = dataset[i]
+
+        assert(type(x) == type(y) == str)
+
+        # Ensure x and y and cdr3 are the same
+        assert(x == y == cdr3)
 
 
 # Negative tests

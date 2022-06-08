@@ -121,7 +121,10 @@ def test_save_log():
 
 
 def test_save_model():
-    model = torch.nn.Linear(3,3).to('cuda:0')
+    model = torch.nn.Linear(3,3)
+
+    if torch.cuda.is_available():
+        model.to('cuda:0')
 
     def compare(model1: torch.nn.Module, model2: torch.nn.Module):
         for p1, p2 in zip(model1.parameters(), model2.parameters()):

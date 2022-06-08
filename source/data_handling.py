@@ -3,7 +3,7 @@ data_handling.py
 purpose: Python module with classes involved in the loading and preprocessing
          CDR3 data.
 author: Yuta Nagano
-ver: 5.1.0
+ver: 5.2.0
 '''
 
 
@@ -14,7 +14,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader, Sampler
 from torch.utils.data.distributed import DistributedSampler
 from torch.nn.utils.rnn import pad_sequence
-from typing import Tuple
+from typing import Tuple, Union
 
 
 # Some useful data objects
@@ -38,7 +38,7 @@ for t, i in zip(tokens, range(len(tokens))):
 
 
 # Helper functions
-def tokenise(cdr3) -> torch.Tensor:
+def tokenise(cdr3: Union[list, str]) -> torch.Tensor:
     '''
     Turn a cdr3 sequence from list form to tokenised tensor form.
     '''
@@ -89,7 +89,7 @@ class Cdr3PretrainDataset(Dataset):
     '''
     def __init__(
         self,
-        path_to_csv: str,
+        data: Union[str, pd.DataFrame],
         respect_frequencies: bool = False,
         p_mask: float = 0.15,
         p_mask_random: float = 0.1,
@@ -98,17 +98,21 @@ class Cdr3PretrainDataset(Dataset):
     ):
         # Ensure that p_mask, p_mask_random and p_mask_keep values lie in a
         # well-defined range as probabilities
-        assert(p_mask > 0 and p_mask < 1)
+        assert(p_mask >= 0 and p_mask < 1)
         assert(p_mask_random >= 0 and p_mask_random < 1)
         assert(p_mask_keep >= 0 and p_mask_keep < 1)
         assert(p_mask_random + p_mask_keep <= 1)
 
         super(Cdr3PretrainDataset, self).__init__()
 
-        # Check that the specified csv exists, then load it as df
-        if not (path_to_csv.endswith('.csv') and os.path.isfile(path_to_csv)):
-            raise RuntimeError(f'Bad path to csv file: {path_to_csv}')
-        dataframe = pd.read_csv(path_to_csv)
+        # If data is already dataframe, load it
+        if type(data) == pd.DataFrame:
+            dataframe = data
+        else:
+            # Check that the specified csv exists, then load it as df
+            if not (data.endswith('.csv') and os.path.isfile(data)):
+                raise RuntimeError(f'Bad path to csv file: {data}')
+            dataframe = pd.read_csv(data)
 
         # Ensure that the input data is in the correct format
         check_dataframe_format(dataframe, ['CDR3', 'frequency'])
@@ -181,7 +185,10 @@ class Cdr3PretrainDataset(Dataset):
         return idx
 
 
-    def __getitem__(self, idx: int) -> Tuple[list, list]:
+    def __getitem__(
+        self,
+        idx: int
+    ) -> Union[Tuple[list, list], Tuple[str, str]]:
         # Fetch the relevant cdr3 sequence from the dataframe
         cdr3 = self._dataframe.iloc[self._dynamic_index(idx), 0]
         
@@ -190,6 +197,10 @@ class Cdr3PretrainDataset(Dataset):
             cdr3 = list(cdr3)
             random.shuffle(cdr3)
             cdr3 = ''.join(cdr3)
+
+        # If not masking, just return the cdr3
+        if self._p_mask == 0:
+            return (cdr3, cdr3)
 
         # Mask a proportion (p_mask) of the amino acids
 
@@ -268,7 +279,7 @@ class Cdr3FineTuneDataset(Dataset):
     '''
     def __init__(
         self,
-        path_to_csv: str,
+        data: str,
         p_matched_pair: float = 0.5
     ):
         # Ensure p_matched_pair takes on a well-defined value as a probability
@@ -282,9 +293,9 @@ class Cdr3FineTuneDataset(Dataset):
         super(Cdr3FineTuneDataset, self).__init__()
 
         # Check that the specified csv exists, then load it as df
-        if not (path_to_csv.endswith('.csv') and os.path.isfile(path_to_csv)):
-            raise RuntimeError(f'Bad path to csv file: {path_to_csv}')
-        dataframe = pd.read_csv(path_to_csv)
+        if not (data.endswith('.csv') and os.path.isfile(data)):
+            raise RuntimeError(f'Bad path to csv file: {data}')
+        dataframe = pd.read_csv(data)
 
         # Ensure that the input data is in the correct format
         check_dataframe_format(
@@ -440,7 +451,7 @@ class Cdr3PretrainDataLoader(DataLoader):
         batch_size: int,
         num_workers: int = 0,
         shuffle: bool = False,
-        distributed_sampler = None,
+        distributed_sampler: Union[Sampler, None] = None,
         batch_optimisation: bool = False
     ):
         assert(type(dataset) == Cdr3PretrainDataset)

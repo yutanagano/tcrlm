@@ -15,7 +15,7 @@ def get_path_to_mock_csv(get_path_to_project):
 
 @pytest.fixture(scope='module')
 def instantiate_dataset(get_path_to_mock_csv):
-    dataset = Cdr3PretrainDataset(path_to_csv=get_path_to_mock_csv)
+    dataset = Cdr3PretrainDataset(data=get_path_to_mock_csv)
     yield dataset
 
 

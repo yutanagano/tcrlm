@@ -3,7 +3,7 @@ finetune.py
 purpose: Main executable python script which performs finetuning of a Cdr3Bert
          model instance on labelled CDR3 data.
 author: Yuta Nagano
-ver: 2.0.2
+ver: 2.0.3
 '''
 
 
@@ -264,7 +264,7 @@ def train(
 
     # Training data
     train_dataset = Cdr3FineTuneDataset(
-        path_to_csv = hyperparameters['path_train_data']
+        data = hyperparameters['path_train_data']
     )
     
     if distributed:
@@ -294,7 +294,7 @@ def train(
 
     # Validation data
     val_dataset = Cdr3FineTuneDataset(
-        path_to_csv=hyperparameters['path_valid_data'],
+        data=hyperparameters['path_valid_data'],
     )
     val_dataloader = Cdr3FineTuneDataLoader(
         dataset=val_dataset,
