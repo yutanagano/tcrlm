@@ -10,3 +10,4 @@ __pycache__
 /pretrain_runs
 /hyperparams
 /dep
+/cache
