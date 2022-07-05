@@ -3,7 +3,7 @@ finetune.py
 purpose: Main executable python script which performs finetuning of a Cdr3Bert
          model instance on labelled CDR3 data.
 author: Yuta Nagano
-ver: 2.0.3
+ver: 2.1.0
 '''
 
 
@@ -266,31 +266,15 @@ def train(
     train_dataset = Cdr3FineTuneDataset(
         data = hyperparameters['path_train_data']
     )
-    
-    if distributed:
-        # NOTE: the set_epoch() method on the distributed sampler will need to
-        #       be called at the start of every epoch in order for the shuffling
-        #       to be done correctly at every epoch.
-        distributed_sampler = DistributedSampler(
-            dataset=train_dataset,
-            num_replicas=world_size,
-            rank=device.index,
-            shuffle=True,
-            seed=0
-        )
-        train_dataloader = Cdr3FineTuneDataLoader(
-            dataset=train_dataset,
-            batch_size=hyperparameters['train_batch_size'],
-            num_workers=4,
-            distributed_sampler=distributed_sampler
-        )
-    else:
-        train_dataloader = Cdr3FineTuneDataLoader(
-            dataset=train_dataset,
-            batch_size=hyperparameters['train_batch_size'],
-            num_workers=4,
-            shuffle=True
-        )
+    train_dataloader = Cdr3FineTuneDataLoader(
+        dataset=train_dataset,
+        batch_size=hyperparameters['train_batch_size'],
+        shuffle=True,
+        num_workers=4,
+        distributed=distributed,
+        num_replicas=world_size,
+        rank=device.index
+    )
 
     # Validation data
     val_dataset = Cdr3FineTuneDataset(
@@ -327,7 +311,7 @@ def train(
 
         # If in distributed mode, inform the distributed sampler that a new
         # epoch is beginning
-        if distributed: distributed_sampler.set_epoch(epoch)
+        if distributed: train_dataloader.sampler.set_epoch(epoch)
 
         # Do an epoch through the training data
         train_stats = train_epoch(

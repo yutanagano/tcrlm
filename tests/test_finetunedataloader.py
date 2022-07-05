@@ -48,17 +48,13 @@ def test_dataloader(instantiate_dataloader):
 
 
 def test_dataloader_with_distributed_sampler(instantiate_dataset):
-    test_sampler = DistributedSampler(
-        dataset=instantiate_dataset,
-        num_replicas=2,
-        rank=0,
-        shuffle=True,
-        seed=0
-    )
     dataloader = Cdr3FineTuneDataLoader(
         dataset=instantiate_dataset,
         batch_size=5,
-        distributed_sampler=test_sampler
+        shuffle=True,
+        distributed=True,
+        num_replicas=2,
+        rank=0
     )
 
     # Ensure that the dataloader length is half (becuase num_replicas = 2) of
@@ -91,28 +87,3 @@ def test_incorrect_dataset_type():
     dataset = torch.utils.data.Dataset()
     with pytest.raises(AssertionError):
         dataloader = Cdr3FineTuneDataLoader(dataset, 5)
-
-
-def test_set_both_distributed_sampler_shuffle(instantiate_dataset):
-    test_sampler = DistributedSampler(
-        dataset=instantiate_dataset,
-        num_replicas=2,
-        rank=0,
-        shuffle=True,
-        seed=0
-    )
-    with pytest.raises(RuntimeError):
-        dataloader = Cdr3FineTuneDataLoader(
-            dataset=instantiate_dataset,
-            batch_size=5,
-            shuffle=True,
-            distributed_sampler=test_sampler
-        )
-
-def test_set_bad_distributed_sampler(instantiate_dataset):
-    with pytest.raises(AssertionError):
-        dataloader = Cdr3FineTuneDataLoader(
-            dataset=instantiate_dataset,
-            batch_size=5,
-            distributed_sampler=5
-        )

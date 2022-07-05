@@ -3,18 +3,19 @@ data_handling.py
 purpose: Python module with classes involved in the loading and preprocessing
          CDR3 data.
 author: Yuta Nagano
-ver: 5.2.0
+ver: 6.0.0
 '''
 
 
 import os
 import random
+from numpy import sort
 import pandas as pd
 import torch
 from torch.utils.data import Dataset, DataLoader, Sampler
 from torch.utils.data.distributed import DistributedSampler
 from torch.nn.utils.rnn import pad_sequence
-from typing import Tuple, Union
+from typing import Callable, Tuple, Union
 
 
 # Some useful data objects
@@ -81,7 +82,34 @@ def check_dataframe_format(dataframe: pd.DataFrame, columns: list) -> None:
 
 
 # Dataset classes
-class Cdr3PretrainDataset(Dataset):
+class TcrDataset(Dataset):
+    '''
+    Base dataset class implementing features and methods that are common among
+    all datasets in the TCR embedder project.
+    '''
+    def __init__(
+        self,
+        data: Union[str, pd.DataFrame]
+    ) -> None:
+        super(TcrDataset, self).__init__()
+
+        # Load the data, which can either be a path or a DataFrame object
+        # If data is already a dataframe, simply assign as member
+        if type(data) == pd.DataFrame:
+            self._dataframe = data
+        # Else if string path, load from path
+        else:
+            # Check that specified path is csv, and that it exists
+            if not (data.endswith('.csv') and os.path.isfile(data)):
+                raise RuntimeError(f'Bad path to csv file: {data}')
+            self._dataframe = pd.read_csv(data)
+    
+
+    def __len__(self) -> int:
+        return len(self._dataframe)
+
+
+class Cdr3PretrainDataset(TcrDataset):
     '''
     Custom dataset class to load unlabelled CDR3 sequence data into memory,
     access it, and perform preprocessing operations on it to pretrain an
@@ -96,35 +124,22 @@ class Cdr3PretrainDataset(Dataset):
         p_mask_keep: float = 0.1,
         jumble: bool = False
     ):
-        # Ensure that p_mask, p_mask_random and p_mask_keep values lie in a
-        # well-defined range as probabilities
+        # Initial check for good initialisation arguments
         assert(p_mask >= 0 and p_mask < 1)
         assert(p_mask_random >= 0 and p_mask_random < 1)
         assert(p_mask_keep >= 0 and p_mask_keep < 1)
         assert(p_mask_random + p_mask_keep <= 1)
 
-        super(Cdr3PretrainDataset, self).__init__()
-
-        # If data is already dataframe, load it
-        if type(data) == pd.DataFrame:
-            dataframe = data
-        else:
-            # Check that the specified csv exists, then load it as df
-            if not (data.endswith('.csv') and os.path.isfile(data)):
-                raise RuntimeError(f'Bad path to csv file: {data}')
-            dataframe = pd.read_csv(data)
+        super(Cdr3PretrainDataset, self).__init__(data)
 
         # Ensure that the input data is in the correct format
-        check_dataframe_format(dataframe, ['CDR3', 'frequency'])
-
-        # Save the dataframe as an attribute of the object
-        self._dataframe = dataframe
+        check_dataframe_format(self._dataframe, ['CDR3', 'frequency'])
 
         # Save a series containing the lengths of all CDR3s in the dataset
-        self._cdr3_lens = dataframe['CDR3'].map(len)
+        self._cdr3_lens = self._dataframe['CDR3'].map(len)
 
         # Save a series containing the cumulative sum - 1 of frequency column
-        self._freq_cumsum = dataframe['frequency'].cumsum()
+        self._freq_cumsum = self._dataframe['frequency'].cumsum()
 
         # Respect/ignore CDR3 frequencies
         self._respect_frequencies = respect_frequencies
@@ -272,7 +287,7 @@ class Cdr3PretrainDataset(Dataset):
         return y
 
 
-class Cdr3FineTuneDataset(Dataset):
+class Cdr3FineTuneDataset(TcrDataset):
     '''
     Custom dataset to load labelled CDR3 data (CDR3 and epitope pairs) into
     memory and access it for the fine-tuning phase of the Cdr3Bert network.
@@ -290,27 +305,17 @@ class Cdr3FineTuneDataset(Dataset):
             )
 
         # Execute parent class initialisation
-        super(Cdr3FineTuneDataset, self).__init__()
-
-        # Check that the specified csv exists, then load it as df
-        if not (data.endswith('.csv') and os.path.isfile(data)):
-            raise RuntimeError(f'Bad path to csv file: {data}')
-        dataframe = pd.read_csv(data)
+        super(Cdr3FineTuneDataset, self).__init__(data)
 
         # Ensure that the input data is in the correct format
         check_dataframe_format(
-            dataframe,
+            self._dataframe,
             ['Epitope', 'Alpha CDR3', 'Beta CDR3']
         )
 
         # Save object attributes
-        self._dataframe = dataframe
-        self._epitope_groups = dataframe.groupby('Epitope')
+        self._epitope_groups = self._dataframe.groupby('Epitope')
         self._p_matched_pair = p_matched_pair
-
-
-    def __len__(self) -> int:
-        return len(self._dataframe)
 
 
     def __getitem__(self, idx: int) -> Tuple[str, str, int]:
@@ -386,39 +391,98 @@ class Cdr3FineTuneDataset(Dataset):
         return epitope_2, cdr3_2a, cdr3_2b, 0
 
 
+def define_sampling(
+    dataset: TcrDataset,
+    batch_size: int,
+    shuffle: bool,
+    distributed: bool,
+    batch_optimisation: bool,
+    num_replicas: Union[int, None],
+    rank: Union[int, None],
+    sort_a: Union[Callable, None]
+) -> dict:
+    if not (distributed or batch_optimisation):
+        return {
+            'batch_size': batch_size,
+            'shuffle': shuffle,
+            'sampler': None,
+            'batch_sampler': None
+        }
+
+    if distributed:
+        if (num_replicas is None) or (rank is None):
+            raise RuntimeError('Please specify num_replicas and rank.')
+        if batch_optimisation:
+            raise RuntimeError(
+                'Distributed sampling is mutually exclusive with batch '
+                'optimisation.'
+            )
+        return {
+            'batch_size': batch_size,
+            'shuffle': None,
+            'sampler': DistributedSampler(
+                dataset=dataset,
+                num_replicas=num_replicas,
+                rank=rank,
+                shuffle=shuffle,
+                seed=0
+            ),
+            'batch_sampler': None
+        }
+    
+    if batch_optimisation:
+        # No need to check if batch_optimisation is also turned on because we
+        # handled that case in the previous if block
+        if sort_a is None:
+            raise RuntimeError(
+                'Please specify the sorting algorithm for the batch optimiser.'
+                ' (sort_a)'
+            )
+        return {
+            'batch_size': 1,
+            'shuffle': None,
+            'sampler': None,
+            'batch_sampler': SortedBatchSampler(
+                num_samples=len(dataset),
+                batch_size=batch_size,
+                sort_a=sort_a,
+                shuffle=shuffle
+            )
+        }
+
+
 # Sampler classes
-class PadMinimalBatchSampler(Sampler):
+class SortedBatchSampler(Sampler):
     '''
     A custom batch sampler class designed to do almost-random batch sampling,
-    but optimised to create batches of CDR3s with lengths that are relatively
+    but optimised to create batches with of CDR3s with lengths that are relatively
     similar to each other. This is done to minimise the neccesity for padding
     (which increases the number of unnecessary computation) and therefore 
     reduce training time.
     '''
     def __init__(
         self,
-        data_source: Cdr3PretrainDataset,
+        num_samples: int,
         batch_size: int,
+        sort_a: Callable,
         shuffle: bool = False
     ):
-        assert(type(data_source) == Cdr3PretrainDataset)
-        self.data_source = data_source
-        self.batch_size = batch_size
-        self.shuffle = shuffle
-        self.num_samples = len(data_source)
-
-        self._len = (len(data_source) + batch_size - 1) // batch_size
+        self._num_samples = num_samples
+        self._batch_size = batch_size
+        self._shuffle = shuffle
+        self._len = (num_samples + batch_size - 1) // batch_size
+        self._sort_a = sort_a
 
 
     def __iter__(self):
-        superbatched = batch(self._get_indices(), self.batch_size * 100)
+        superbatched = batch(self._get_indices(), self._batch_size * 100)
         for sb in superbatched:
             sorted_sb = sorted(
                 sb,
-                key=lambda x: self.data_source.get_length(x)
+                key=self._sort_a
             )
-            batched = batch(sorted_sb, self.batch_size)
-            if self.shuffle: random.shuffle(batched)
+            batched = batch(sorted_sb, self._batch_size)
+            if self._shuffle: random.shuffle(batched)
             for b in batched:
                 yield b
 
@@ -428,17 +492,60 @@ class PadMinimalBatchSampler(Sampler):
 
 
     def _get_indices(self):
-        if self.shuffle:
+        if self._shuffle:
             return random.sample(
-                range(self.num_samples),
-                k=self.num_samples
+                range(self._num_samples),
+                k=self._num_samples
             )
         else:
-            return range(self.num_samples)
+            return range(self._num_samples)
 
 
 # Dataloader classes
-class Cdr3PretrainDataLoader(DataLoader):
+class TcrDataLoader(DataLoader):
+    '''
+    Base dataloader class implementing basic functions common to all
+    dataloaders in the TCR embedder project.
+    '''
+    def __init__(
+        self,
+        dataset: TcrDataset,
+        batch_size: int,
+        shuffle: bool = False,
+        num_workers: int = 0,
+        collate_fn: Union[Callable, None] = None,
+        distributed: bool = False,
+        batch_optimisation: bool = False,
+        num_replicas: Union[int, None] = None,
+        rank: Union[int, None] = None,
+        sort_a: Union[Callable, None] = None
+    ) -> None:
+        assert(issubclass(type(dataset), TcrDataset))
+
+        sampling_settings = define_sampling(
+            dataset=dataset,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            distributed=distributed,
+            batch_optimisation=batch_optimisation,
+            num_replicas=num_replicas,
+            rank=rank,
+            sort_a=sort_a
+        )
+
+        super(TcrDataLoader, self).__init__(
+            dataset=dataset,
+            batch_size=sampling_settings['batch_size'],
+            shuffle=sampling_settings['shuffle'],
+            sampler=sampling_settings['sampler'],
+            batch_sampler=sampling_settings['batch_sampler'],
+            num_workers=num_workers,
+            collate_fn=collate_fn,
+            pin_memory=True
+        )
+
+
+class Cdr3PretrainDataLoader(TcrDataLoader):
     '''
     Custom dataloader class for feeding unlabelled CDR3 data to CDR3BERT during
     pretraining. With batch_optimisation on, it matches CDR3s that have
@@ -449,88 +556,39 @@ class Cdr3PretrainDataLoader(DataLoader):
         self,
         dataset: Cdr3PretrainDataset,
         batch_size: int,
-        num_workers: int = 0,
         shuffle: bool = False,
-        distributed_sampler: Union[Sampler, None] = None,
-        batch_optimisation: bool = False
+        num_workers: int = 0,
+        distributed: bool = False,
+        batch_optimisation: bool = False,
+        num_replicas: Union[int, None] = None,
+        rank: Union[int, None] = None
     ):
         assert(type(dataset) == Cdr3PretrainDataset)
 
-        self._batch_optimisation = batch_optimisation
+        super(Cdr3PretrainDataLoader, self).__init__(
+            dataset=dataset,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            num_workers=num_workers,
+            collate_fn=self.collate_fn,
+            distributed=distributed,
+            batch_optimisation=batch_optimisation,
+            num_replicas=num_replicas,
+            rank=rank,
+            sort_a=dataset.get_length
+        )
 
-        if batch_optimisation:
-            if distributed_sampler:
-                raise RuntimeError(
-                    'Cdr3PretrainDataLoader: distributed_sampler is mutually '\
-                    'exclusive with batch_optimisation.'
-                )
-            super(Cdr3PretrainDataLoader, self).__init__(
-                dataset=dataset,
-                batch_sampler=PadMinimalBatchSampler(
-                    data_source=dataset,
-                    batch_size=batch_size,
-                    shuffle=shuffle
-                ),
-                num_workers=num_workers,
-                collate_fn=self.collate_fn,
-                pin_memory=True
-            )
-        elif distributed_sampler:
-            assert(type(distributed_sampler) == DistributedSampler)
-            if shuffle:
-                raise RuntimeError(
-                    'Cdr3PretrainDataLoader: distributed_sampler is mutually '\
-                    'exclusive with shuffle.'
-                )
-            super(Cdr3PretrainDataLoader, self).__init__(
-                dataset=dataset,
-                batch_size=batch_size,
-                shuffle=False,
-                num_workers=num_workers,
-                collate_fn=self.collate_fn,
-                pin_memory=True,
-                sampler=distributed_sampler
-            )
-        else:
-            super(Cdr3PretrainDataLoader, self).__init__(
-                dataset=dataset,
-                batch_size=batch_size,
-                shuffle=shuffle,
-                num_workers=num_workers,
-                collate_fn=self.collate_fn,
-                pin_memory=True
-            )
+        self._batch_optimisation = batch_optimisation
 
 
     @property
     def batch_optimisation(self):
         return self._batch_optimisation
 
-
-    @property
-    def jumble(self) -> bool:
-        return self.dataset.jumble
     
-
-    @jumble.setter
-    def jumble(self, b: bool):
-        self.dataset.jumble = b
-
-
-    @property
-    def respect_frequencies(self) -> bool:
-        return self.dataset.respect_frequencies
-    
-
-    @respect_frequencies.setter
-    def respect_frequencies(self, b: bool):
-        self.dataset.respect_frequencies = b
-    
-
     def collate_fn(self, batch) -> Tuple[torch.Tensor, torch.Tensor]:
         '''
-        Helper collation function to be passed to the dataloader when loading
-        batches from the Cdr3PretrainDataset.
+        Tokenise and pad batch.
         '''
         x_batch, y_batch = [], []
         for x_sample, y_sample in batch:
@@ -551,7 +609,7 @@ class Cdr3PretrainDataLoader(DataLoader):
         return x_batch, y_batch
 
 
-class Cdr3FineTuneDataLoader(DataLoader):
+class Cdr3FineTuneDataLoader(TcrDataLoader):
     '''
     Custom dataloader class for feeding labelled CDR3 data in the form of
     epitope-matched and unmatched pairs for the fine-tuning phase of CDR3BERT.
@@ -560,37 +618,25 @@ class Cdr3FineTuneDataLoader(DataLoader):
         self,
         dataset: Cdr3FineTuneDataset,
         batch_size: int,
-        num_workers: int = 0,
         shuffle: bool = False,
-        distributed_sampler = None
+        num_workers: int = 0,
+        distributed: bool = False,
+        num_replicas: Union[int, None] = None,
+        rank: Union[int, None] = None
     ):
         assert(type(dataset) == Cdr3FineTuneDataset)
 
-        if distributed_sampler:
-            assert(type(distributed_sampler) == DistributedSampler)
-            if shuffle:
-                raise RuntimeError(
-                    'Cdr3FineTuneDataLoader: distributed_sampler is mutually '\
-                    'exclusive with shuffle.'
-                )
-            super(Cdr3FineTuneDataLoader, self).__init__(
-                dataset=dataset,
-                batch_size=batch_size,
-                shuffle=False,
-                sampler=distributed_sampler,
-                num_workers=num_workers,
-                collate_fn=self.collate_fn,
-                pin_memory=True
-            )
-        else:
-            super(Cdr3FineTuneDataLoader, self).__init__(
-                dataset=dataset,
-                batch_size=batch_size,
-                shuffle=shuffle,
-                num_workers=num_workers,
-                collate_fn=self.collate_fn,
-                pin_memory=True
-            )
+        super(Cdr3FineTuneDataLoader, self).__init__(
+            dataset=dataset,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            num_workers=num_workers,
+            collate_fn=self.collate_fn,
+            distributed=distributed,
+            batch_optimisation=False,
+            num_replicas=num_replicas,
+            rank=rank
+        )
     
 
     def collate_fn(
@@ -598,7 +644,7 @@ class Cdr3FineTuneDataLoader(DataLoader):
         batch
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         '''
-        Helper function which collates individual samples into tensor batches.
+        Tokenise and pad batch.
         '''
         x_1a_batch, x_1b_batch, x_2a_batch, x_2b_batch, y_batch = \
             [], [], [], [], []

@@ -1,5 +1,5 @@
 import pytest
-from source.data_handling import Cdr3PretrainDataset, PadMinimalBatchSampler
+from source.data_handling import Cdr3PretrainDataset, SortedBatchSampler
 
 
 @pytest.fixture(scope='module')
@@ -11,15 +11,16 @@ def instantiate_dataset():
 # Positive tests
 def test_iter(instantiate_dataset):
     dataset = instantiate_dataset
-    sampler = PadMinimalBatchSampler(
-        data_source=dataset,
-        batch_size=5
+    sampler = SortedBatchSampler(
+        num_samples=len(dataset),
+        batch_size=5,
+        sort_a=dataset.get_length
     )
     for i in range(2):
         for batch in sampler:
             assert(len(batch) in (4,5))
     
-    sampler.shuffle = True
+    sampler._shuffle = True
     for i in range(2):
         for batch in sampler:
             assert(len(batch) in (4,5))
@@ -27,18 +28,20 @@ def test_iter(instantiate_dataset):
 
 def test_len(instantiate_dataset):
     dataset = instantiate_dataset
-    sampler = PadMinimalBatchSampler(
-        data_source=dataset,
-        batch_size=5
+    sampler = SortedBatchSampler(
+        num_samples=len(dataset),
+        batch_size=5,
+        sort_a=dataset.get_length
     )
     assert(len(sampler) == 6)
 
 
 def test_min_batch_seq_len(instantiate_dataset):
     dataset = instantiate_dataset
-    sampler = PadMinimalBatchSampler(
-        data_source=dataset,
-        batch_size=5
+    sampler = SortedBatchSampler(
+        num_samples=len(dataset),
+        batch_size=5,
+        sort_a=dataset.get_length
     )
 
     def get_batch_seq_len(batch_indices):
@@ -57,19 +60,3 @@ def test_min_batch_seq_len(instantiate_dataset):
                 min_batch_seq_len_encountered
             )
         assert(min_batch_seq_len_encountered == 12)
-
-
-# Negative tests
-def test_bad_data_source():
-    data = [
-        'asdf',
-        'asdf',
-        'asdf',
-        'asdf',
-        'asdf',
-        'asdf',
-        'asdf',
-        'asdf'
-    ]
-    with pytest.raises(AssertionError):
-        sampler = PadMinimalBatchSampler(data, 3)

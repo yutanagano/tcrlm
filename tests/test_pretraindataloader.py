@@ -81,17 +81,13 @@ def test_dataloader_with_optim(instantiate_dataset):
 
 
 def test_dataloader_with_distributed_sampler(instantiate_dataset):
-    test_sampler = DistributedSampler(
-        dataset=instantiate_dataset,
-        num_replicas=2,
-        rank=0,
-        shuffle=True,
-        seed=0
-    )
     dataloader = Cdr3PretrainDataLoader(
         dataset=instantiate_dataset,
         batch_size=5,
-        distributed_sampler=test_sampler
+        shuffle=True,
+        distributed=True,
+        num_replicas=2,
+        rank=0
     )
 
     # Ensure that the dataloader length is half (becuase num_replicas = 2) of
@@ -121,12 +117,12 @@ def test_get_set_jumble(instantiate_dataloader):
 def test_get_set_respect_frequencies(instantiate_dataloader):
     dataloader = instantiate_dataloader
 
-    dataloader.respect_frequencies = True
-    assert(dataloader.respect_frequencies == True)
+    dataloader.dataset.respect_frequencies = True
+    assert(dataloader.dataset.respect_frequencies == True)
     assert(len(dataloader) == 7)
 
-    dataloader.respect_frequencies = False
-    assert(dataloader.respect_frequencies == False)
+    dataloader.dataset.respect_frequencies = False
+    assert(dataloader.dataset.respect_frequencies == False)
     assert(len(dataloader) == 6)
 
 
@@ -137,49 +133,14 @@ def test_incorrect_dataset_type():
         dataloader = Cdr3PretrainDataLoader(dataset, 5)
 
 
-def test_bad_jumble_value(instantiate_dataloader):
-    dataloader = instantiate_dataloader
-    with pytest.raises(AssertionError):
-        dataloader.jumble = 'True'
-
 def test_set_both_distributed_sampler_batch_optim(instantiate_dataset):
-    test_sampler = DistributedSampler(
-        dataset=instantiate_dataset,
-        num_replicas=2,
-        rank=0,
-        shuffle=True,
-        seed=0
-    )
-    with pytest.raises(RuntimeError):
-        dataloader = Cdr3PretrainDataLoader(
-            dataset=instantiate_dataset,
-            batch_size=5,
-            distributed_sampler=test_sampler,
-            batch_optimisation=True
-        )
-
-
-def test_set_both_distributed_sampler_shuffle(instantiate_dataset):
-    test_sampler = DistributedSampler(
-        dataset=instantiate_dataset,
-        num_replicas=2,
-        rank=0,
-        shuffle=True,
-        seed=0
-    )
     with pytest.raises(RuntimeError):
         dataloader = Cdr3PretrainDataLoader(
             dataset=instantiate_dataset,
             batch_size=5,
             shuffle=True,
-            distributed_sampler=test_sampler,
-        )
-
-
-def test_set_bad_distributed_sampler(instantiate_dataset):
-    with pytest.raises(AssertionError):
-        dataloader = Cdr3PretrainDataLoader(
-            dataset=instantiate_dataset,
-            batch_size=5,
-            distributed_sampler=5
+            distributed=True,
+            batch_optimisation=True,
+            num_replicas=2,
+            rank=0
         )

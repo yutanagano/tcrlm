@@ -3,7 +3,7 @@ pretrain.py
 purpose: Main executable python script which performs pretraining of a Cdr3Bert
          model instance on unlabelled CDR3 data.
 author: Yuta Nagano
-ver: 3.2.2
+ver: 3.3.0
 '''
 
 
@@ -249,19 +249,19 @@ def validate(
 
         total_acc_third0.append(training.pretrain_accuracy_third(logits,x,y,0))
         total_top5_acc_third0.append(training.pretrain_topk_accuracy_third(
-                                                                logits,x,y,5,0))
+                                                            logits,x,y,5,0))
 
         total_acc_third1.append(training.pretrain_accuracy_third(logits,x,y,1))
         total_top5_acc_third1.append(training.pretrain_topk_accuracy_third(
-                                                                logits,x,y,5,1))
+                                                            logits,x,y,5,1))
 
         total_acc_third2.append(training.pretrain_accuracy_third(logits,x,y,2))
         total_top5_acc_third2.append(training.pretrain_topk_accuracy_third(
-                                                                logits,x,y,5,2))
+                                                            logits,x,y,5,2))
 
     # Decide on appropriate name for the statistic calculated based on the
     # dataloader's jumble status
-    if dataloader.jumble:
+    if dataloader.dataset.jumble:
         stat_prefix = 'jumble'
     else:
         stat_prefix = 'valid'
@@ -327,50 +327,34 @@ def train(
     # Load training and validation data
     training.print_with_deviceid('Loading cdr3 data into memory...', device)
 
+    # NOTE: batch_optimisation is currently unsupported in distributed mode, as
+    #       specifying distributed_sampler is mutually exclusive with having
+    #       batch_optimisation = True.
+    if distributed and hyperparameters['batch_optimisation']:
+        # Automatically disable batch_optimisation
+        hyperparameters['batch_optimisation'] = False
+        # And inform user
+        if device.index == 0:
+            print(
+                'WARNING: batch_optimisation has been set in hyperparameters, '
+                'but this setting is currently unsupported when running in '
+                'distributed training mode.'
+            )
+
     # Training data
     train_dataset = Cdr3PretrainDataset(
         data=hyperparameters['path_train_data']
     )
-
-    # NOTE: batch_optimisation is currently unsupported in distributed mode, as
-    #       specifying distributed_sampler is mutually exclusive with having
-    #       batch_optimisation = True.
-    # TODO: implement randomised seeding for pseudorandom number generator at
-    #       runtime within main().
-    if distributed:
-        # The following warning message only needs to be printed by the main 
-        # process (rank 0).
-        if hyperparameters['batch_optimisation'] and device.index == 0:
-            print(
-                'WARNING: batch_optimisation has been set in hyperparameters, '\
-                'but this setting is currently unsupported when running in '\
-                'distributed training mode.'
-            )
-        
-        # NOTE: the set_epoch() method on the distributed sampler will need to
-        #       be called at the start of every epoch in order for the shuffling
-        #       to be done correctly at every epoch.
-        distributed_sampler = DistributedSampler(
+    train_dataloader = Cdr3PretrainDataLoader(
             dataset=train_dataset,
+            batch_size=hyperparameters['train_batch_size'],
+            shuffle=True,
+            num_workers=4,
+            distributed=distributed,
+            batch_optimisation=hyperparameters['batch_optimisation'],
             num_replicas=world_size,
-            rank=device.index,
-            shuffle=True,
-            seed=0
-        )
-        train_dataloader = Cdr3PretrainDataLoader(
-            dataset=train_dataset,
-            batch_size=hyperparameters['train_batch_size'],
-            num_workers=4,
-            distributed_sampler=distributed_sampler
-        )
-    else:
-        train_dataloader = Cdr3PretrainDataLoader(
-            dataset=train_dataset,
-            batch_size=hyperparameters['train_batch_size'],
-            num_workers=4,
-            shuffle=True,
-            batch_optimisation=hyperparameters['batch_optimisation']
-        )
+            rank=device.index
+    )
 
     # Validation data
     val_dataset = Cdr3PretrainDataset(
@@ -410,7 +394,7 @@ def train(
 
         # If in distributed mode, inform the distributed sampler that a new
         # epoch is beginning
-        if distributed: distributed_sampler.set_epoch(epoch)
+        if distributed: train_dataloader.sampler.set_epoch(epoch)
 
         # Do an epoch through the training data
         train_stats = train_epoch(
@@ -455,7 +439,7 @@ def train(
         'Evaluating model on jumbled validation data...',
         device
     )
-    val_dataloader.jumble = True
+    val_dataloader.dataset.jumble = True
     jumbled_valid_stats = validate(
         model,
         val_dataloader,

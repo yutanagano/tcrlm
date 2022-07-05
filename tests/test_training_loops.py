@@ -10,6 +10,10 @@ def test_pretrain():
     # Test with gpu if available
     if torch.cuda.is_available():
         main_p('test', 'test', n_gpus=1, test_mode=True)
+        # Test with multiple gpus if available
+        num_gpus = torch.cuda.device_count()
+        if num_gpus > 1:
+            main_p('test', 'test', n_gpus=num_gpus, test_mode=True)
 
 
 def test_finetune():
@@ -17,3 +21,7 @@ def test_finetune():
     # Test with gpu if available
     if torch.cuda.is_available():
         main_f('test', 'test', n_gpus=1, test_mode=True)
+        # Test with multiple gpus if available
+        num_gpus = torch.cuda.device_count()
+        if num_gpus > 1:
+            main_f('test', 'test', n_gpus=num_gpus, test_mode=True)
