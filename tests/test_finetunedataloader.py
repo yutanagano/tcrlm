@@ -1,7 +1,7 @@
 import pytest
 import torch
-from torch.utils.data.distributed import DistributedSampler
-from source.data_handling import Cdr3FineTuneDataset, Cdr3FineTuneDataLoader
+from source.data_handling.datasets import Cdr3FineTuneDataset
+from source.data_handling.dataloaders import Cdr3FineTuneDataLoader
 
 
 @pytest.fixture(scope='module')

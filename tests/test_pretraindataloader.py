@@ -1,9 +1,8 @@
 import os
 import pytest
 import torch
-from torch.utils.data.distributed import DistributedSampler
-from source.data_handling import Cdr3PretrainDataset, Cdr3PretrainDataLoader
-
+from source.data_handling.datasets import Cdr3PretrainDataset
+from source.data_handling.dataloaders import Cdr3PretrainDataLoader
 
 @pytest.fixture(scope='module')
 def get_path_to_mock_csv(get_path_to_project):
@@ -31,7 +30,6 @@ def instantiate_dataloader(instantiate_dataset):
 # Positive tests
 def test_dataloader(instantiate_dataloader):
     dataloader = instantiate_dataloader
-    assert(dataloader.batch_optimisation == False)
     
     for i in range(2):
         for src_batch, tgt_batch in dataloader:
@@ -48,7 +46,6 @@ def test_dataloader_with_optim(instantiate_dataset):
         batch_size=5,
         batch_optimisation=True
     )
-    assert(dataloader.batch_optimisation == True)
 
     for i in range(10):
         min_batch_seq_len_encountered = 999

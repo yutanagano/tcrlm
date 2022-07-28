@@ -1,5 +1,6 @@
 import pytest
-from source.data_handling import Cdr3PretrainDataset, SortedBatchSampler
+from source.data_handling.datasets import Cdr3PretrainDataset
+from source.data_handling.dataloaders import SortedBatchSampler
 
 
 @pytest.fixture(scope='module')

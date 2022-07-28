@@ -6,7 +6,7 @@ purpose: This file contains various TCR/CDR3 algorithms wrapped in a wrapper
          performances of various TCR/CDR3 algorithms in their ability to
          identify similarities between those that respond to the same epitope.
 author: Yuta Nagano
-version: 1.1.2
+version: 1.1.3
 '''
 
 
@@ -20,7 +20,7 @@ from polyleven import levenshtein
 import torch
 
 from source.atchley_encoder import atchley_encode
-from source.data_handling import tokenise
+from source.data_handling.utils import tokenise
 
 
 # Helper functions

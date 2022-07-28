@@ -8,18 +8,17 @@ ver: 3.3.0
 
 
 import argparse
-import os
 import time
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 from torch.nn import CrossEntropyLoss, Module
 from torch.nn.parallel import DistributedDataParallel
-from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm
 
 from source.cdr3bert import Cdr3Bert, Cdr3BertPretrainWrapper
-from source.data_handling import Cdr3PretrainDataset, Cdr3PretrainDataLoader
+from source.data_handling.datasets import Cdr3PretrainDataset
+from source.data_handling.dataloaders import Cdr3PretrainDataLoader
 import source.training as training
 
 

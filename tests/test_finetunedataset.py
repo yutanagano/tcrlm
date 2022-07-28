@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 import random
-from source.data_handling import Cdr3FineTuneDataset
+from source.data_handling.datasets import Cdr3FineTuneDataset
 
 
 @pytest.fixture(scope='module')
@@ -36,12 +36,15 @@ def test_get_matched_cdr3(get_dataframe, instantiate_dataset):
     for i in range(10):
         idx = random.randrange(len(df))
 
-        epitope_1, cdr3_1a, cdr3_1b = df.iloc[idx, 0:3]
-        epitope_2, cdr3_2a, cdr3_2b, label = ds._get_matched_cdr3(idx)
+        ref_epitope = df.iloc[idx, 0]
+        cdr3a, cdr3b, label = ds._get_matched_cdr3(ref_epitope)
 
-        assert(epitope_1 == epitope_2)
-        assert(label)
-        assert(epitope_1 in df[df['Alpha CDR3'] == cdr3_2a]['Epitope'].unique())
+        assert label
+        assert ref_epitope in \
+            df[
+                (df['Alpha CDR3'] == cdr3a) &
+                (df['Beta CDR3'] == cdr3b)
+            ]['Epitope'].unique()
 
 
 def test_get_unmatched_cdr3(get_dataframe, instantiate_dataset):
@@ -51,12 +54,15 @@ def test_get_unmatched_cdr3(get_dataframe, instantiate_dataset):
     for i in range(10):
         idx = random.randrange(len(df))
 
-        epitope_1, cdr3_1a, cdr3_1b = df.iloc[idx, 0:3]
-        epitope_2, cdr3_2a, cdr3_2b, label = ds._get_unmatched_cdr3(idx)
+        ref_epitope = df.iloc[idx, 0]
+        cdr3a, cdr3b, label = ds._get_unmatched_cdr3(ref_epitope)
 
-        assert(epitope_1 != epitope_2)
-        assert(not label)
-        assert(epitope_2 in df[df['Alpha CDR3'] == cdr3_2a]['Epitope'].unique())
+        assert not label
+        assert ref_epitope not in \
+            df[
+                (df['Alpha CDR3'] == cdr3a) &
+                (df['Beta CDR3'] == cdr3b)
+            ]['Epitope'].unique()
 
 
 def test_getitem(get_dataframe, instantiate_dataset):

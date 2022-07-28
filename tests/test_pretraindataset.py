@@ -1,10 +1,9 @@
 from collections import Counter
 import os
 import random
-import re
 import pandas as pd
 import pytest
-from source.data_handling import Cdr3PretrainDataset
+from source.data_handling.datasets import Cdr3PretrainDataset
 
 
 @pytest.fixture(scope='module')
@@ -182,10 +181,11 @@ def test_no_masking(get_dataframe):
         cdr3 = dataframe['CDR3'].iloc[i]
         x, y = dataset[i]
 
-        assert(type(x) == type(y) == str)
+        assert(type(x) == type(y) == list)
 
         # Ensure x and y and cdr3 are the same
-        assert(x == y == cdr3)
+        assert(''.join(x) == cdr3)
+        assert(y == ['-'] * len(cdr3))
 
 
 # Negative tests

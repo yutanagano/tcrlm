@@ -15,11 +15,11 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 from torch.nn import CrossEntropyLoss, Module
 from torch.nn.parallel import DistributedDataParallel
-from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm
 
-from source.cdr3bert import Cdr3Bert, TcrEmbedder, Cdr3BertFineTuneWrapper
-from source.data_handling import Cdr3FineTuneDataset, Cdr3FineTuneDataLoader
+from source.cdr3bert import TcrEmbedder, Cdr3BertFineTuneWrapper
+from source.data_handling.datasets import Cdr3FineTuneDataset
+from source.data_handling.dataloaders import Cdr3FineTuneDataLoader
 import source.training as training
 
 
