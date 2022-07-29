@@ -20,7 +20,8 @@ import torch
 from tqdm import tqdm
 from typing import Iterable, Union
 
-from source.data_handling import Cdr3PretrainDataset, Cdr3PretrainDataLoader
+from source.datahandling.datasets import Cdr3PretrainDataset
+from source.datahandling.dataloaders import Cdr3PretrainDataLoader
 
 
 # Some settings

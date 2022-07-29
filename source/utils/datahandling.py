@@ -1,7 +1,4 @@
-'''
-Utility/helper functions involving data (pre)processing.
-ver: 1.0.0
-'''
+'Utility/helper resources involving data (pre)processing.'
 
 
 import pandas as pd
@@ -9,7 +6,6 @@ import torch
 from typing import Union
 
 
-# Some useful data objects
 amino_acids = {
     'A','C','D','E','F','G','H','I','K','L',
     'M','N','P','Q','R','S','T','V','W','Y'

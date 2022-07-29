@@ -1,16 +1,12 @@
 '''
-benchmarking_algos.py
-purpose: This file contains various TCR/CDR3 algorithms wrapped in a wrapper
-         class which makes their APIs consistent. These wrapped versions of the
-         algorithms will be used in the benchmarking.py script to compare the
-         performances of various TCR/CDR3 algorithms in their ability to
-         identify similarities between those that respond to the same epitope.
-author: Yuta Nagano
-version: 1.1.3
+This file contains various TCR/CDR3 algorithms wrapped in a wrapper class which
+makes their APIs consistent. These wrapped versions of the algorithms will be
+used in the benchmarking.py script to compare the performances of various
+TCR/CDR3 algorithms in their ability to identify similarities between those
+that respond to the same epitope.
 '''
 
 
-# Imports
 from abc import ABC, abstractmethod
 import numpy as np
 from numpy import dot
@@ -20,15 +16,13 @@ from polyleven import levenshtein
 import torch
 
 from source.atchley_encoder import atchley_encode
-from source.data_handling.utils import tokenise
+from source.utils.datahandling import tokenise
 
 
-# Helper functions
 def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
     return dot(a,b) / (norm(a) * norm(b))
 
 
-# Abstract base template class
 class BenchmarkAlgo(ABC):
     '''
     All algorithms should be wrapped in such a way to always have two things: 1)
@@ -37,7 +31,6 @@ class BenchmarkAlgo(ABC):
     takes two string arguments, cdr3_a and cdr3_b, and returns a numerical score
     that represents some similarity metric between the two.
     '''
-
 
     @property
     @abstractmethod
@@ -50,10 +43,7 @@ class BenchmarkAlgo(ABC):
 
 # Children classes
 class NegativeLevenshtein(BenchmarkAlgo):
-    '''
-    Negative levenshtein distance wrapped.
-    '''
-
+    'Negative levenshtein distance wrapped.'
 
     @property
     def name(self) -> str:
@@ -72,7 +62,6 @@ class AtchleyCs(BenchmarkAlgo):
     between them. See source/atchley_encoder.py for more details.
     '''
 
-
     @property
     def name(self) -> str:
         return 'Averaged Atchley Factors + Cosine Distance'
@@ -83,10 +72,7 @@ class AtchleyCs(BenchmarkAlgo):
 
 
 class PretrainCdr3Bert(BenchmarkAlgo):
-    '''
-    This is a wrapper to benchmark a pretrained instance of a Cdr3Bert model.
-    '''
-
+    'This is a wrapper to benchmark a pretrained instance of a Cdr3Bert model.'
 
     def __init__(self, run_id: str = None, test_mode: bool = False):
         # If in test mode, load toy model

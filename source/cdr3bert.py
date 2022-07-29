@@ -1,10 +1,7 @@
 '''
-cdr3bert.py
-purpose: Python module with classes that represent the code base for the BERT-
-         based neural network models that will be able to learn and process TCR
-         beta-chain CDR3 sequences.
-author: Yuta Nagano
-ver: 4.1.0
+Python module with classes that represent the code base for the BERT-based
+neural network models that will be able to learn and process TCR beta-chain
+CDR3 sequences.
 '''
 
 
@@ -14,7 +11,6 @@ from torch import nn
 from typing import Tuple
 
 
-# Helper functions
 def create_padding_mask(x: torch.Tensor) -> torch.Tensor:
     return x == 21
 
@@ -51,7 +47,6 @@ def masked_average_pool(
     return token_embeddings_averaged
 
 
-# Classes
 class AaEmbedder(nn.Module):
     '''
     Helper class to convert tensor of input indices to corresponding tensor of

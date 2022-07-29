@@ -1,15 +1,11 @@
-'''
-Custom dataloader classes.
-ver: 1.0.0
-'''
+'Custom dataloader classes.'
 
 
 import random
-import pandas as pd
-import source.data_handling.datasets as ds
-from source.data_handling.utils import tokenise
+import source.datahandling.datasets as ds
+from source.utils.datahandling import tokenise
 import torch
-from torch.utils.data import Dataset, DataLoader, Sampler
+from torch.utils.data import DataLoader, Sampler
 from torch.utils.data.distributed import DistributedSampler
 from torch.nn.utils.rnn import pad_sequence
 from typing import Callable, Tuple, Union

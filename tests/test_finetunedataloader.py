@@ -1,7 +1,7 @@
 import pytest
 import torch
-from source.data_handling.datasets import Cdr3FineTuneDataset
-from source.data_handling.dataloaders import Cdr3FineTuneDataLoader
+from source.datahandling.datasets import Cdr3FineTuneDataset
+from source.datahandling.dataloaders import Cdr3FineTuneDataLoader
 
 
 @pytest.fixture(scope='module')

@@ -1,8 +1,8 @@
 import os
 import pytest
 import torch
-from source.data_handling.datasets import Cdr3PretrainDataset
-from source.data_handling.dataloaders import Cdr3PretrainDataLoader
+from source.datahandling.datasets import Cdr3PretrainDataset
+from source.datahandling.dataloaders import Cdr3PretrainDataLoader
 
 @pytest.fixture(scope='module')
 def get_path_to_mock_csv(get_path_to_project):

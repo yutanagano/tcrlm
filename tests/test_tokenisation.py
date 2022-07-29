@@ -1,6 +1,6 @@
 import pytest
 import torch
-from source.data_handling.utils import tokenise
+from source.utils.datahandling import tokenise
 
 
 # Positive tests

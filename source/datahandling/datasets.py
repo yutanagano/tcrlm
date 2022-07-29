@@ -1,27 +1,14 @@
-'''
-Custom dataset classes.
-ver: 1.0.0
-'''
+'Custom dataset classes.'
 
 
 import os
 import random
 import pandas as pd
-from source.data_handling.utils import amino_acids
+from source.utils.datahandling import amino_acids, check_dataframe_format
 from torch.utils.data import Dataset
 from typing import Tuple, Union
 
 
-# Helper functions
-def check_dataframe_format(dataframe: pd.DataFrame, columns: list) -> None:
-    if dataframe.columns.tolist() != columns:
-        raise RuntimeError(
-            f'CSV file with incompatible format: columns '
-            f'{dataframe.columns.tolist()}, expected {columns}.'
-        )
-
-
-# Dataset classes
 class TcrDataset(Dataset):
     'Project custom base dataset class.'
 

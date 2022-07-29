@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 import random
-from source.data_handling.datasets import Cdr3FineTuneDataset
+from source.datahandling.datasets import Cdr3FineTuneDataset
 
 
 @pytest.fixture(scope='module')

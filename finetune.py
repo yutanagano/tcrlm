@@ -1,9 +1,6 @@
 '''
-finetune.py
-purpose: Main executable python script which performs finetuning of a Cdr3Bert
-         model instance on labelled CDR3 data.
-author: Yuta Nagano
-ver: 2.1.0
+Main executable python script which performs finetuning of a Cdr3Bert model
+instance on labelled CDR3 data.
 '''
 
 
@@ -18,9 +15,13 @@ from torch.nn.parallel import DistributedDataParallel
 from tqdm import tqdm
 
 from source.cdr3bert import TcrEmbedder, Cdr3BertFineTuneWrapper
-from source.data_handling.datasets import Cdr3FineTuneDataset
-from source.data_handling.dataloaders import Cdr3FineTuneDataLoader
-import source.training as training
+from source.datahandling.datasets import Cdr3FineTuneDataset
+from source.datahandling.dataloaders import Cdr3FineTuneDataLoader
+
+import source.utils.fileio as fileio
+from source.utils.grad import AdamWithScheduling
+from source.utils.misc import print_with_deviceid, set_env_vars, compare_models
+from source.utils.training import finetune_accuracy
 
 
 # Helper functions
@@ -37,38 +38,38 @@ def parse_command_line_arguments() -> argparse.Namespace:
         '-g', '--gpus',
         default=0,
         type=int,
-        help='The number of GPUs to utilise. If set to 0, the training ' + \
+        help='The number of GPUs to utilise. If set to 0, the training '
             'loop will be run on the CPU.'
     )
     parser.add_argument(
         '-b','--fixed-batch-size',
         action='store_true',
-        help='Without this option, when the program is running in ' + \
-            'distributed training mode, the batch size will be adaptively ' + \
-            'modified based on how many CUDA devices are available. That ' + \
-            'is, new_batch_size = old_batch_size // nGPUs. If this flag ' + \
-            'is specified, this feature is disabled and the per-GPU batch ' + \
+        help='Without this option, when the program is running in '
+            'distributed training mode, the batch size will be adaptively '
+            'modified based on how many CUDA devices are available. That '
+            'is, new_batch_size = old_batch_size // nGPUs. If this flag '
+            'is specified, this feature is disabled and the per-GPU batch '
             'size will be kept constant regardless of CUDA device numbers.'
     )
     parser.add_argument(
         '-q', '--no-progressbars',
         action='store_true',
-        help='Running with this flag will suppress the output of any ' + \
-            'progress bars. This may be useful to keep the output stream ' + \
-            'clean when running the program on the cluster, especially if ' + \
-            'the program will be run in distributed training mode ' + \
+        help='Running with this flag will suppress the output of any '
+            'progress bars. This may be useful to keep the output stream '
+            'clean when running the program on the cluster, especially if '
+            'the program will be run in distributed training mode '
             '(accross multiple GPUs).'
     )
     parser.add_argument(
         '-t', '--test',
         action='store_true',
-        help='Run the training script in testing mode. Used for debugging. ' + \
-            'Note that when using this flag, the run_id of the training ' + \
-            'run will always be set to "test" regardless of what is ' + \
-            'specified in the command line argument. The hyperparameters ' + \
-            'path will also always be set to ' + \
-            '"tests/data/finetune_hyperparams.csv". If a "test" finetuning ' + \
-            'run directory already exists, this will be deleted along with ' + \
+        help='Run the training script in testing mode. Used for debugging. '
+            'Note that when using this flag, the run_id of the training '
+            'run will always be set to "test" regardless of what is '
+            'specified in the command line argument. The hyperparameters '
+            'path will also always be set to '
+            '"tests/data/finetune_hyperparams.csv". If a "test" finetuning '
+            'run directory already exists, this will be deleted along with '
             'any contents.'
     )
     parser.add_argument(
@@ -77,7 +78,7 @@ def parse_command_line_arguments() -> argparse.Namespace:
     )
     parser.add_argument(
         'hyperparams_path',
-        help='Path to a csv file containing hyperparameter values to be ' + \
+        help='Path to a csv file containing hyperparameter values to be '
             'used for this run.'
     )
 
@@ -96,7 +97,9 @@ def load_pretrained_model(
     '''
     # Load pretrained models
     alpha_location = os.path.join(
-        'pretrain_runs', hyperparameters['alpha_pretrain_id'], 'pretrained.ptnn'
+        'pretrain_runs',
+        hyperparameters['alpha_pretrain_id'],
+        'pretrained.ptnn'
     )
     beta_location = os.path.join(
         'pretrain_runs', hyperparameters['beta_pretrain_id'], 'pretrained.ptnn'
@@ -152,15 +155,15 @@ def train_epoch(
 
         # Increment stats
         total_loss += loss.item()
-        total_acc += training.finetune_accuracy(logits,y)
+        total_acc += finetune_accuracy(logits,y)
         total_lr += optimiser.lr
 
     elapsed = time.time() - start_time
 
     # Return a dictionary with stats averaged to represent per-sample values.
     # Since the loss value at each batch is averaged over the samples in it,
-    # the accumulated loss/accuracy/lr values should be divided by the number of
-    # batches in the dataloader.
+    # the accumulated loss/accuracy/lr values should be divided by the number
+    # of batches in the dataloader.
     return {
         'train_loss': total_loss / len(dataloader),
         'train_acc' : total_acc / len(dataloader),
@@ -203,12 +206,12 @@ def validate(
 
         # Increment stats
         total_loss += loss.item()
-        total_acc += training.finetune_accuracy(logits,y)
+        total_acc += finetune_accuracy(logits,y)
     
     # Return a dictionary with stats averaged to represent per-sample values.
     # Since the loss value at each batch is averaged over the samples in it,
-    # the accumulated loss/accuracy/lr values should be divided by the number of
-    # batches in the dataloader.
+    # the accumulated loss/accuracy/lr values should be divided by the number
+    # of batches in the dataloader.
     return {
         'valid_loss': total_loss / len(dataloader),
         'valid_acc' : total_acc / len(dataloader)
@@ -245,7 +248,7 @@ def train(
     device = torch.device(device)
 
     # Load model
-    training.print_with_deviceid(
+    print_with_deviceid(
         'Loading pretrained model from pretrain run IDs: '
         f'alpha - {hyperparameters["alpha_pretrain_id"]}, '
         f'beta - {hyperparameters["beta_pretrain_id"]}...',
@@ -260,7 +263,7 @@ def train(
     if distributed: model = DistributedDataParallel(model, device_ids=[device])
 
     # Load training and validation data
-    training.print_with_deviceid('Loading cdr3 data into memory...', device)
+    print_with_deviceid('Loading cdr3 data into memory...', device)
 
     # Training data
     train_dataset = Cdr3FineTuneDataset(
@@ -287,12 +290,12 @@ def train(
     )
 
     # Instantiate loss function and optimiser
-    training.print_with_deviceid(
+    print_with_deviceid(
         'Instantiating other misc. objects for training...',
         device
     )
     loss_fn = CrossEntropyLoss()
-    optimiser = training.AdamWithScheduling(
+    optimiser = AdamWithScheduling(
         params=model.parameters(),
         d_model=d_model,
         n_warmup_steps=hyperparameters['optim_warmup'],
@@ -300,14 +303,14 @@ def train(
         decay=hyperparameters['lr_decay']
     )
 
-    training.print_with_deviceid('Commencing training...', device)
+    print_with_deviceid('Commencing training...', device)
 
     stats_log = dict()
     start_time = time.time()
 
     # Main training loop
     for epoch in range(1, hyperparameters['num_epochs']+1):
-        training.print_with_deviceid(f'Beginning epoch {epoch}...', device)
+        print_with_deviceid(f'Beginning epoch {epoch}...', device)
 
         # If in distributed mode, inform the distributed sampler that a new
         # epoch is beginning
@@ -324,7 +327,7 @@ def train(
         )
 
         # Validate model performance
-        training.print_with_deviceid('Validating model...', device)
+        print_with_deviceid('Validating model...', device)
         valid_stats = validate(
             model,
             val_dataloader,
@@ -334,12 +337,12 @@ def train(
         )
 
         # Quick feedback
-        training.print_with_deviceid(
+        print_with_deviceid(
             f'training loss: {train_stats["train_loss"]:.3f} | '\
             f'training accuracy: {train_stats["train_acc"]:.3f}',
             device
         )
-        training.print_with_deviceid(
+        print_with_deviceid(
             f'validation loss: {valid_stats["valid_loss"]:.3f} | '\
             f'validation accuracy: {valid_stats["valid_acc"]:.3f}',
             device
@@ -348,17 +351,17 @@ def train(
         # Log stats
         stats_log[epoch] = {**train_stats, **valid_stats}
 
-    training.print_with_deviceid('Training finished.', device)
+    print_with_deviceid('Training finished.', device)
 
     time_taken = int(time.time() - start_time)
-    training.print_with_deviceid(
+    print_with_deviceid(
         f'Total time taken: {time_taken}s ({time_taken / 60} min)',
         device
     )
 
     # Save results
-    training.save_log(stats_log, save_dir_path, distributed, device)
-    training.save_model(
+    fileio.save_log(stats_log, save_dir_path, distributed, device)
+    fileio.save_model(
         model,
         'finetuned',
         save_dir_path,
@@ -386,17 +389,17 @@ def main(
     run_id:             A string which acts as a unique identifier of this
                         training run. Used to name the directory in which the
                         results from this run will be stored.
-    hyperparams_path    A path to a csv file containing hyperparameter values to
-                        be used for this run.
+    hyperparams_path    A path to a csv file containing hyperparameter values
+                        to be used for this run.
     n_gpus              An integer value which signifies how many CUDA-capable
                         devices are expected to be available.
-    fixed_batch_size    Disables adaptive batch_size modification in distributed
-                        training mode.
+    fixed_batch_size    Disables adaptive batch_size modification in
+                        distributed training mode.
     no_progressbars     Whether to suppress progressbar outputs to the output
                         stream or not.
     test_mode:          If true, the program will run using a set of
-                        hyperparameters meant specifically for testing (e.g. use
-                        toy data, etc.).
+                        hyperparameters meant specifically for testing (e.g. 
+                        use toy data, etc.).
     '''
     # If the program is being run in testing mode, set the hyperparameters to
     # the testing preset, along with setting the run ID to 'test'. Otherwise,
@@ -405,18 +408,18 @@ def main(
         run_id = 'test'
         hyperparams_path = 'tests/data/finetune_hyperparams.csv'
     
-    hp = training.parse_hyperparams(hyperparams_path)
+    hp = fileio.parse_hyperparams(hyperparams_path)
 
     # Claim space to store results of training run by creating a new directory
     # based on the training ID specified above.
-    dirpath = training.create_training_run_directory(
+    dirpath = fileio.create_training_run_directory(
         run_id,
         mode='finetune',
         overwrite=test_mode
     )
 
     # Save a text file containing info of current run's hyperparameters
-    training.write_hyperparameters(hp, dirpath)
+    fileio.write_hyperparameters(hp, dirpath)
 
     # If multiple GPUs are expected:
     if n_gpus > 1:
@@ -437,7 +440,7 @@ def main(
 
         # Set the required environment variables to properly create a process
         # group
-        training.set_env_vars(master_addr='localhost', master_port='7777')
+        set_env_vars(master_addr='localhost', master_port='7777')
 
         # Spawn parallel processes each running train() on a different GPU
         mp.spawn(
@@ -448,11 +451,13 @@ def main(
 
         # If in test mode, verify that the trained models saved from all
         # processes are equivalent (i.e. they all have the same weights).
-        if test_mode: training.compare_models(dirpath, n_gpus)
+        if test_mode: compare_models(dirpath, n_gpus)
 
     # If there is one GPU available:
     elif n_gpus == 1:
-        print('1 CUDA device expected, running training loop on cuda device...')
+        print(
+            '1 CUDA device expected, running training loop on cuda device...'
+        )
         train(
             device=0,
             hyperparameters=hp,

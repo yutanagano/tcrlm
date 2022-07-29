@@ -7,7 +7,11 @@ from torch.nn.parallel import DistributedDataParallel
 import shutil
 import sys
 
-import source.training as training
+
+import source.utils.fileio as fileio
+import source.utils.grad as grad
+import source.utils.misc as misc
+import source.utils.training as training
 
 
 # Positive tests
@@ -22,32 +26,32 @@ def test_create_new_training_run_directory():
     if os.path.isdir('finetune_runs'): shutil.rmtree('finetune_runs')
 
     # 1. Test that function creates pretrain run directories
-    dirpath = training.create_training_run_directory('foo', mode='pretrain')
+    dirpath = fileio.create_training_run_directory('foo', mode='pretrain')
     assert(dirpath == 'pretrain_runs/foo')
     assert(os.path.isdir('pretrain_runs/foo'))
-    dirpath = training.create_training_run_directory('bar', mode='pretrain')
+    dirpath = fileio.create_training_run_directory('bar', mode='pretrain')
     assert(dirpath == 'pretrain_runs/bar')
     assert(os.path.isdir('pretrain_runs/bar'))
 
     # 2. Test that function creates finetune run directories
-    dirpath = training.create_training_run_directory('foo', mode='finetune')
+    dirpath = fileio.create_training_run_directory('foo', mode='finetune')
     assert(dirpath == 'finetune_runs/foo')
     assert(os.path.isdir('finetune_runs/foo'))
-    dirpath = training.create_training_run_directory('bar', mode='finetune')
+    dirpath = fileio.create_training_run_directory('bar', mode='finetune')
     assert(dirpath == 'finetune_runs/bar')
     assert(os.path.isdir('finetune_runs/bar'))
 
     # 3. Test that function can dynamically alter run ID if clash
-    dirpath = training.create_training_run_directory('foo', mode='pretrain')
+    dirpath = fileio.create_training_run_directory('foo', mode='pretrain')
     assert(dirpath == 'pretrain_runs/foo_1')
     assert(os.path.isdir('pretrain_runs/foo_1'))
-    dirpath = training.create_training_run_directory('foo', mode='pretrain')
+    dirpath = fileio.create_training_run_directory('foo', mode='pretrain')
     assert(dirpath == 'pretrain_runs/foo_2')
     assert(os.path.isdir('pretrain_runs/foo_2'))
 
     # 4. Test that function can overwrite clash if in overwrite mode
     os.mkdir('pretrain_runs/foo/baz')
-    dirpath = training.create_training_run_directory(
+    dirpath = fileio.create_training_run_directory(
         'foo',
         mode='pretrain',
         overwrite=True
@@ -66,7 +70,7 @@ def test_write_hyperparameters():
         'baz': 'foobar'
     }
 
-    training.write_hyperparameters(hp, 'tests/data')
+    fileio.write_hyperparameters(hp, 'tests/data')
 
     with open('tests/data/hyperparams.txt', 'r') as f:
         for param in hp:
@@ -77,7 +81,7 @@ def test_write_hyperparameters():
 
 
 def test_set_env_vars():
-    training.set_env_vars('localhost', '123456')
+    misc.set_env_vars('localhost', '123456')
 
     assert(os.getenv('MASTER_ADDR') == 'localhost')
     assert(os.getenv('MASTER_PORT') == '123456')
@@ -86,14 +90,14 @@ def test_set_env_vars():
 def test_print_with_deviceid():
     out = io.StringIO()
     sys.stdout = out
-    training.print_with_deviceid('test', device=torch.device('cpu'))
+    misc.print_with_deviceid('test', device=torch.device('cpu'))
     sys.stdout = sys.__stdout__
 
     assert(out.getvalue() == '[cpu]: test\n')
 
 
 def test_compare_models():
-    training.compare_models('tests/toy_models/identical', n_gpus=2)
+    misc.compare_models('tests/toy_models/identical', n_gpus=2)
 
 
 def test_save_log():
@@ -105,14 +109,14 @@ def test_save_log():
 
     expected = 'epoch,foo,bar\n0,foo,bar\n1,foo,bar\n2,foo,bar\n'
 
-    training.save_log(log, 'tests/data', False, torch.device('cpu'))
+    fileio.save_log(log, 'tests/data', False, torch.device('cpu'))
 
     assert(os.path.isfile('tests/data/training_log.csv'))
     assert(open('tests/data/training_log.csv','r').read() == expected)
 
     os.remove('tests/data/training_log.csv')
 
-    training.save_log(log, 'tests/data', True, torch.device('cpu'))
+    fileio.save_log(log, 'tests/data', True, torch.device('cpu'))
 
     assert(os.path.isfile('tests/data/training_log_cpu.csv'))
     assert(open('tests/data/training_log_cpu.csv','r').read() == expected)
@@ -131,7 +135,7 @@ def test_save_model():
             if not torch.equal(p1, p2): return False
         return True
 
-    training.save_model(
+    fileio.save_model(
         model,
         'model',
         'tests/toy_models',
@@ -152,7 +156,7 @@ def test_save_model_distributed():
 
     model = torch.nn.Linear(3,3).to('cuda:0')
 
-    training.set_env_vars('localhost', '12345')
+    misc.set_env_vars('localhost', '12345')
     dist.init_process_group(
         backend='nccl',
         rank=0,
@@ -165,7 +169,7 @@ def test_save_model_distributed():
             if not torch.equal(p1, p2): return False
         return True
 
-    training.save_model(
+    fileio.save_model(
         distributed_model,
         'model',
         'tests/toy_models',
@@ -180,7 +184,7 @@ def test_save_model_distributed():
     os.remove('tests/toy_models/model.ptnn')
 
     # Save distributed and testing mode
-    training.save_model(
+    fileio.save_model(
         distributed_model,
         'model',
         'tests/toy_models',
@@ -216,7 +220,7 @@ def test_parse_hyperparams():
         'foo': False
     }
     
-    hps = training.parse_hyperparams('tests/data/pretrain_hyperparams.csv')
+    hps = fileio.parse_hyperparams('tests/data/pretrain_hyperparams.csv')
 
     assert(hps == expected)
 
@@ -818,7 +822,7 @@ def test_pretrain_topk_accuracy_third(logits,x,y,k,third,expected):
     )
 )
 def test_dynamic_fmean(l, expected):
-    calculated = training.dynamic_fmean(l)
+    calculated = misc.dynamic_fmean(l)
     assert(calculated == expected)
 
 
@@ -869,37 +873,37 @@ def test_finetune_accuracy(x,y,expected):
 # Negative tests
 def test_create_new_training_run_directory_bad_mode():
     with pytest.raises(RuntimeError):
-        training.create_training_run_directory('foo', mode='bar')
+        fileio.create_training_run_directory('foo', mode='bar')
 
 
 def test_compare_models_wrong_gpu_number():
     with pytest.raises(AssertionError):
-        training.compare_models('tests/toy_models/identical', n_gpus=5)
+        misc.compare_models('tests/toy_models/identical', n_gpus=5)
 
 
 def test_compare_models_nonidentical_models():
     with pytest.raises(RuntimeError):
-        training.compare_models('tests/toy_models/different', n_gpus=2)
+        misc.compare_models('tests/toy_models/different', n_gpus=2)
 
 
 def test_parse_hyperparams_bad_path():
     with pytest.raises(RuntimeError):
-        training.parse_hyperparams('csv_path')
+        fileio.parse_hyperparams('csv_path')
 
 
 def test_parse_hyperparams_bad_format():
     with pytest.raises(RuntimeError):
-        training.parse_hyperparams('tests/data/bad_format.csv')
+        fileio.parse_hyperparams('tests/data/bad_format.csv')
 
 
 def test_parse_hyperparams_bad_types():
     with pytest.raises(RuntimeError):
-        training.parse_hyperparams('tests/data/bad_types_hyperparams.csv')
+        fileio.parse_hyperparams('tests/data/bad_types_hyperparams.csv')
 
 
 def test_parse_hyperparams_bad_values():
     with pytest.raises(RuntimeError):
-        training.parse_hyperparams('tests/data/bad_values_hyperparams.csv')
+        fileio.parse_hyperparams('tests/data/bad_values_hyperparams.csv')
 
 
 def test_get_cdr3_third_bad_third():

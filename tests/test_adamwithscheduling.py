@@ -1,6 +1,6 @@
 import pytest
 from torch.nn import Linear
-from source.training import AdamWithScheduling
+from source.utils.grad import AdamWithScheduling
 
 
 @pytest.fixture(scope='function')
