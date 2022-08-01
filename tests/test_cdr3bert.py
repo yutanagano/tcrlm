@@ -1,12 +1,12 @@
 import pytest
 import torch
-from source.cdr3bert import masked_average_pool, \
-    Cdr3Bert, TcrEmbedder, Cdr3BertPretrainWrapper, Cdr3BertFineTuneWrapper
+import source.nn.models as models
+from source.utils.nn import masked_average_pool
 
 
 @pytest.fixture(scope='module')
 def instantiate_bert():
-    bert = Cdr3Bert(num_encoder_layers=2,
+    bert = models.Cdr3Bert(num_encoder_layers=2,
                     d_model=6,
                     nhead=2,
                     dim_feedforward=48)
@@ -87,7 +87,7 @@ def test_bert_embed(instantiate_bert):
 
 def test_tcr_embedder(instantiate_bert):
     bert = instantiate_bert
-    embedder = TcrEmbedder(bert, bert)
+    embedder = models.TcrEmbedder(bert, bert)
 
     assert(embedder.d_model == 6)
     assert(embedder.alpha_bert == bert)
@@ -102,12 +102,12 @@ def test_tcr_embedder(instantiate_bert):
 
 def test_pretrain_wrapper(instantiate_bert):
     bert = instantiate_bert
-    pretrain_bert = Cdr3BertPretrainWrapper(bert)
+    pretrain_bert = models.Cdr3BertPretrainWrapper(bert)
     batch = torch.zeros((3,10), dtype=torch.int)
     out = pretrain_bert(x=batch)
 
     assert(out.size() == (3,10,20))
-    assert(type(pretrain_bert.bert) == Cdr3Bert)
+    assert(type(pretrain_bert.bert) == models.Cdr3Bert)
 
     with pytest.raises(AttributeError):
         pretrain_bert.bert = 5
@@ -115,8 +115,8 @@ def test_pretrain_wrapper(instantiate_bert):
 
 def test_fine_tune_wrapper(instantiate_bert):
     bert = instantiate_bert
-    embedder = TcrEmbedder(bert, bert)
-    finetune_bert = Cdr3BertFineTuneWrapper(embedder)
+    embedder = models.TcrEmbedder(bert, bert)
+    finetune_bert = models.Cdr3BertFineTuneWrapper(embedder)
 
     a = torch.zeros((3,10), dtype=torch.int)
     b = torch.zeros((3,15), dtype=torch.int)

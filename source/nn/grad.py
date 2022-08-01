@@ -1,4 +1,4 @@
-'Custom utilities for gradient descent.'
+'Custom resources for gradient descent.'
 
 
 import torch

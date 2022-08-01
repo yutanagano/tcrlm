@@ -9,9 +9,9 @@ import sys
 
 
 import source.utils.fileio as fileio
-import source.utils.grad as grad
+import source.nn.grad as grad
 import source.utils.misc as misc
-import source.utils.training as training
+import source.nn.metrics as metrics
 
 
 # Positive tests
@@ -297,7 +297,7 @@ def test_parse_hyperparams():
     )
 )
 def test_pretrain_accuracy(logits,y,expected):
-    calculated = training.pretrain_accuracy(logits, y)
+    calculated = metrics.pretrain_accuracy(logits, y)
     assert(calculated == expected)
 
 
@@ -375,7 +375,7 @@ def test_pretrain_accuracy(logits,y,expected):
     )
 )
 def test_pretrain_topk_accuracy(logits,y,k,expected):
-    calculated = training.pretrain_topk_accuracy(logits, y, k)
+    calculated = metrics.pretrain_topk_accuracy(logits, y, k)
     assert(calculated == expected)
 
 
@@ -411,7 +411,7 @@ def test_pretrain_topk_accuracy(logits,y,k,expected):
     )
 )
 def test_get_cdr3_lens(x,expected):
-    calculated = training._get_cdr3_lens(x)
+    calculated = metrics._get_cdr3_lens(x)
     assert(torch.equal(calculated, expected))
 
 
@@ -445,7 +445,7 @@ def test_get_cdr3_lens(x,expected):
     )
 )
 def test_get_cdr3_third(lens,third,expected):
-    calculated = training._get_cdr3_third(lens, third)
+    calculated = metrics._get_cdr3_third(lens, third)
     assert(torch.equal(calculated[0],expected[0]))
     assert(torch.equal(calculated[1],expected[1]))
 
@@ -484,7 +484,7 @@ def test_get_cdr3_third(lens,third,expected):
     )
 )
 def test_get_cdr3_partial_mask(x,start_indices,end_indices,expected):
-    calculated = training._get_cdr3_partial_mask(x, start_indices, end_indices)
+    calculated = metrics._get_cdr3_partial_mask(x, start_indices, end_indices)
     assert(torch.equal(calculated, expected))
 
 
@@ -638,7 +638,7 @@ def test_get_cdr3_partial_mask(x,start_indices,end_indices,expected):
     )
 )
 def test_pretrain_accuracy_third(logits,x,y,third,expected):
-    calculated = training.pretrain_accuracy_third(logits, x, y, third)
+    calculated = metrics.pretrain_accuracy_third(logits, x, y, third)
     assert(calculated == expected)
 
 
@@ -796,7 +796,7 @@ def test_pretrain_accuracy_third(logits,x,y,third,expected):
     )
 )
 def test_pretrain_topk_accuracy_third(logits,x,y,k,third,expected):
-    calculated = training.pretrain_topk_accuracy_third(logits, x, y, k, third)
+    calculated = metrics.pretrain_topk_accuracy_third(logits, x, y, k, third)
     assert(calculated == expected)
 
 
@@ -866,7 +866,7 @@ def test_dynamic_fmean(l, expected):
     )
 )
 def test_finetune_accuracy(x,y,expected):
-    calculated = training.finetune_accuracy(x, y)
+    calculated = metrics.finetune_accuracy(x, y)
     assert(calculated == expected)
     
 
@@ -908,6 +908,6 @@ def test_parse_hyperparams_bad_values():
 
 def test_get_cdr3_third_bad_third():
     with pytest.raises(RuntimeError):
-        training._get_cdr3_third(torch.arange(3), 10)
+        metrics._get_cdr3_third(torch.arange(3), 10)
     with pytest.raises(RuntimeError):
-        training._get_cdr3_third(torch.arange(3), -1)
+        metrics._get_cdr3_third(torch.arange(3), -1)

@@ -13,14 +13,14 @@ from torch.nn import CrossEntropyLoss, Module
 from torch.nn.parallel import DistributedDataParallel
 from tqdm import tqdm
 
-from source.cdr3bert import Cdr3Bert, Cdr3BertPretrainWrapper
+from source.nn.models import Cdr3Bert, Cdr3BertPretrainWrapper
 from source.datahandling.datasets import Cdr3PretrainDataset
 from source.datahandling.dataloaders import Cdr3PretrainDataLoader
 
 import source.utils.fileio as fileio
-from source.utils.grad import AdamWithScheduling
+from source.nn.grad import AdamWithScheduling
 import source.utils.misc as misc
-import source.utils.training as training
+import source.nn.metrics as metrics
 
 
 # Helper functions for training
@@ -157,19 +157,19 @@ def train_epoch(
         # Increment stats
         total_loss += loss.item()
 
-        total_acc += training.pretrain_accuracy(logits,y)
-        total_top5_acc += training.pretrain_topk_accuracy(logits,y,5)
+        total_acc += metrics.pretrain_accuracy(logits,y)
+        total_top5_acc += metrics.pretrain_topk_accuracy(logits,y,5)
 
-        total_acc_third0.append(training.pretrain_accuracy_third(logits,x,y,0))
-        total_top5_acc_third0.append(training.pretrain_topk_accuracy_third(
+        total_acc_third0.append(metrics.pretrain_accuracy_third(logits,x,y,0))
+        total_top5_acc_third0.append(metrics.pretrain_topk_accuracy_third(
                                                             logits,x,y,5,0))
 
-        total_acc_third1.append(training.pretrain_accuracy_third(logits,x,y,1))
-        total_top5_acc_third1.append(training.pretrain_topk_accuracy_third(
+        total_acc_third1.append(metrics.pretrain_accuracy_third(logits,x,y,1))
+        total_top5_acc_third1.append(metrics.pretrain_topk_accuracy_third(
                                                             logits,x,y,5,1))
 
-        total_acc_third2.append(training.pretrain_accuracy_third(logits,x,y,2))
-        total_top5_acc_third2.append(training.pretrain_topk_accuracy_third(
+        total_acc_third2.append(metrics.pretrain_accuracy_third(logits,x,y,2))
+        total_top5_acc_third2.append(metrics.pretrain_topk_accuracy_third(
                                                             logits,x,y,5,2))
 
         total_lr += optimiser.lr
@@ -244,19 +244,19 @@ def validate(
         # Increment stats
         total_loss += loss.item()
 
-        total_acc += training.pretrain_accuracy(logits,y)
-        total_top5_acc += training.pretrain_topk_accuracy(logits,y,5)
+        total_acc += metrics.pretrain_accuracy(logits,y)
+        total_top5_acc += metrics.pretrain_topk_accuracy(logits,y,5)
 
-        total_acc_third0.append(training.pretrain_accuracy_third(logits,x,y,0))
-        total_top5_acc_third0.append(training.pretrain_topk_accuracy_third(
+        total_acc_third0.append(metrics.pretrain_accuracy_third(logits,x,y,0))
+        total_top5_acc_third0.append(metrics.pretrain_topk_accuracy_third(
                                                             logits,x,y,5,0))
 
-        total_acc_third1.append(training.pretrain_accuracy_third(logits,x,y,1))
-        total_top5_acc_third1.append(training.pretrain_topk_accuracy_third(
+        total_acc_third1.append(metrics.pretrain_accuracy_third(logits,x,y,1))
+        total_top5_acc_third1.append(metrics.pretrain_topk_accuracy_third(
                                                             logits,x,y,5,1))
 
-        total_acc_third2.append(training.pretrain_accuracy_third(logits,x,y,2))
-        total_top5_acc_third2.append(training.pretrain_topk_accuracy_third(
+        total_acc_third2.append(metrics.pretrain_accuracy_third(logits,x,y,2))
+        total_top5_acc_third2.append(metrics.pretrain_topk_accuracy_third(
                                                             logits,x,y,5,2))
 
     # Decide on appropriate name for the statistic calculated based on the

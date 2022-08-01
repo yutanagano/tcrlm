@@ -1,6 +1,6 @@
 import pytest
 import torch
-from source.cdr3bert import create_padding_mask
+from source.utils.nn import create_padding_mask
 
 
 # Positive tests

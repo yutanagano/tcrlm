@@ -1,6 +1,6 @@
 import pytest
 import torch
-from source.cdr3bert import PositionEncoder
+from source.utils.nn import PositionEncoder
 
 
 @pytest.fixture(scope='module')

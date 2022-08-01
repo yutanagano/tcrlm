@@ -1,15 +1,15 @@
 import numpy as np
 import pytest
-import source.benchmarking_algos as algos
+import source.benchmarking as benchmarking
 
 
 # Positive tests
 @pytest.mark.parametrize(
     'Algo',
     (
-        algos.NegativeLevenshtein(),
-        algos.AtchleyCs(),
-        algos.PretrainCdr3Bert(test_mode=True)
+        benchmarking.NegativeLevenshtein(),
+        benchmarking.AtchleyCs(),
+        benchmarking.PretrainCdr3Bert(test_mode=True)
     )
 )
 def test_algo(Algo):
@@ -22,9 +22,9 @@ def test_algo(Algo):
 
 def test_pretrain_cdr3bert_no_runid():
     with pytest.raises(RuntimeError):
-        algo = algos.PretrainCdr3Bert()
+        algo = benchmarking.PretrainCdr3Bert()
 
     
 def test_pretrain_cdr3bert_bad_runid():
     with pytest.raises(FileNotFoundError):
-        algo = algos.PretrainCdr3Bert('runid')
+        algo = benchmarking.PretrainCdr3Bert('runid')

@@ -15,7 +15,7 @@ import os
 from polyleven import levenshtein
 import torch
 
-from source.atchley_encoder import atchley_encode
+from source.utils.atchleyencoder import atchley_encode
 from source.utils.datahandling import tokenise
 
 

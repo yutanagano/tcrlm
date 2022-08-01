@@ -1,4 +1,3 @@
-import pytest
 import torch
 from pretrain import main as main_p
 from finetune import main as main_f

@@ -14,14 +14,14 @@ from torch.nn import CrossEntropyLoss, Module
 from torch.nn.parallel import DistributedDataParallel
 from tqdm import tqdm
 
-from source.cdr3bert import TcrEmbedder, Cdr3BertFineTuneWrapper
+from source.nn.models import TcrEmbedder, Cdr3BertFineTuneWrapper
 from source.datahandling.datasets import Cdr3FineTuneDataset
 from source.datahandling.dataloaders import Cdr3FineTuneDataLoader
 
 import source.utils.fileio as fileio
-from source.utils.grad import AdamWithScheduling
+from source.nn.grad import AdamWithScheduling
 from source.utils.misc import print_with_deviceid, set_env_vars, compare_models
-from source.utils.training import finetune_accuracy
+from source.nn.metrics import finetune_accuracy
 
 
 # Helper functions

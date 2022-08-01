@@ -13,15 +13,15 @@ version: 2.0.0
 from itertools import combinations
 import pandas as pd
 from scipy.stats import spearmanr
-import source.benchmarking_algos as algos
+import source.benchmarking as benchmarking
 from tqdm import tqdm
 
 
 # Organise the algorithms into a list
 algo_list = (
-    algos.NegativeLevenshtein(),
-    algos.AtchleyCs(),
-    algos.PretrainCdr3Bert('beta-22-03-24-00:01')
+    benchmarking.NegativeLevenshtein(),
+    benchmarking.AtchleyCs(),
+    benchmarking.PretrainCdr3Bert('beta-22-03-24-00:01')
 )
 
 

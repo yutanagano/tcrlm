@@ -23,7 +23,7 @@ def create_training_run_directory(
     training run directory will be created inside it. 
     
     The function returns a string path to the newly created training run
-    directory. 
+    directory.
     
     If 'overwrite' is specified and a training run directory of the
     same name/run ID already exists, it and its contents will be deleted/

@@ -1,6 +1,6 @@
 import pytest
 import torch
-from source.cdr3bert import AaEmbedder
+from source.utils.nn import AaEmbedder
 
 
 @pytest.fixture(scope='module')

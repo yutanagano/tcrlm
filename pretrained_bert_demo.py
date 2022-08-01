@@ -18,7 +18,7 @@ import random
 import torch
 from torch.nn import functional as F
 
-from source.data_handling import tokenise, lookup
+from source.utils.datahandling import tokenise, lookup
 
 
 def parse_command_line_arguments() -> str:
