@@ -10,7 +10,7 @@ BERT model can be compared.
 import numpy as np
 
 
-atchley_dict = {
+_atchley_dict = {
     'A': [-0.591,-1.302,-0.733,1.570,-0.146],
     'C': [-1.343,0.465,-0.862,-1.020,-0.255],
     'D': [1.050,0.302,-3.656,-0.259,-3.242],
@@ -35,9 +35,9 @@ atchley_dict = {
 
 
 
-def atchley_encode(cdr3: str) -> np.ndarray:
+def atchley_encode(aa_seq: str) -> np.ndarray:
     embeddings = []
-    for aa in cdr3: embeddings.append(np.array(atchley_dict[aa]))
+    for aa in aa_seq: embeddings.append(np.array(_atchley_dict[aa]))
 
     embeddings = np.stack(embeddings)
     averaged = np.mean(embeddings,axis=0)

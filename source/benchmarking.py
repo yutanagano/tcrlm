@@ -11,12 +11,14 @@ from abc import ABC, abstractmethod
 import numpy as np
 from numpy import dot
 from numpy.linalg import norm
-import os
+from pathlib import Path
 from polyleven import levenshtein
 import torch
+from typing import Union
 
 from source.utils.atchleyencoder import atchley_encode
 from source.utils.datahandling import tokenise
+from source.utils.fileio import resolved_path_from_maybe_str
 
 
 def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
@@ -74,19 +76,24 @@ class AtchleyCs(BenchmarkAlgo):
 class PretrainCdr3Bert(BenchmarkAlgo):
     'This is a wrapper to benchmark a pretrained instance of a Cdr3Bert model.'
 
-    def __init__(self, run_id: str = None, test_mode: bool = False):
-        # If in test mode, load toy model
+    def __init__(
+        self,
+        path_to_model: Union[Path, str, None] = None,
+        test_mode: bool = False
+    ) -> None:
+        # If in test mode, load demo model
         if test_mode:
-            path_to_model = 'tests/demo_models/pretrained.ptnn'
+            path_to_model = Path(
+                'tests/resources/models/pretrained.ptnn'
+            )
+        
         # Otherwise load model specified by run id
         else:
-            if run_id is None:
+            if path_to_model is None:
                 raise RuntimeError(
-                    'Please specify a run id.'
-                )
-            path_to_model = os.path.join(
-                'pretrain_runs', run_id, 'pretrained.ptnn'
-            )
+                    'Please specify a path to a CDR3BERT model.')
+            path_to_model = resolved_path_from_maybe_str(path=path_to_model)
+
         self.model = torch.load(path_to_model).bert.eval()
 
     

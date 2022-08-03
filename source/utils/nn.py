@@ -71,7 +71,7 @@ class PositionEncoder(nn.Module):
         max_len: int = 200
     ):
         # Ensure that the embedding has an even number of dimensions
-        assert(embedding_dim % 2 == 0)
+        assert embedding_dim % 2 == 0
 
         super(PositionEncoder, self).__init__()
 

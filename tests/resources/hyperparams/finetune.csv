@@ -1,8 +1,8 @@
 param_name,type,value
 alpha_pretrain_id,str,test
 beta_pretrain_id,str,test
-path_train_data,str,tests/data/mock_labelled_data.csv
-path_valid_data,str,tests/data/mock_labelled_data.csv
+path_train_data,str,tests/resources/data/mock_labelled.csv
+path_valid_data,str,tests/resources/data/mock_labelled.csv
 train_batch_size,int,6
 valid_batch_size,int,6
 lr,float,0.001

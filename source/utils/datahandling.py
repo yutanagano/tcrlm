@@ -25,9 +25,8 @@ for t, i in zip(tokens, range(len(tokens))):
 
 
 def tokenise(cdr3: Union[list, str]) -> torch.Tensor:
-    '''
-    Turn a cdr3 sequence from list form to tokenised tensor form.
-    '''
+    'Turn a cdr3 sequence from list form to tokenised tensor form.'
+
     cdr3 = map(lambda x: token_to_index[x], cdr3)
     return torch.tensor(list(cdr3), dtype=torch.long)
 

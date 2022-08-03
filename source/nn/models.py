@@ -1,21 +1,19 @@
 '''
-Python module with classes that represent the code base for the BERT-based
-neural network models that will be able to learn and process TCR beta-chain
-CDR3 sequences.
+Custom BERT-based neural network models for learning patterns in TCR sequences.
 '''
 
 
 import source.utils.nn as nnutils
 import torch
-from torch import nn
 from typing import Tuple
 
 
-class Cdr3Bert(nn.Module):
+class Cdr3Bert(torch.nn.Module):
     '''
     Neural network based on the BERT architecture modified to process TCR beta-
     chain CDR3 sequences.
     '''
+
     def __init__(
         self,
         num_encoder_layers: int,
@@ -33,7 +31,7 @@ class Cdr3Bert(nn.Module):
         self._dim_feedforward = dim_feedforward
 
         # Create an instance of the encoder layer that we want
-        encoder_layer = nn.TransformerEncoderLayer(
+        encoder_layer = torch.nn.TransformerEncoderLayer(
             d_model=d_model,
             nhead=nhead,
             dim_feedforward=dim_feedforward,
@@ -44,7 +42,7 @@ class Cdr3Bert(nn.Module):
         )
         
         # Create a stack of num_layers * encoder layer, our main network
-        self.encoder_stack = nn.TransformerEncoder(
+        self.encoder_stack = torch.nn.TransformerEncoder(
             encoder_layer=encoder_layer,
             num_layers=num_encoder_layers
         )
@@ -63,7 +61,7 @@ class Cdr3Bert(nn.Module):
         # Use xavier uniform initialisation for rank-2+ parameter tensors
         for p in self.parameters():
             if p.dim() > 1:
-                nn.init.xavier_uniform_(p)
+                torch.nn.init.xavier_uniform_(p)
 
 
     @property
@@ -132,16 +130,17 @@ class Cdr3Bert(nn.Module):
         return nnutils.masked_average_pool(token_embeddings, padding_mask)
 
 
-class TcrEmbedder(nn.Module):
+class TcrEmbedder(torch.nn.Module):
     '''
     Neural network combination that takes two Cdr3Bert models, one pre-trained
     on alpha CDR3s, and another pre-trained on beta CDR3s.
     '''
+
     def __init__(self, alpha_bert: Cdr3Bert, beta_bert: Cdr3Bert):
         # Ensure that the alpha and beta bert models share the same model shape
-        assert(alpha_bert.d_model == beta_bert.d_model)
-        assert(alpha_bert.nhead == beta_bert.nhead)
-        assert(alpha_bert.dim_feedforward == beta_bert.dim_feedforward)
+        assert alpha_bert.d_model == beta_bert.d_model
+        assert alpha_bert.nhead == beta_bert.nhead
+        assert alpha_bert.dim_feedforward == beta_bert.dim_feedforward
 
         super(TcrEmbedder, self).__init__()
         self._alpha_bert = alpha_bert
@@ -170,7 +169,7 @@ class TcrEmbedder(nn.Module):
         return torch.cat((alpha_embedding, beta_embedding), dim=1)
 
 
-class Cdr3BertPretrainWrapper(nn.Module):
+class Cdr3BertPretrainWrapper(torch.nn.Module):
     '''
     Wrapper to put around a Cdr3Bert instance during pretraining to streamline
     the forward pass. In the pretraining process, the model will be trained on
@@ -178,6 +177,7 @@ class Cdr3BertPretrainWrapper(nn.Module):
     input sequence will be masked, and it is the network's job to predict what
     those masked tokens were using the remaining tokens as context.
     '''
+    
     def __init__(self, bert: Cdr3Bert):
         super(Cdr3BertPretrainWrapper, self).__init__()
         self._bert = bert
@@ -185,7 +185,7 @@ class Cdr3BertPretrainWrapper(nn.Module):
         # The generator is a linear layer whose job is to take CDR3BERT's final
         # layer output, then project that onto a probability distribution over
         # the 20 possible amino acids.
-        self.generator = nn.Linear(
+        self.generator = torch.nn.Linear(
             in_features=bert.d_model,
             out_features=20
         )
@@ -212,7 +212,7 @@ class Cdr3BertPretrainWrapper(nn.Module):
         return self.generator(self._bert(x)[0])
 
 
-class Cdr3BertFineTuneWrapper(nn.Module):
+class Cdr3BertFineTuneWrapper(torch.nn.Module):
     '''
     Wrapper to put around a Cdr3Bert instance during finetuning to streamline
     the forward pass. In the finetuning process, the model will be trained by
@@ -225,7 +225,11 @@ class Cdr3BertFineTuneWrapper(nn.Module):
         super(Cdr3BertFineTuneWrapper, self).__init__()
 
         self._embedder = tcr_embedder
-        self.classifier = nn.Linear(6 * tcr_embedder.d_model, 2, bias=False)
+        self.classifier = torch.nn.Linear(
+            6 * tcr_embedder.d_model,
+            2,
+            bias=False
+        )
 
 
     @property
@@ -246,8 +250,8 @@ class Cdr3BertFineTuneWrapper(nn.Module):
         '''
         Feed the model two batches of paired alpha-beta CDR3 sequences
         (henceforth referred to as 'receptors'), and have it predict whether
-        each pair of receptors (pair: two receptors found at the same indices in
-        the two input batches) responds to the same epitope or not.
+        each pair of receptors (pair: two receptors found at the same indices
+        in the two input batches) responds to the same epitope or not.
         Input: Two batches of tokenised receptors       (size: (N,S) x 4)*
         Output: Prediction of epitope match             (size: N,1)*
 

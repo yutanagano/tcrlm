@@ -1,6 +1,6 @@
 param_name,type,value
-path_train_data,str,tests/data/mock_unlabelled_data.csv
-path_valid_data,str,tests/data/mock_unlabelled_data.csv
+path_train_data,str,tests/resources/data/mock_unlabelled.csv
+path_valid_data,str,tests/resources/data/mock_unlabelled.csv
 num_encoder_layers,int,16
 d_model,int,16
 nhead,int,4

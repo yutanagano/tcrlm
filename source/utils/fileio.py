@@ -1,168 +1,188 @@
 'Housekeeping utilities involving saving and loading files.'
 
 
-import os
 import pandas as pd
-import shutil
+from pathlib import Path
+from shutil import rmtree
 from source.utils.datahandling import check_dataframe_format
 from source.utils.misc import print_with_deviceid
 import torch
+from typing import Union
+
+
+def resolved_path_from_maybe_str(path: Union[Path, str]) -> Path:
+    if issubclass(type(path), Path):
+        return path.resolve()
+    
+    if type(path) == str:
+        return Path(path).resolve()
+
+    raise RuntimeError(f'Unknown type for path: {type(path)}')
 
 
 def create_training_run_directory(
+    working_directory: Union[Path, str],
     run_id: str,
     mode: str,
     overwrite: bool = False
-) -> str:
+) -> Path:
     '''
     Creates a directory for a training run with the specified run ID. The
-    directory will be created in the 'pretrain_runs' parent directory if mode
-    is set to 'pretrain', and in the 'finetune_runs' parent directory if mode
-    is set to 'finetune'. If the relevant parent directory does not yet exist
-    in the working directory, then it will bre created first, and then the
-    training run directory will be created inside it. 
+    directory will be created in a 'pretrain_runs' parent directory if mode
+    is set to 'pretrain', and in the 'finetune_runs' parent directory if 
+    mode is set to 'finetune'. If the relevant parent directory does not
+    yet exist in the working directory, then it will bre created first, and
+    then the training run directory will be created inside it. 
     
     The function returns a string path to the newly created training run
     directory.
     
     If 'overwrite' is specified and a training run directory of the
     same name/run ID already exists, it and its contents will be deleted/
-    overwritten. Otherwise, the existence of a similarly named directory will
-    cause the program to systematically search for an alternative and available
-    run ID.
+    overwritten. Otherwise, the existence of a similarly named directory 
+    will cause the program to systematically search for an alternative and
+    available run ID.
     '''
 
+    working_directory = resolved_path_from_maybe_str(working_directory)
+    if not working_directory.is_dir():
+        raise RuntimeError('The specified working directory does not exist.')
+
     if mode in {'pretrain', 'p'}:
-        parent_dir = 'pretrain_runs'
+        parent_dir = working_directory / 'pretrain_runs'
     elif mode in {'finetune', 'f'}:
-        parent_dir = 'finetune_runs'
+        parent_dir = working_directory / 'finetune_runs'
     else:
         raise RuntimeError(f'Unknown mode: {mode}')
 
-    # Create parent directory if not already existent
-    if not os.path.isdir(parent_dir):
-        print(f'Creating new parent directory {parent_dir}...')
-        os.mkdir(parent_dir)
+    if not parent_dir.is_dir():
+        print(f'Creating new parent directory {parent_dir.name}...')
+        parent_dir.mkdir()
 
-    # Create a path to a target directory corresponding to the specified run_id
-    tr_dir = os.path.join(parent_dir,run_id)
+    training_run_dir = parent_dir / run_id
 
-    # If there already exists a directory at the specified path/name
-    if os.path.isdir(tr_dir):
-        # If overwrite=True, delete the preexisting directory
-        if overwrite: shutil.rmtree(tr_dir)
-        # Otherwise, keep modifying the target directory path in a systematic
-        # way until we find a directory path that does not yet exist.
+    if training_run_dir.is_dir():
+        if overwrite:
+            rmtree(training_run_dir)
         else:
-            suffix_int = 1
-            new_tr_dir = f'{tr_dir}_{suffix_int}'
-            while os.path.isdir(new_tr_dir):
-                suffix_int += 1
-                new_tr_dir = f'{tr_dir}_{suffix_int}'
-            # Quick user feedback
+            # Suffix an incrementing integer until available directory name
             print(
-                f'A directory {tr_dir} already exists. Target directory now '
-                f'modified to {new_tr_dir}.'
+                f'The directory {training_run_dir} already exists. '
+                'Searching for an alternative...'
             )
-            tr_dir = new_tr_dir
 
-    os.mkdir(tr_dir)
-    return tr_dir
+            suffix_int = 0
+            while training_run_dir.is_dir():
+                suffix_int += 1
+                training_run_dir = parent_dir / f'{run_id}_{suffix_int}'
+
+            print(f'Run directory adjusted to {training_run_dir}.')
+
+    training_run_dir.mkdir()
+    
+    return training_run_dir
 
 
-def save_log(
-    log_dict: dict,
-    dirpath: str,
-    distributed: bool,
-    device: torch.device
+def write_hyperparameters(
+    hyperparameters: dict, 
+    training_run_dir: Union[Path, str]
 ) -> None:
-    '''
-    Saves the given training stats log as a csv inside the specified directory.
-    The specific way in which the saved file is named is determined from the
-    distributed variable.
-    '''
-    
-    assert os.path.isdir(dirpath)
-
-    if distributed:
-        destination = os.path.join(
-            dirpath,
-            f'training_log_{device}.csv'#.replace(':','_') # colons are illegal in windows filenames so 'cuda:0' is not allowed
-        )
-    else:
-        destination = os.path.join(dirpath, f'training_log.csv')
-    
-    print_with_deviceid(f'Saving training log to {destination}...', device)
-    log_df = pd.DataFrame.from_dict(data=log_dict, orient='index')
-    log_df.to_csv(destination, index_label='epoch')
-
-
-def save_model(
-    model: torch.nn.Module,
-    name: str,
-    dirpath: str,
-    distributed: bool,
-    device: torch.device,
-    test_mode: bool
-) -> None:
-    '''
-    If appropriate, save the given model inside the given directory. Whether it
-    is appropriate for the current process to save a copy of the model or not
-    is determined based on the distributed, device and test_mode variables.
-    '''
-
-    assert os.path.isdir(dirpath)
-    
-    # Option 1: The script is in distributed mode and test mode, so each
-    # process must save its own copy of the model with the filename needing to
-    # distinguish copies of the model from different processes
-    if distributed and test_mode:
-        destination = os.path.join(
-            dirpath,
-            f'{name}_{device}.ptnn'#.replace(':', '_')
-        )
-
-        print_with_deviceid(
-            f'Saving pretrained model to {destination}...',
-            device
-        )
-
-        torch.save(model.module.cpu(), destination)
-        return
-
-    # Option 2: Save the model in the usual way (either the program is not
-    # running in distributed mode, or if it is, it is the process with rank 0)
-    if not distributed or (distributed and device.index == 0):
-        destination = os.path.join(dirpath, f'{name}.ptnn')
-
-        if distributed:
-            model = model.module
-        
-        print_with_deviceid(
-            f'Saving pretrained model to {destination}...',
-            device
-        )
-
-        torch.save(model.cpu(), destination)
-        return
-
-
-def write_hyperparameters(hyperparameters: dict, dirpath: str) -> None:
     '''
     Write hyperparameters to a text file named 'hyperparams.txt' in the
-    specified directory.
+    training run directory.
     '''
 
-    destination = os.path.join(dirpath, "hyperparams.txt")
+    training_run_dir = resolved_path_from_maybe_str(training_run_dir)
+    if not training_run_dir.is_dir():
+        raise RuntimeError(
+            'The specified training run directory does not exist.')
+    
+    destination = training_run_dir / 'hyperparams.txt'
 
     print(f'Writing hyperparameters to {destination}...')
 
     with open(destination, 'w') as f:
-        f.writelines([f'{k}: {hyperparameters[k]}\n' for k in hyperparameters])
+        f.writelines(
+            [f'{k}: {hyperparameters[k]}\n' for k in hyperparameters]
+        )
+
+
+class TrainingRecordManager:
+    'Manager for record keeping during training.'
+
+    def __init__(
+        self,
+        training_run_dir: Union[Path, str],
+        distributed: bool,
+        device: torch.device,
+        test_mode: bool = False
+    ) -> None:
+        training_run_dir = resolved_path_from_maybe_str(training_run_dir)
+        if not training_run_dir.is_dir():
+            raise RuntimeError(
+                'The specified training run directory does not exist.')
+        
+        self._training_run_dir = training_run_dir
+        self._distributed = distributed
+        self._device = device
+        self._test_mode = test_mode
+
+
+    def save_log(self, log_dict: dict) -> None:
+        '''
+        Saves the given training stats log as a csv inside the training run
+        directory. The specific way in which the saved file is named is
+        determined from the distributed variable.
+        '''
+
+        if self._distributed:
+            destination = self._training_run_dir / \
+                f'training_log_{self._device}.csv'.replace(':','_') # colons are illegal in windows filenames so 'cuda:0' is not allowed
+        else:
+            destination = self._training_run_dir / f'training_log.csv'
+        
+        print_with_deviceid(
+            f'Saving training log to {destination}...',
+            self._device
+        )
+
+        log_df = pd.DataFrame.from_dict(data=log_dict, orient='index')
+        log_df.to_csv(destination, index_label='epoch')
+
+
+    def save_model(self, model: torch.nn.Module, name: str) -> None:
+        '''
+        If appropriate, save the given model inside the given directory.
+        Whether it is appropriate for the current process to save a copy of the
+        model is determined based on the distributed, device and test_mode
+        variables.
+        '''
+        
+        if self._distributed and self._test_mode:
+            destination = self._training_run_dir / \
+                f'{name}_{self._device}.ptnn'.replace(':', '_')
+            print_with_deviceid(
+                f'Saving pretrained model to {destination}...',
+                self._device
+            )
+            torch.save(model.module.cpu(), destination)
+            return
+
+        if not self._distributed or \
+            (self._distributed and self._device.index == 0):
+            destination = self._training_run_dir / f'{name}.ptnn'
+            if self._distributed:
+                model = model.module
+            print_with_deviceid(
+                f'Saving pretrained model to {destination}...',
+                self._device
+            )
+            torch.save(model.cpu(), destination)
+            return
 
 
 # Hyperparameter parsing/loading
-def bool_convert(x: str):
+def _bool_convert(x: str):
     '''
     Converts string to bool values, where 'True' is mapped to True, and 'False'
     is mapped to False. Helper function to hyperparams.
@@ -178,14 +198,14 @@ def bool_convert(x: str):
 
 
 type_dict = {
-    'bool': bool_convert,
+    'bool': _bool_convert,
     'float': float,
     'int': int,
     'str': str
 }
 
 
-def parse_hyperparams(csv_path: str) -> dict:
+def parse_hyperparams(csv_path: Union[Path, str]) -> dict:
     '''
     Read a csv file and extract a list of hyperparameters from it. Then save
     that information in the form of a python dictionary. The csv should have
@@ -204,7 +224,9 @@ def parse_hyperparams(csv_path: str) -> dict:
     String      str
     '''
 
-    if not (csv_path.endswith('.csv') and os.path.isfile(csv_path)):
+    csv_path = resolved_path_from_maybe_str(csv_path)
+
+    if not (csv_path.suffix == '.csv' and csv_path.is_file()):
         raise RuntimeError(f'Bad path to csv: {csv_path}.')
 
     df = pd.read_csv(csv_path)

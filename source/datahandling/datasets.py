@@ -4,7 +4,9 @@
 import os
 import random
 import pandas as pd
+from pathlib import Path
 from source.utils.datahandling import amino_acids, check_dataframe_format
+from source.utils.fileio import resolved_path_from_maybe_str
 from torch.utils.data import Dataset
 from typing import Tuple, Union
 
@@ -12,20 +14,25 @@ from typing import Tuple, Union
 class TcrDataset(Dataset):
     'Project custom base dataset class.'
 
-    def __init__(self, data: Union[str, pd.DataFrame]) -> None:
+    def __init__(self, data: Union[Path, str, pd.DataFrame]) -> None:
         super(TcrDataset, self).__init__()
 
         if type(data) == pd.DataFrame:
             self._dataframe = data
             return
+
+        try:
+            data = resolved_path_from_maybe_str(data)
+        except(RuntimeError):
+            raise RuntimeError(
+                'data must be of type pd.DataFrame, Path, or str. '
+                f'Got {type(data)}.'
+            )
+
+        if not (data.suffix == '.csv' and data.is_file()):
+            raise RuntimeError(f'Bad path to csv file: {data}')
         
-        if type(data) == str:
-            if not (data.endswith('.csv') and os.path.isfile(data)):
-                raise RuntimeError(f'Bad path to csv file: {data}')
-            self._dataframe = pd.read_csv(data)
-            return
-        
-        raise RuntimeError('data must be of type pd.DataFrame or str.')
+        self._dataframe = pd.read_csv(data)
     
 
     def __len__(self) -> int:
@@ -44,10 +51,10 @@ class Cdr3PretrainDataset(TcrDataset):
         p_mask_keep: float = 0.1,
         jumble: bool = False
     ) -> None:
-        assert(p_mask >= 0 and p_mask < 1)
-        assert(p_mask_random >= 0 and p_mask_random < 1)
-        assert(p_mask_keep >= 0 and p_mask_keep < 1)
-        assert(p_mask_random + p_mask_keep <= 1)
+        assert (p_mask >= 0 and p_mask < 1)
+        assert (p_mask_random >= 0 and p_mask_random <= 1)
+        assert (p_mask_keep >= 0 and p_mask_keep <= 1)
+        assert p_mask_random + p_mask_keep <= 1
 
         super(Cdr3PretrainDataset, self).__init__(data)
 
@@ -58,8 +65,8 @@ class Cdr3PretrainDataset(TcrDataset):
         self._p_random_threshold = p_mask_random
         self._p_keep_threshold = 1 - p_mask_keep
 
-        self._respect_frequencies = respect_frequencies
-        self._jumble = jumble
+        self.jumble = jumble
+        self.respect_frequencies = respect_frequencies
     
 
     @property

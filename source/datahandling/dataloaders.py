@@ -17,9 +17,9 @@ def define_sampling(
     shuffle: bool,
     distributed: bool,
     batch_optimisation: bool,
-    num_replicas: Union[int, None],
-    rank: Union[int, None],
-    sort_a: Union[Callable, None]
+    num_replicas: Union[int, None] = None,
+    rank: Union[int, None] = None,
+    sort_a: Union[Callable, None] = None
 ) -> dict:
     if not (distributed or batch_optimisation):
         return {
@@ -159,7 +159,7 @@ class TcrDataLoader(DataLoader):
         rank: Union[int, None] = None,
         sort_a: Union[Callable, None] = None
     ) -> None:
-        assert(issubclass(type(dataset), ds.TcrDataset))
+        assert issubclass(type(dataset), ds.TcrDataset)
 
         sampling_settings = define_sampling(
             dataset=dataset,
@@ -201,7 +201,7 @@ class Cdr3PretrainDataLoader(TcrDataLoader):
         num_replicas: Union[int, None] = None,
         rank: Union[int, None] = None
     ) -> None:
-        assert(type(dataset) == ds.Cdr3PretrainDataset)
+        assert type(dataset) == ds.Cdr3PretrainDataset
 
         super(Cdr3PretrainDataLoader, self).__init__(
             dataset=dataset,

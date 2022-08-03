@@ -5,6 +5,14 @@ instance on unlabelled CDR3 data.
 
 
 import argparse
+from pathlib import Path
+from source.datahandling.dataloaders import Cdr3PretrainDataLoader
+from source.datahandling.datasets import Cdr3PretrainDataset
+from source.nn.grad import AdamWithScheduling
+from source.nn.models import Cdr3Bert, Cdr3BertPretrainWrapper
+import source.utils.fileio as fileio
+import source.nn.metrics as metrics
+import source.utils.misc as misc
 import time
 import torch
 import torch.distributed as dist
@@ -12,28 +20,15 @@ import torch.multiprocessing as mp
 from torch.nn import CrossEntropyLoss, Module
 from torch.nn.parallel import DistributedDataParallel
 from tqdm import tqdm
-
-from source.nn.models import Cdr3Bert, Cdr3BertPretrainWrapper
-from source.datahandling.datasets import Cdr3PretrainDataset
-from source.datahandling.dataloaders import Cdr3PretrainDataLoader
-
-import source.utils.fileio as fileio
-from source.nn.grad import AdamWithScheduling
-import source.utils.misc as misc
-import source.nn.metrics as metrics
+from typing import Union
 
 
 # Helper functions for training
 def parse_command_line_arguments() -> argparse.Namespace:
-    '''
-    Parse command line arguments using argparse.
-    '''
-    # Create an argument parser
     parser = argparse.ArgumentParser(
         description='Main training loop script for CDR3 BERT pre-training.'
     )
 
-    # Add relevant arguments
     parser.add_argument(
         '-g', '--gpus',
         default=0,
@@ -82,8 +77,6 @@ def parse_command_line_arguments() -> argparse.Namespace:
             'used for this run.'
     )
 
-    # Parse arguments read from sys.argv and return the resulting NameSpace
-    # object containing the argument data
     return parser.parse_args()
 
 
@@ -91,9 +84,8 @@ def instantiate_model(
     hyperparameters: dict,
     device: torch.device
 ) -> Cdr3BertPretrainWrapper:
-    '''
-    Instantiate a Cdr3Bert model and wrap it in a pretraining wrapper.
-    '''
+    'Instantiate a Cdr3Bert model and wrap it in a pretraining wrapper.'
+    
     bert = Cdr3Bert(
         num_encoder_layers=hyperparameters['num_encoder_layers'],
         d_model=hyperparameters['d_model'],
@@ -115,6 +107,7 @@ def train_epoch(
     '''
     Train the given model through one epoch of data from the given dataloader.
     '''
+
     model.train()
 
     total_loss = 0
@@ -211,6 +204,7 @@ def validate(
     Validates the given model's performance by calculating loss and other stats
     from the data in the given dataloader.
     '''
+
     model.eval()
     
     total_loss = 0
@@ -291,7 +285,7 @@ def validate(
 def train(
     device,
     hyperparameters: dict,
-    save_dir_path: str,
+    training_run_dir: str,
     no_progressbars: bool = False,
     world_size: int = 1,
     test_mode: bool = False
@@ -303,6 +297,7 @@ def train(
     training is finished, save the trained model as well as a log of training
     stats in the directory specified.
     '''
+
     # If world_size is > 1, we are running in distributed mode
     distributed = (world_size > 1)
 
@@ -317,12 +312,21 @@ def train(
     # Wrap device identifier with torch.device
     device = torch.device(device)
 
+    # Initialise record manager
+    record_manager = fileio.TrainingRecordManager(
+        training_run_dir=training_run_dir,
+        distributed=distributed,
+        device=device,
+        test_mode=test_mode
+    )
+
     # Instantiate model
     misc.print_with_deviceid('Instantiating cdr3bert model...', device)
     model = instantiate_model(hyperparameters, device)
 
     # Wrap the model with DistributedDataParallel if distributed
-    if distributed: model = DistributedDataParallel(model, device_ids=[device])
+    if distributed:
+        model = DistributedDataParallel(model, device_ids=[device])
 
     # Load training and validation data
     misc.print_with_deviceid('Loading cdr3 data into memory...', device)
@@ -465,21 +469,16 @@ def train(
     )
 
     # Save results
-    fileio.save_log(stats_log, save_dir_path, distributed, device)
-    fileio.save_model(
-        model,
-        'pretrained',
-        save_dir_path,
-        distributed,
-        device,
-        test_mode
-    )
+    record_manager.save_log(log_dict=stats_log)
+    record_manager.save_model(model=model, name='pretrained')
     
     # If distributed, then clean up by terminating the process group
-    if distributed: dist.destroy_process_group()
+    if distributed:
+        dist.destroy_process_group()
 
 
 def main(
+    working_directory: Union[Path, str],
     run_id: str,
     hyperparams_path: str,
     n_gpus: int = 0,
@@ -506,92 +505,79 @@ def main(
                         hyperparameters meant specifically for testing (e.g.
                         use toy data, etc.).
     '''
-    # If the program is being run in testing mode, set the hyperparameters to
-    # the test mode preset, along with setting the run ID to 'test'. Otherwise,
-    # set the hyperparameters to what is contained in the hyperparameters file.
-    if test_mode:
-        run_id = 'test'
-        hyperparams_path = 'tests/data/pretrain_hyperparams.csv'
-    
-    hp = fileio.parse_hyperparams(hyperparams_path)
 
-    # Claim space to store results of training run by creating a new directory
-    # based on the training id specified above
-    dirpath = fileio.create_training_run_directory(
-        run_id,
+    training_run_dir = fileio.create_training_run_directory(
+        working_directory=working_directory,
+        run_id=run_id,
         mode='pretrain',
         overwrite=test_mode
     )
+    
+    hyperparams = fileio.parse_hyperparams(hyperparams_path)
 
-    # Save a text file containing info of current run's hyperparameters
-    fileio.write_hyperparameters(hp, dirpath)
+    fileio.write_hyperparameters(
+        hyperparameters=hyperparams,
+        training_run_dir=training_run_dir
+    )
 
-    # If multiple GPUs are expected:
     if n_gpus > 1:
         print(
-            f'{n_gpus} CUDA devices expected, setting up distributed '\
+            f'{n_gpus} CUDA devices expected, setting up distributed '
             'training...'
         )
 
-        # To help with debugging in case of funky device allocation (especially
-        # on the cluster) print the number of CUDA devices detected at runtime
-        print(
-            f'{torch.cuda.device_count()} CUDA devices detected...'
-        )
+        print(f'{torch.cuda.device_count()} CUDA devices detected...')
 
         # If not fixed_batch_size, modify the batch size based on how many CUDA
         # devices the training process will be split over
-        if not fixed_batch_size: hp['train_batch_size'] //= n_gpus
+        if not fixed_batch_size:
+            hyperparams['train_batch_size'] //= n_gpus
 
-        # Set the required environment variables to properly create a process
-        # group
+        # Set up a process group
         misc.set_env_vars(master_addr='localhost', master_port='7777')
-
-        # Spawn parallel processes each running train() on a different GPU
         mp.spawn(
             train,
-            args=(hp, dirpath, no_progressbars, n_gpus, test_mode),
+            args=(
+                hyperparams,
+                training_run_dir,
+                no_progressbars,
+                n_gpus,
+                test_mode
+            ),
             nprocs=n_gpus
         )
 
-        # If in test mode, verify that the trained models saved from all
-        # processes are equivalent (i.e. they all have the same weights).
-        if test_mode: misc.compare_models(dirpath, n_gpus)
-
-    # If there is one GPU available:
     elif n_gpus == 1:
         print(
             '1 CUDA device expected, running training loop on cuda device...'
         )
         train(
             device=0,
-            hyperparameters=hp,
-            save_dir_path=dirpath,
+            hyperparameters=hyperparams,
+            training_run_dir=training_run_dir,
             no_progressbars=no_progressbars,
             test_mode=test_mode
         )
-    
-    # If there are no GPUs available:
+
     else:
         print('No CUDA devices expected, running training loop on cpu...')
         train(
             device='cpu',
-            hyperparameters=hp,
-            save_dir_path=dirpath,
+            hyperparameters=hyperparams,
+            training_run_dir=training_run_dir,
             no_progressbars=no_progressbars,
             test_mode=test_mode
         )
 
 
 if __name__ == '__main__':
-    # Parse command line arguments
     args = parse_command_line_arguments()
-    
     main(
-        args.run_id,
-        args.hyperparams_path,
-        args.gpus,
-        args.fixed_batch_size,
-        args.no_progressbars,
-        args.test
+        working_directory=Path.cwd(),
+        run_id=args.run_id,
+        hyperparams_path=args.hyperparams_path,
+        n_gpus=args.gpus,
+        fixed_batch_size=args.fixed_batch_size,
+        no_progressbars=args.no_progressbars,
+        test_mode=args.test
     )
