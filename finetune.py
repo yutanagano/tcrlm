@@ -5,14 +5,13 @@ instance on labelled CDR3 data.
 
 
 import argparse
-import os
 from pathlib import Path
 from source.datahandling.dataloaders import Cdr3FineTuneDataLoader
 from source.datahandling.datasets import Cdr3FineTuneDataset
 from source.nn.grad import AdamWithScheduling
+from source.nn.metrics import finetune_accuracy
 from source.nn.models import TcrEmbedder, Cdr3BertFineTuneWrapper
 import source.utils.fileio as fileio
-from source.nn.metrics import finetune_accuracy
 from source.utils.misc import print_with_deviceid, set_env_vars
 import time
 import torch
@@ -87,25 +86,27 @@ def parse_command_line_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def resolve_pretrained_model_paths(
+    working_directory: Path,
+    alpha_pretrain_id: str,
+    beta_pretrain_id: str
+) -> dict:
+    pretrain_dir = working_directory / 'pretrain_runs'
+    alpha_bert_path = pretrain_dir / alpha_pretrain_id / 'pretrained.ptnn'
+    beta_bert_path = pretrain_dir / beta_pretrain_id / 'pretrained.ptnn'
+
+    return {
+        'alpha_bert_path': alpha_bert_path.resolve(),
+        'beta_bert_path': beta_bert_path.resolve()
+    }
+
+
 def load_pretrained_model(
-    hyperparameters: dict,
+    pretrained_model_paths: dict,
     device: torch.device
 ) -> Cdr3BertFineTuneWrapper:
-    '''
-    Load a pretrained Cdr3Bert models from a specified pretrain runs, then
-    package them up into one finetuning model instance.
-    '''
-    # Load pretrained models
-    alpha_location = os.path.join(
-        'pretrain_runs',
-        hyperparameters['alpha_pretrain_id'],
-        'pretrained.ptnn'
-    )
-    beta_location = os.path.join(
-        'pretrain_runs', hyperparameters['beta_pretrain_id'], 'pretrained.ptnn'
-    )
-    alpha_bert = torch.load(alpha_location).bert
-    beta_bert = torch.load(beta_location).bert
+    alpha_bert = torch.load(pretrained_model_paths['alpha_bert_path']).bert
+    beta_bert = torch.load(pretrained_model_paths['beta_bert_path']).bert
     embedder = TcrEmbedder(alpha_bert, beta_bert)
     
     return Cdr3BertFineTuneWrapper(embedder).to(device)
@@ -122,6 +123,7 @@ def train_epoch(
     '''
     Train the given model through one epoch of data from the given dataloader.
     '''
+
     # Ensure model is in training mode, but the dropout modules in BERT must
     # remain in evaluation mode, so execute custom trainmode setter.
     if type(model) == Cdr3BertFineTuneWrapper: model.custom_trainmode()
@@ -222,6 +224,7 @@ def train(
     device,
     hyperparameters: dict,
     training_run_dir: str,
+    pretrained_model_paths: dict,
     no_progressbars: bool = False,
     world_size: int = 1,
     test_mode: bool = False
@@ -263,7 +266,10 @@ def train(
         f'beta - {hyperparameters["beta_pretrain_id"]}...',
         device
     )
-    model = load_pretrained_model(hyperparameters, device)
+    model = load_pretrained_model(
+        pretrained_model_paths=pretrained_model_paths,
+        device=device
+    )
 
     # Take note of d_model, used later when instantiating optimiser
     d_model = model.d_model
@@ -406,6 +412,7 @@ def main(
                         hyperparameters meant specifically for testing (e.g. 
                         use toy data, etc.).
     '''
+    working_directory = fileio.resolved_path_from_maybe_str(working_directory)
 
     training_run_dir = fileio.create_training_run_directory(
         working_directory=working_directory,
@@ -419,6 +426,12 @@ def main(
     fileio.write_hyperparameters(
         hyperparameters=hyperparams,
         training_run_dir=training_run_dir
+    )
+
+    pretrained_model_paths = resolve_pretrained_model_paths(
+        working_directory=working_directory,
+        alpha_pretrain_id=hyperparams['alpha_pretrain_id'],
+        beta_pretrain_id=hyperparams['beta_pretrain_id']
     )
 
     if n_gpus > 1:
@@ -441,6 +454,7 @@ def main(
             args=(
                 hyperparams,
                 training_run_dir,
+                pretrained_model_paths,
                 no_progressbars,
                 n_gpus,
                 test_mode
@@ -456,6 +470,7 @@ def main(
             device=0,
             hyperparameters=hyperparams,
             training_run_dir=training_run_dir,
+            pretrained_model_paths=pretrained_model_paths,
             no_progressbars=no_progressbars,
             test_mode=test_mode
         )
@@ -466,6 +481,7 @@ def main(
             device='cpu',
             hyperparameters=hyperparams,
             training_run_dir=training_run_dir,
+            pretrained_model_paths=pretrained_model_paths,
             no_progressbars=no_progressbars,
             test_mode=test_mode
         )

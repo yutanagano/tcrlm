@@ -4,6 +4,7 @@ from pathlib import Path
 import pickle
 from pretrain import main as main_p
 import pytest
+from shutil import copy
 from source.nn.models import Cdr3BertPretrainWrapper, Cdr3BertFineTuneWrapper
 from source.utils.datahandling import check_dataframe_format
 from source.utils.fileio import parse_hyperparams
@@ -101,6 +102,19 @@ def expected_finetune_parameters_template():
     with open('tests/resources/parameters/finetune.pickle', 'rb') as f:
         params = pickle.load(f)
     return params
+
+
+@pytest.fixture(scope='function')
+def tmp_finetune_working_dir(tmp_path):
+    pretrain_runs_dir = tmp_path / 'pretrain_runs'
+    pretrain_runs_dir.mkdir()
+
+    test_dir = pretrain_runs_dir / 'test'
+    test_dir.mkdir()
+
+    copy('tests/resources/models/pretrained.ptnn', test_dir)
+
+    return tmp_path
 
 
 def check_hyperparam_record(training_run_dir: Path, expected_hyperparams: dict):
@@ -267,7 +281,7 @@ class TestFinetuneLoop:
     )
     def test_finetune_loop(
         self,
-        tmp_path,
+        tmp_finetune_working_dir,
         finetune_hyperparams_path,
         expected_finetune_hyperparams,
         expected_finetune_log_cols,
@@ -279,13 +293,14 @@ class TestFinetuneLoop:
             return
 
         main_f(
-            working_directory=tmp_path,
+            working_directory=tmp_finetune_working_dir,
             run_id='test',
             hyperparams_path=finetune_hyperparams_path,
             n_gpus=n_gpus,
             test_mode=True
         )
-        expected_training_run_dir = tmp_path / 'finetune_runs' / 'test'
+        expected_training_run_dir = tmp_finetune_working_dir / \
+            'finetune_runs' / 'test'
 
         assert expected_training_run_dir.is_dir()
 
@@ -309,7 +324,7 @@ class TestFinetuneLoop:
 
     def test_finetune_loop_distributed(
         self,
-        tmp_path,
+        tmp_finetune_working_dir,
         finetune_hyperparams_path,
         expected_finetune_hyperparams,
         expected_finetune_log_cols,
@@ -324,13 +339,14 @@ class TestFinetuneLoop:
             return
 
         main_f(
-            working_directory=tmp_path,
+            working_directory=tmp_finetune_working_dir,
             run_id='test',
             hyperparams_path=finetune_hyperparams_path,
             n_gpus=n_gpus,
             test_mode=True
         )
-        expected_training_run_dir = tmp_path / 'finetune_runs' / 'test'
+        expected_training_run_dir = tmp_finetune_working_dir / \
+            'finetune_runs' / 'test'
 
         assert expected_training_run_dir.is_dir()
 

@@ -9,9 +9,9 @@ from pathlib import Path
 from source.datahandling.dataloaders import Cdr3PretrainDataLoader
 from source.datahandling.datasets import Cdr3PretrainDataset
 from source.nn.grad import AdamWithScheduling
+import source.nn.metrics as metrics
 from source.nn.models import Cdr3Bert, Cdr3BertPretrainWrapper
 import source.utils.fileio as fileio
-import source.nn.metrics as metrics
 import source.utils.misc as misc
 import time
 import torch
