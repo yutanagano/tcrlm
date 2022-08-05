@@ -173,7 +173,9 @@ def check_models_equivalent(training_run_dir: Path, n_gpus: int) -> None:
 
     def models_equivalent(model1: torch.nn.Module, model2: torch.nn.Module):
         for p1, p2 in zip(model1.parameters(), model2.parameters()):
-            assert torch.equal(p1, p2)
+            if not torch.equal(p1, p2):
+                return False
+        return True
         
     for model2 in models[1:]:
         assert models_equivalent(models[0], model2)
