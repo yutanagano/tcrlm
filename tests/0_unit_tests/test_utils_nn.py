@@ -1,4 +1,3 @@
-from numpy import dtype
 import pytest
 import source.utils.nn as nnutils
 import torch

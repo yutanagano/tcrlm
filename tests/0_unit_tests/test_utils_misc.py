@@ -3,13 +3,13 @@ import os
 import pytest
 import source.utils.misc as misc
 import sys
-import torch
+from tests.resources.mockups import MockDevice
 
 
 def test_print_with_deviceid():
     out = io.StringIO()
     sys.stdout = out
-    misc.print_with_deviceid('test', device=torch.device('cpu'))
+    misc.print_with_deviceid('test', device=MockDevice('cpu'))
     sys.stdout = sys.__stdout__
 
     assert out.getvalue() == '[cpu]: test\n'

@@ -1,4 +1,4 @@
-from tests.resources.mockups import MockDistributedDataParallel
+from tests.resources.mockups import MockDistributedDataParallel, MockDevice
 import pytest
 import source.utils.fileio as fileio
 import torch
@@ -132,15 +132,15 @@ class TestTrainingRecordManager:
             fileio.TrainingRecordManager(
                 training_run_dir='foobarbaz',
                 distributed=False,
-                device=torch.device('cpu')
+                device=MockDevice('cpu')
             )
 
 
     @pytest.mark.parametrize(
         ('distributed', 'device', 'expected_logname'),
         (
-            (False, torch.device('cpu'), 'training_log.csv'),
-            (True, torch.device('cuda:0'), 'training_log_cuda_0.csv')
+            (False, MockDevice('cpu'), 'training_log.csv'),
+            (True, MockDevice('cuda:0'), 'training_log_cuda_0.csv')
         )
     )
     def test_save_log(
@@ -177,11 +177,11 @@ class TestTrainingRecordManager:
     @pytest.mark.parametrize(
         ('distributed', 'test_mode', 'device', 'expected_filename'),
         (
-            (False, False, torch.device('cpu'), 'model.ptnn'),
-            (False, True, torch.device('cpu'), 'model.ptnn'),
-            (True, False, torch.device('cuda:0'), 'model.ptnn'),
-            (True, False, torch.device('cuda:1'), None),
-            (True, True, torch.device('cuda:0'), 'model_cuda_0.ptnn')
+            (False, False, MockDevice('cpu'), 'model.ptnn'),
+            (False, True, MockDevice('cpu'), 'model.ptnn'),
+            (True, False, MockDevice('cuda:0'), 'model.ptnn'),
+            (True, False, MockDevice('cuda:1'), None),
+            (True, True, MockDevice('cuda:0'), 'model_cuda_0.ptnn')
         )
     )
     def test_save_model(
