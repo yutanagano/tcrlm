@@ -1,4 +1,5 @@
 from finetune import main as main_f
+import multiprocessing as mp
 import pandas as pd
 from pathlib import Path
 import pickle
@@ -11,6 +12,9 @@ from source.utils.fileio import parse_hyperparams
 import torch
 from typing import Any
 from warnings import warn
+
+
+mp.set_start_method('spawn')
 
 
 @pytest.fixture(scope='module')
@@ -198,13 +202,20 @@ class TestPretrainLoop:
             warn('Pretrain GPU test skipped due to hardware limitations.')
             return
 
-        main_p(
-            working_directory=tmp_path,
-            run_id='test',
-            hyperparams_path=pretrain_hyperparams_path,
-            n_gpus=n_gpus,
-            test_mode=True
+        # Run the training loop in a separate process
+        p = mp.Process(
+            target=main_p,
+            kwargs={
+                'working_directory': tmp_path,
+                'run_id': 'test',
+                'hyperparams_path': pretrain_hyperparams_path,
+                'n_gpus': n_gpus,
+                'test_mode': True
+            }
         )
+        p.start()
+        p.join()
+
         expected_training_run_dir = tmp_path / 'pretrain_runs' / 'test'
 
         assert expected_training_run_dir.is_dir()
@@ -243,13 +254,20 @@ class TestPretrainLoop:
             )
             return
 
-        main_p(
-            working_directory=tmp_path,
-            run_id='test',
-            hyperparams_path=pretrain_hyperparams_path,
-            n_gpus=n_gpus,
-            test_mode=True
+        # Run the training loop in a separate process
+        p = mp.Process(
+            target=main_p,
+            kwargs={
+                'working_directory': tmp_path,
+                'run_id': 'test',
+                'hyperparams_path': pretrain_hyperparams_path,
+                'n_gpus': n_gpus,
+                'test_mode': True
+            }
         )
+        p.start()
+        p.join()
+
         expected_training_run_dir = tmp_path / 'pretrain_runs' / 'test'
 
         assert expected_training_run_dir.is_dir()
@@ -294,13 +312,20 @@ class TestFinetuneLoop:
             warn('Finetune GPU test skipped due to hardware limitations.')
             return
 
-        main_f(
-            working_directory=tmp_finetune_working_dir,
-            run_id='test',
-            hyperparams_path=finetune_hyperparams_path,
-            n_gpus=n_gpus,
-            test_mode=True
+        # Run the training loop in a separate process
+        p = mp.Process(
+            target=main_f,
+            kwargs={
+                'working_directory': tmp_finetune_working_dir,
+                'run_id': 'test',
+                'hyperparams_path': finetune_hyperparams_path,
+                'n_gpus': n_gpus,
+                'test_mode': True
+            }
         )
+        p.start()
+        p.join()
+
         expected_training_run_dir = tmp_finetune_working_dir / \
             'finetune_runs' / 'test'
 
@@ -340,13 +365,20 @@ class TestFinetuneLoop:
             )
             return
 
-        main_f(
-            working_directory=tmp_finetune_working_dir,
-            run_id='test',
-            hyperparams_path=finetune_hyperparams_path,
-            n_gpus=n_gpus,
-            test_mode=True
+        # Run the training loop in a separate process
+        p = mp.Process(
+            target=main_f,
+            kwargs={
+                'working_directory': tmp_finetune_working_dir,
+                'run_id': 'test',
+                'hyperparams_path': finetune_hyperparams_path,
+                'n_gpus': n_gpus,
+                'test_mode': True
+            }
         )
+        p.start()
+        p.join()
+
         expected_training_run_dir = tmp_finetune_working_dir / \
             'finetune_runs' / 'test'
 
