@@ -3,7 +3,6 @@ from pathlib import Path
 import pytest
 import random
 import source.datahandling.datasets as datasets
-from source.utils.datahandling import amino_acids
 
 
 @pytest.fixture(scope='module')
@@ -266,7 +265,7 @@ class TestCdr3PretrainDataset:
             
             assert all(
                 [
-                    result_x[i] in amino_acids and \
+                    result_x[i] in datasets.amino_acids and \
                     result_x[i] != expected[i] for i, token in unmasked_in_y
                 ]
             )

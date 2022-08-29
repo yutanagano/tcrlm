@@ -98,34 +98,6 @@ class TestCreateTrainingRunDirectory:
             )
 
 
-class TestWriteHyperparams:
-    def test_write_hyperparams(self, tmp_path):
-        hyperparams = {
-            'foo': 'bar',
-            'baz': 'bat'
-        }
-
-        fileio.write_hyperparameters(
-            hyperparameters=hyperparams,
-            training_run_dir=tmp_path
-        )
-
-        assert (tmp_path / 'hyperparams.txt').is_file()
-
-        with open(tmp_path / 'hyperparams.txt', 'r') as f:
-            for param in hyperparams:
-                line = f.readline()
-                assert line == f'{param}: {hyperparams[param]}\n'
-
-
-    def test_nonexistent_training_run_dir(self):
-        with pytest.raises(RuntimeError):
-            fileio.write_hyperparameters(
-                hyperparameters={'foo': 'bar'},
-                training_run_dir='foobarbaz'
-            )
-
-
 class TestTrainingRecordManager:
     def test_init_nonexistent_training_run_directory(self):
         with pytest.raises(RuntimeError):
@@ -177,11 +149,11 @@ class TestTrainingRecordManager:
     @pytest.mark.parametrize(
         ('distributed', 'test_mode', 'device', 'expected_filename'),
         (
-            (False, False, MockDevice('cpu'), 'model.ptnn'),
-            (False, True, MockDevice('cpu'), 'model.ptnn'),
-            (True, False, MockDevice('cuda:0'), 'model.ptnn'),
+            (False, False, MockDevice('cpu'), 'model_state_dict.pt'),
+            (False, True, MockDevice('cpu'), 'model_state_dict.pt'),
+            (True, False, MockDevice('cuda:0'), 'model_state_dict.pt'),
             (True, False, MockDevice('cuda:1'), None),
-            (True, True, MockDevice('cuda:0'), 'model_cuda_0.ptnn')
+            (True, True, MockDevice('cuda:0'), 'model_state_dict_cuda_0.pt')
         )
     )
     def test_save_model(
@@ -203,12 +175,20 @@ class TestTrainingRecordManager:
         if distributed:
             model = MockDistributedDataParallel(model)
 
-        def equivalent(model1: torch.nn.Module, model2: torch.nn.Module):
-            for p1, p2 in zip(model1.parameters(), model2.parameters()):
-                if not torch.equal(p1, p2):
+        def equivalent(
+            state_dict_1: dict[torch.Tensor],
+            state_dict_2: dict[torch.Tensor]
+        ) -> bool:
+            if len(state_dict_1) != len(state_dict_2):
+                print('state_dicts have different lengths.')
+                return False
+            
+            for key in state_dict_1:
+                if not state_dict_1[key].equal(state_dict_2[key]):
                     return False
+
             return True
-        
+
         manager.save_model(model=model, name='model')
 
         if expected_filename is None:
@@ -217,8 +197,11 @@ class TestTrainingRecordManager:
 
         expected_path = tmp_path / expected_filename
         assert expected_path.is_file()
-        result_model = torch.load(expected_path)      
-        assert equivalent(model, result_model)
+
+        result_model = torch.load(expected_path)
+        if distributed:
+            model = model.module
+        assert equivalent(model.state_dict(), result_model)
 
 
 class TestBoolConvert:

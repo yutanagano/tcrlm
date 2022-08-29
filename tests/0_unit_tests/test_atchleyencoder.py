@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from source.utils.atchleyencoder import atchley_encode
+from source.atchleyencoder import atchley_encode
 
 
 @pytest.mark.parametrize(

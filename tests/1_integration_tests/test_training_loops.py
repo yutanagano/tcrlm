@@ -1,16 +1,15 @@
+from copy import deepcopy
 from finetune import main as main_f
 import multiprocessing as mp
 import pandas as pd
 from pathlib import Path
-import pickle
 from pretrain import main as main_p
 import pytest
 from shutil import copy
-from source.nn.models import Cdr3BertPretrainWrapper, Cdr3BertFineTuneWrapper
-from source.utils.datahandling import check_dataframe_format
+import source.nn.models as models
+from source.utils.misc import check_dataframe_format
 from source.utils.fileio import parse_hyperparams
 import torch
-from typing import Any
 from warnings import warn
 
 
@@ -41,6 +40,26 @@ def expected_finetune_hyperparams(finetune_hyperparams_path):
         csv_path=finetune_hyperparams_path
     )
     return hyperparams
+
+
+@pytest.fixture(scope='module')
+def pretrained_model_template(expected_pretrain_hyperparams):
+    bert = models.Cdr3Bert(
+        num_encoder_layers=expected_pretrain_hyperparams['num_encoder_layers'],
+        d_model=expected_pretrain_hyperparams['d_model'],
+        nhead=expected_pretrain_hyperparams['nhead'],
+        dim_feedforward=expected_pretrain_hyperparams['dim_feedforward'],
+        activation=expected_pretrain_hyperparams['activation']
+    )
+    return models.Cdr3BertPretrainWrapper(bert)
+
+
+@pytest.fixture(scope='module')
+def finetuned_model_template(pretrained_model_template):
+    alpha_model = deepcopy(pretrained_model_template.bert)
+    beta_model = deepcopy(pretrained_model_template.bert)
+    embedder = models.TcrEmbedder(alpha_bert=alpha_model, beta_bert=beta_model)
+    return models.Cdr3BertFineTuneWrapper(tcr_embedder=embedder)
 
 
 @pytest.fixture(scope='module')
@@ -94,42 +113,35 @@ def expected_finetune_log_cols():
     return cols
 
 
-@pytest.fixture(scope='module')
-def expected_pretrain_parameters_template():
-    with open('tests/resources/parameters/pretrain.pickle', 'rb') as f:
-        params = pickle.load(f)
-    return params
-
-
-@pytest.fixture(scope='module')
-def expected_finetune_parameters_template():
-    with open('tests/resources/parameters/finetune.pickle', 'rb') as f:
-        params = pickle.load(f)
-    return params
-
-
 @pytest.fixture(scope='function')
-def tmp_finetune_working_dir(tmp_path):
+def tmp_finetune_working_dir(
+    tmp_path,
+    pretrain_hyperparams_path,
+    pretrained_model_template
+):
     pretrain_runs_dir = tmp_path / 'pretrain_runs'
     pretrain_runs_dir.mkdir()
 
     test_dir = pretrain_runs_dir / 'test'
     test_dir.mkdir()
 
-    copy('tests/resources/models/pretrained.ptnn', test_dir)
+    state_dict_dest = test_dir / 'pretrained_state_dict.pt'
+
+    copy(pretrain_hyperparams_path, test_dir / 'hyperparams.csv')
+    torch.save(pretrained_model_template.state_dict(), state_dict_dest)
 
     return tmp_path
 
 
-def check_hyperparam_record(training_run_dir: Path, expected_hyperparams: dict):
-    expected_location = training_run_dir / 'hyperparams.txt'
-
+def check_hyperparam_record(
+    training_run_dir: Path,
+    expected_hyperparams: dict
+):
+    expected_location = training_run_dir / 'hyperparams.csv'
     assert expected_location.is_file()
     
-    with open(expected_location, 'r') as f:
-        for param in expected_hyperparams:
-            line = f.readline()
-            assert line == f'{param}: {expected_hyperparams[param]}\n'
+    result_hyperparams = parse_hyperparams(expected_location)
+    assert result_hyperparams == expected_hyperparams
 
 
 def check_training_log(
@@ -139,11 +151,9 @@ def check_training_log(
     expected_length: int
 ):
     expected_location = training_run_dir / expected_name
-
     assert expected_location.is_file()
     
     log = pd.read_csv(expected_location)
-
     assert len(log) == expected_length
     check_dataframe_format(dataframe=log, columns=expected_columns)
 
@@ -151,19 +161,15 @@ def check_training_log(
 def check_saved_model(
     training_run_dir: Path,
     expected_name: str,
-    expected_type: Any,
-    expected_params_template: tuple
+    state_dict_template: dict[torch.Tensor]
 ):
     expected_location = training_run_dir / expected_name
-
     assert expected_location.is_file()
 
-    model = torch.load(expected_location)
-
-    assert type(model) == expected_type
-
-    for p1, p2 in zip(model.parameters(), expected_params_template):
-        assert p1.size() == p2.size()
+    saved_state_dict = torch.load(expected_location)
+    assert len(saved_state_dict) == len(state_dict_template)
+    for key in state_dict_template:
+        assert saved_state_dict[key].size() == state_dict_template[key].size()
 
 
 def check_models_equivalent(training_run_dir: Path, n_gpus: int) -> None:
@@ -195,7 +201,7 @@ class TestPretrainLoop:
         pretrain_hyperparams_path,
         expected_pretrain_hyperparams,
         expected_pretrain_log_cols,
-        expected_pretrain_parameters_template,
+        pretrained_model_template,
         n_gpus
     ):
         if n_gpus == 1 and not torch.cuda.is_available():
@@ -217,7 +223,6 @@ class TestPretrainLoop:
         p.join()
 
         expected_training_run_dir = tmp_path / 'pretrain_runs' / 'test'
-
         assert expected_training_run_dir.is_dir()
 
         check_hyperparam_record(
@@ -232,9 +237,8 @@ class TestPretrainLoop:
         )
         check_saved_model(
             training_run_dir=expected_training_run_dir,
-            expected_name='pretrained.ptnn',
-            expected_type=Cdr3BertPretrainWrapper,
-            expected_params_template=expected_pretrain_parameters_template
+            expected_name='pretrained_state_dict.pt',
+            state_dict_template=pretrained_model_template.state_dict()
         )
 
 
@@ -244,7 +248,7 @@ class TestPretrainLoop:
         pretrain_hyperparams_path,
         expected_pretrain_hyperparams,
         expected_pretrain_log_cols,
-        expected_pretrain_parameters_template
+        pretrained_model_template,
     ):
         n_gpus = torch.cuda.device_count()
         if n_gpus <= 1:
@@ -269,7 +273,6 @@ class TestPretrainLoop:
         p.join()
 
         expected_training_run_dir = tmp_path / 'pretrain_runs' / 'test'
-
         assert expected_training_run_dir.is_dir()
 
         check_hyperparam_record(
@@ -285,9 +288,8 @@ class TestPretrainLoop:
             )
         check_saved_model(
             training_run_dir=expected_training_run_dir,
-            expected_name='pretrained_cuda_0.ptnn',
-            expected_type=Cdr3BertPretrainWrapper,
-            expected_params_template=expected_pretrain_parameters_template
+            expected_name='pretrained_state_dict_cuda_0.pt',
+            state_dict_template=pretrained_model_template.state_dict()
         )
         check_models_equivalent(
             training_run_dir=expected_training_run_dir,
@@ -305,7 +307,7 @@ class TestFinetuneLoop:
         finetune_hyperparams_path,
         expected_finetune_hyperparams,
         expected_finetune_log_cols,
-        expected_finetune_parameters_template,
+        finetuned_model_template,
         n_gpus
     ):
         if n_gpus == 1 and not torch.cuda.is_available():
@@ -328,7 +330,6 @@ class TestFinetuneLoop:
 
         expected_training_run_dir = tmp_finetune_working_dir / \
             'finetune_runs' / 'test'
-
         assert expected_training_run_dir.is_dir()
 
         check_hyperparam_record(
@@ -343,9 +344,8 @@ class TestFinetuneLoop:
         )
         check_saved_model(
             training_run_dir=expected_training_run_dir,
-            expected_name='finetuned.ptnn',
-            expected_type=Cdr3BertFineTuneWrapper,
-            expected_params_template=expected_finetune_parameters_template
+            expected_name='finetuned_state_dict.pt',
+            state_dict_template=finetuned_model_template.state_dict()
         )
     
 
@@ -353,9 +353,10 @@ class TestFinetuneLoop:
         self,
         tmp_finetune_working_dir,
         finetune_hyperparams_path,
+        expected_pretrain_hyperparams,
         expected_finetune_hyperparams,
         expected_finetune_log_cols,
-        expected_finetune_parameters_template
+        finetuned_model_template,
     ):
         n_gpus = torch.cuda.device_count()
         if n_gpus <= 1:
@@ -381,7 +382,6 @@ class TestFinetuneLoop:
 
         expected_training_run_dir = tmp_finetune_working_dir / \
             'finetune_runs' / 'test'
-
         assert expected_training_run_dir.is_dir()
 
         check_hyperparam_record(
@@ -397,9 +397,8 @@ class TestFinetuneLoop:
             )
         check_saved_model(
             training_run_dir=expected_training_run_dir,
-            expected_name='finetuned_cuda_0.ptnn',
-            expected_type=Cdr3BertFineTuneWrapper,
-            expected_params_template=expected_finetune_parameters_template
+            expected_name='finetuned_state_dict_cuda_0.pt',
+            state_dict_template=finetuned_model_template.state_dict()
         )
         check_models_equivalent(
             training_run_dir=expected_training_run_dir,

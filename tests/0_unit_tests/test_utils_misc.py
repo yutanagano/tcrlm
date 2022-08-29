@@ -1,5 +1,6 @@
 import io
 import os
+import pandas as pd
 import pytest
 import source.utils.misc as misc
 import sys
@@ -55,3 +56,21 @@ def test_set_env_vars():
 def test_dynamic_fmean(l, expected):
     result = misc.dynamic_fmean(l)
     assert result == expected
+
+
+class TestCheckDataframeFormat:
+    def test_check_correct(self):
+        df = pd.DataFrame(data=[], columns=['foo','bar'])
+        misc.check_dataframe_format(
+            dataframe=df,
+            columns=['foo','bar']
+        )
+    
+
+    def test_check_incorrect(self):
+        df = pd.DataFrame(data=[], columns=['foo','bar'])
+        with pytest.raises(RuntimeError):
+            misc.check_dataframe_format(
+                dataframe=df,
+                columns=['bar','baz']
+            )

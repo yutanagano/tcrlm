@@ -31,6 +31,18 @@ def sorted_batch_sampler(pretrain_dataset):
     return sampler
 
 
+@pytest.mark.parametrize(
+    ('input_seq','expected'),
+    (
+        ('CAST', torch.tensor([1,0,15,16])),
+        ('MESH', torch.tensor([10,3,15,6])),
+        ('WILL', torch.tensor([18,7,9,9]))
+    )
+)
+def test_tokenise(input_seq, expected):
+    assert torch.equal(dataloaders.tokenise(input_seq), expected)
+
+
 class TestDefineSampling:
     def test_vanilla(self, pretrain_dataset):
         result = dataloaders.define_sampling(
