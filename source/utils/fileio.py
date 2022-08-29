@@ -4,7 +4,7 @@
 import pandas as pd
 from pathlib import Path
 from shutil import rmtree
-from source.utils.datahandling import check_dataframe_format
+from source.utils.misc import check_dataframe_format
 from source.utils.misc import print_with_deviceid
 import torch
 from typing import Union
@@ -83,30 +83,6 @@ def create_training_run_directory(
     return training_run_dir
 
 
-def write_hyperparameters(
-    hyperparameters: dict, 
-    training_run_dir: Union[Path, str]
-) -> None:
-    '''
-    Write hyperparameters to a text file named 'hyperparams.txt' in the
-    training run directory.
-    '''
-
-    training_run_dir = resolved_path_from_maybe_str(training_run_dir)
-    if not training_run_dir.is_dir():
-        raise RuntimeError(
-            'The specified training run directory does not exist.')
-    
-    destination = training_run_dir / 'hyperparams.txt'
-
-    print(f'Writing hyperparameters to {destination}...')
-
-    with open(destination, 'w') as f:
-        f.writelines(
-            [f'{k}: {hyperparameters[k]}\n' for k in hyperparameters]
-        )
-
-
 class TrainingRecordManager:
     'Manager for record keeping during training.'
 
@@ -160,24 +136,24 @@ class TrainingRecordManager:
         
         if self._distributed and self._test_mode:
             destination = self._training_run_dir / \
-                f'{name}_{self._device}.ptnn'.replace(':', '_')
+                f'{name}_state_dict_{self._device}.pt'.replace(':', '_')
             print_with_deviceid(
                 f'Saving pretrained model to {destination}...',
                 self._device
             )
-            torch.save(model.module.cpu(), destination)
+            torch.save(model.module.state_dict(), destination)
             return
 
         if not self._distributed or \
             (self._distributed and self._device.index == 0):
-            destination = self._training_run_dir / f'{name}.ptnn'
+            destination = self._training_run_dir / f'{name}_state_dict.pt'
             if self._distributed:
                 model = model.module
             print_with_deviceid(
                 f'Saving pretrained model to {destination}...',
                 self._device
             )
-            torch.save(model.cpu(), destination)
+            torch.save(model.state_dict(), destination)
             return
 
 
@@ -195,14 +171,6 @@ def _bool_convert(x: str):
         return False
     
     raise RuntimeError(f'Expected "True" or "False", got {x}')
-
-
-type_dict = {
-    'bool': _bool_convert,
-    'float': float,
-    'int': int,
-    'str': str
-}
 
 
 def parse_hyperparams(csv_path: Union[Path, str]) -> dict:
@@ -231,6 +199,13 @@ def parse_hyperparams(csv_path: Union[Path, str]) -> dict:
 
     df = pd.read_csv(csv_path)
     check_dataframe_format(df, ['param_name', 'type', 'value'])
+
+    type_dict = {
+        'bool': _bool_convert,
+        'float': float,
+        'int': int,
+        'str': str
+    }
 
     hyperparams = dict()
     for _, row in df.iterrows():

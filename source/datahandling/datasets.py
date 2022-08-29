@@ -1,14 +1,19 @@
 'Custom dataset classes.'
 
 
-import os
 import random
 import pandas as pd
 from pathlib import Path
-from source.utils.datahandling import amino_acids, check_dataframe_format
 from source.utils.fileio import resolved_path_from_maybe_str
+from source.utils.misc import check_dataframe_format
 from torch.utils.data import Dataset
 from typing import Tuple, Union
+
+
+amino_acids = {
+    'A','C','D','E','F','G','H','I','K','L',
+    'M','N','P','Q','R','S','T','V','W','Y'
+}
 
 
 class TcrDataset(Dataset):

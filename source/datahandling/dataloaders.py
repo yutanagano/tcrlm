@@ -3,7 +3,7 @@
 
 import random
 import source.datahandling.datasets as ds
-from source.utils.datahandling import tokenise
+from source.utils.misc import tokenise
 import torch
 from torch.utils.data import DataLoader, Sampler
 from torch.utils.data.distributed import DistributedSampler

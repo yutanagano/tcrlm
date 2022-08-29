@@ -6,6 +6,7 @@ instance on unlabelled CDR3 data.
 
 import argparse
 from pathlib import Path
+import shutil
 from source.datahandling.dataloaders import Cdr3PretrainDataLoader
 from source.datahandling.datasets import Cdr3PretrainDataset
 from source.nn.grad import AdamWithScheduling
@@ -515,10 +516,12 @@ def main(
     
     hyperparams = fileio.parse_hyperparams(hyperparams_path)
 
-    fileio.write_hyperparameters(
-        hyperparameters=hyperparams,
-        training_run_dir=training_run_dir
+    # Make a copy of the hyperparams table in the training run directory
+    print(
+        'Making a copy of the hyperparameters table at '
+        f'{training_run_dir / "hyperparams.csv"}...'
     )
+    shutil.copy(src=hyperparams_path, dst=training_run_dir/'hyperparams.csv')
 
     if n_gpus > 1:
         print(

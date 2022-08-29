@@ -6,11 +6,12 @@ instance on labelled CDR3 data.
 
 import argparse
 from pathlib import Path
+import shutil
 from source.datahandling.dataloaders import Cdr3FineTuneDataLoader
 from source.datahandling.datasets import Cdr3FineTuneDataset
 from source.nn.grad import AdamWithScheduling
 from source.nn.metrics import finetune_accuracy
-from source.nn.models import TcrEmbedder, Cdr3BertFineTuneWrapper
+import source.nn.models as models
 import source.utils.fileio as fileio
 from source.utils.misc import print_with_deviceid, set_env_vars
 import time
@@ -86,30 +87,61 @@ def parse_command_line_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def resolve_pretrained_model_paths(
+def resolve_pretrain_dir_paths(
     working_directory: Path,
     alpha_pretrain_id: str,
     beta_pretrain_id: str
 ) -> dict:
     pretrain_dir = working_directory / 'pretrain_runs'
-    alpha_bert_path = pretrain_dir / alpha_pretrain_id / 'pretrained.ptnn'
-    beta_bert_path = pretrain_dir / beta_pretrain_id / 'pretrained.ptnn'
+    alpha_bert_path = pretrain_dir / alpha_pretrain_id
+    beta_bert_path = pretrain_dir / beta_pretrain_id
 
     return {
-        'alpha_bert_path': alpha_bert_path.resolve(),
-        'beta_bert_path': beta_bert_path.resolve()
+        'alpha_dir_path': alpha_bert_path.resolve(),
+        'beta_dir_path': beta_bert_path.resolve()
     }
 
 
 def load_pretrained_model(
-    pretrained_model_paths: dict,
+    pretrain_dir_paths: dict,
     device: torch.device
-) -> Cdr3BertFineTuneWrapper:
-    alpha_bert = torch.load(pretrained_model_paths['alpha_bert_path']).bert
-    beta_bert = torch.load(pretrained_model_paths['beta_bert_path']).bert
-    embedder = TcrEmbedder(alpha_bert, beta_bert)
+) -> models.Cdr3BertFineTuneWrapper:
+    alpha_dir_path = pretrain_dir_paths['alpha_dir_path']
+    beta_dir_path = pretrain_dir_paths['beta_dir_path']
+
+    alpha_pretrain_hyperparams = fileio.parse_hyperparams(
+        alpha_dir_path / 'hyperparams.csv')
+    beta_pretrain_hyperparams = fileio.parse_hyperparams(
+        beta_dir_path / 'hyperparams.csv'
+    )
+
+    alpha_state_dict = torch.load(alpha_dir_path / 'pretrained_state_dict.pt')
+    beta_state_dict = torch.load(beta_dir_path / 'pretrained_state_dict.pt')
+
+    alpha_bert = models.Cdr3Bert(
+        num_encoder_layers=alpha_pretrain_hyperparams['num_encoder_layers'],
+        d_model=alpha_pretrain_hyperparams['d_model'],
+        nhead=alpha_pretrain_hyperparams['nhead'],
+        dim_feedforward=alpha_pretrain_hyperparams['dim_feedforward'],
+        activation=alpha_pretrain_hyperparams['activation']
+    )
+    beta_bert = models.Cdr3Bert(
+        num_encoder_layers=beta_pretrain_hyperparams['num_encoder_layers'],
+        d_model=beta_pretrain_hyperparams['d_model'],
+        nhead=beta_pretrain_hyperparams['nhead'],
+        dim_feedforward=beta_pretrain_hyperparams['dim_feedforward'],
+        activation=beta_pretrain_hyperparams['activation']
+    )
+
+    alpha_wrapper = models.Cdr3BertPretrainWrapper(alpha_bert)
+    beta_wrapper = models.Cdr3BertPretrainWrapper(beta_bert)
+
+    alpha_wrapper.load_state_dict(alpha_state_dict)
+    beta_wrapper.load_state_dict(beta_state_dict)
+
+    embedder = models.TcrEmbedder(alpha_bert, beta_bert)
     
-    return Cdr3BertFineTuneWrapper(embedder).to(device)
+    return models.Cdr3BertFineTuneWrapper(embedder).to(device)
 
 
 def train_epoch(
@@ -126,8 +158,10 @@ def train_epoch(
 
     # Ensure model is in training mode, but the dropout modules in BERT must
     # remain in evaluation mode, so execute custom trainmode setter.
-    if type(model) == Cdr3BertFineTuneWrapper: model.custom_trainmode()
-    else: model.module.custom_trainmode()
+    if type(model) == models.Cdr3BertFineTuneWrapper:
+        model.custom_trainmode()
+    else:
+        model.module.custom_trainmode()
 
     total_loss = 0
     total_acc = 0
@@ -176,7 +210,7 @@ def train_epoch(
 
 @torch.no_grad()
 def validate(
-    model: Cdr3BertFineTuneWrapper,
+    model: models.Cdr3BertFineTuneWrapper,
     dataloader: Cdr3FineTuneDataLoader,
     criterion: Module,
     device: torch.device,
@@ -224,7 +258,7 @@ def train(
     device,
     hyperparameters: dict,
     training_run_dir: str,
-    pretrained_model_paths: dict,
+    pretrain_dir_paths: dict,
     no_progressbars: bool = False,
     world_size: int = 1,
     test_mode: bool = False
@@ -267,7 +301,7 @@ def train(
         device
     )
     model = load_pretrained_model(
-        pretrained_model_paths=pretrained_model_paths,
+        pretrain_dir_paths=pretrain_dir_paths,
         device=device
     )
 
@@ -423,12 +457,14 @@ def main(
     
     hyperparams = fileio.parse_hyperparams(hyperparams_path)
 
-    fileio.write_hyperparameters(
-        hyperparameters=hyperparams,
-        training_run_dir=training_run_dir
+    # Make a copy of the hyperparams table in the training run directory
+    print(
+        'Making a copy of the hyperparameters table at '
+        f'{training_run_dir / "hyperparams.csv"}...'
     )
+    shutil.copy(src=hyperparams_path, dst=training_run_dir/'hyperparams.csv')
 
-    pretrained_model_paths = resolve_pretrained_model_paths(
+    pretrain_dir_paths = resolve_pretrain_dir_paths(
         working_directory=working_directory,
         alpha_pretrain_id=hyperparams['alpha_pretrain_id'],
         beta_pretrain_id=hyperparams['beta_pretrain_id']
@@ -454,7 +490,7 @@ def main(
             args=(
                 hyperparams,
                 training_run_dir,
-                pretrained_model_paths,
+                pretrain_dir_paths,
                 no_progressbars,
                 n_gpus,
                 test_mode
@@ -470,7 +506,7 @@ def main(
             device=0,
             hyperparameters=hyperparams,
             training_run_dir=training_run_dir,
-            pretrained_model_paths=pretrained_model_paths,
+            pretrain_dir_paths=pretrain_dir_paths,
             no_progressbars=no_progressbars,
             test_mode=test_mode
         )
@@ -481,7 +517,7 @@ def main(
             device='cpu',
             hyperparameters=hyperparams,
             training_run_dir=training_run_dir,
-            pretrained_model_paths=pretrained_model_paths,
+            pretrain_dir_paths=pretrain_dir_paths,
             no_progressbars=no_progressbars,
             test_mode=test_mode
         )
