@@ -4,8 +4,8 @@
 import pandas as pd
 from pathlib import Path
 from shutil import rmtree
-from source.utils.misc import check_dataframe_format
-from source.utils.misc import print_with_deviceid
+from source.nn import models
+from source.utils.misc import check_dataframe_format, print_with_deviceid
 import torch
 from typing import Union
 
@@ -126,35 +126,57 @@ class TrainingRecordManager:
         log_df.to_csv(destination, index_label='epoch')
 
 
-    def save_model(self, model: torch.nn.Module, name: str) -> None:
+    def _decompose_state_dicts(
+        self,
+        model: torch.nn.Module
+    ) -> dict[str, dict]:
+        if type(model) == models.Cdr3BertPretrainWrapper:
+            return {
+                'bert': model.bert.state_dict(),
+                'generator': model.generator.state_dict()
+            }
+        
+        if type(model) == models.Cdr3BertFineTuneWrapper:
+            return {
+                'alpha_bert': model.embedder.alpha_bert.state_dict(),
+                'beta_bert': model.embedder.beta_bert.state_dict(),
+                'classifier': model.classifier.state_dict()
+            }
+
+
+    def save_model(self, model: torch.nn.Module) -> None:
         '''
         If appropriate, save the given model inside the given directory.
         Whether it is appropriate for the current process to save a copy of the
         model is determined based on the distributed, device and test_mode
         variables.
         '''
-        
-        if self._distributed and self._test_mode:
-            destination = self._training_run_dir / \
-                f'{name}_state_dict_{self._device}.pt'.replace(':', '_')
-            print_with_deviceid(
-                f'Saving pretrained model to {destination}...',
-                self._device
-            )
-            torch.save(model.module.state_dict(), destination)
+
+        if self._distributed and \
+            self._device.index != 0 and \
+            not self._test_mode:
             return
 
-        if not self._distributed or \
-            (self._distributed and self._device.index == 0):
-            destination = self._training_run_dir / f'{name}_state_dict.pt'
-            if self._distributed:
-                model = model.module
+        if self._distributed:
+            model = model.module
+
+        state_dicts = self._decompose_state_dicts(model)
+
+        assert len(state_dicts) > 0
+        
+        for module_name in state_dicts:
+            state_dict = state_dicts[module_name]
+
+            filename = f'{module_name}_state_dict'
+            if self._test_mode:
+                filename += f'_{self._device}'.replace(':','_')
+            destination = self._training_run_dir/(filename+'.pt')
+
             print_with_deviceid(
                 f'Saving pretrained model to {destination}...',
                 self._device
             )
-            torch.save(model.state_dict(), destination)
-            return
+            torch.save(state_dict, destination)
 
 
 # Hyperparameter parsing/loading

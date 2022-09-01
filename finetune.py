@@ -115,8 +115,8 @@ def load_pretrained_model(
         beta_dir_path / 'hyperparams.csv'
     )
 
-    alpha_state_dict = torch.load(alpha_dir_path / 'pretrained_state_dict.pt')
-    beta_state_dict = torch.load(beta_dir_path / 'pretrained_state_dict.pt')
+    alpha_state_dict = torch.load(alpha_dir_path / 'bert_state_dict.pt')
+    beta_state_dict = torch.load(beta_dir_path / 'bert_state_dict.pt')
 
     alpha_bert = models.Cdr3Bert(
         num_encoder_layers=alpha_pretrain_hyperparams['num_encoder_layers'],
@@ -133,11 +133,8 @@ def load_pretrained_model(
         activation=beta_pretrain_hyperparams['activation']
     )
 
-    alpha_wrapper = models.Cdr3BertPretrainWrapper(alpha_bert)
-    beta_wrapper = models.Cdr3BertPretrainWrapper(beta_bert)
-
-    alpha_wrapper.load_state_dict(alpha_state_dict)
-    beta_wrapper.load_state_dict(beta_state_dict)
+    alpha_bert.load_state_dict(alpha_state_dict)
+    beta_bert.load_state_dict(beta_state_dict)
 
     embedder = models.TcrEmbedder(alpha_bert, beta_bert)
     
@@ -411,7 +408,7 @@ def train(
 
     # Save results
     record_manager.save_log(log_dict=stats_log)
-    record_manager.save_model(model=model, name='finetuned')
+    record_manager.save_model(model=model)
 
     # If distributed, then clean up by terminating the process group
     if distributed:

@@ -471,7 +471,7 @@ def train(
 
     # Save results
     record_manager.save_log(log_dict=stats_log)
-    record_manager.save_model(model=model, name='pretrained')
+    record_manager.save_model(model=model)
     
     # If distributed, then clean up by terminating the process group
     if distributed:
