@@ -16,6 +16,9 @@ from warnings import warn
 mp.set_start_method('spawn')
 
 
+# --- FIXTURES ---
+
+
 @pytest.fixture(scope='module')
 def pretrain_hyperparams_path():
     return 'tests/resources/hyperparams/pretrain.csv'
@@ -125,12 +128,24 @@ def tmp_finetune_working_dir(
     test_dir = pretrain_runs_dir / 'test'
     test_dir.mkdir()
 
-    state_dict_dest = test_dir / 'pretrained_state_dict.pt'
+    bert_save_dest = test_dir / 'bert_state_dict.pt'
+    generator_save_dest = test_dir / 'generator_state_dict.pt'
 
     copy(pretrain_hyperparams_path, test_dir / 'hyperparams.csv')
-    torch.save(pretrained_model_template.state_dict(), state_dict_dest)
+
+    torch.save(
+        pretrained_model_template.bert.state_dict(),
+        bert_save_dest
+    )
+    torch.save(
+        pretrained_model_template.generator.state_dict(),
+        generator_save_dest
+    )
 
     return tmp_path
+
+
+# --- HELPER FUNCTIONS ---
 
 
 def check_hyperparam_record(
@@ -160,35 +175,111 @@ def check_training_log(
 
 def check_saved_model(
     training_run_dir: Path,
-    expected_name: str,
-    state_dict_template: dict[torch.Tensor]
+    model_template: torch.nn.Module,
+    device_suffix: str
 ):
-    expected_location = training_run_dir / expected_name
-    assert expected_location.is_file()
+    def state_dicts_same_shape(result, expected):
+        if len(result) != len(expected):
+            print('state_dicts have different sizes.')
+            return False
+        
+        for key in expected:
+            if expected[key].size() != result[key].size():
+                print(f'{key} has tensors of different sizes in state_dicts.')
+                return False
 
-    saved_state_dict = torch.load(expected_location)
-    assert len(saved_state_dict) == len(state_dict_template)
-    for key in state_dict_template:
-        assert saved_state_dict[key].size() == state_dict_template[key].size()
+        return True
+
+    if type(model_template) == models.Cdr3BertPretrainWrapper:
+        expected_bert_save_path = \
+            training_run_dir / f'bert_state_dict_{device_suffix}.pt'
+        expected_generator_save_path = \
+            training_run_dir / f'generator_state_dict_{device_suffix}.pt'
+
+        assert expected_bert_save_path.is_file()
+        assert expected_generator_save_path.is_file()
+
+        bert_save = torch.load(expected_bert_save_path)
+        generator_save = torch.load(expected_generator_save_path)
+
+        assert state_dicts_same_shape(
+            result=bert_save,
+            expected=model_template.bert.state_dict()
+        )
+        assert state_dicts_same_shape(
+            result=generator_save,
+            expected=model_template.generator.state_dict()
+        )
+        return
+
+    
+    if type(model_template) == models.Cdr3BertFineTuneWrapper:
+        expected_alpha_bert_save_path = \
+            training_run_dir / f'alpha_bert_state_dict_{device_suffix}.pt'
+        expected_beta_bert_save_path = \
+            training_run_dir / f'beta_bert_state_dict_{device_suffix}.pt'
+        expected_classifier_save_path = \
+            training_run_dir / f'classifier_state_dict_{device_suffix}.pt'
+
+        assert expected_alpha_bert_save_path.is_file()
+        assert expected_beta_bert_save_path.is_file()
+        assert expected_classifier_save_path.is_file()
+
+        alpha_bert_save = torch.load(expected_alpha_bert_save_path)
+        beta_bert_save = torch.load(expected_beta_bert_save_path)
+        classifier_save = torch.load(expected_classifier_save_path)
+
+        assert state_dicts_same_shape(
+            result=alpha_bert_save,
+            expected=model_template.embedder.alpha_bert.state_dict()
+        )
+        assert state_dicts_same_shape(
+            result=beta_bert_save,
+            expected=model_template.embedder.beta_bert.state_dict()
+        )
+        assert state_dicts_same_shape(
+            result=classifier_save,
+            expected=model_template.classifier.state_dict()
+        )
+        return
+
+    raise RuntimeError(
+        f'Model template of unknown type: {type(model_template)}.'
+    )
 
 
-def check_models_equivalent(training_run_dir: Path, n_gpus: int) -> None:
+def check_state_dicts_equivalent(
+    training_run_dir: Path,
+    file_base_name: str,
+    n_gpus: int
+) -> None:
     paths_to_models = [
-        path for path in training_run_dir.iterdir() if path.suffix == '.ptnn'
+        training_run_dir / f'{file_base_name}_cuda_{i}.pt' \
+        for i in range(n_gpus)
     ]
 
-    assert len(paths_to_models) == n_gpus
+    for p in paths_to_models:
+        assert p.is_file()
 
-    models = [torch.load(path) for path in paths_to_models]
+    state_dicts = [torch.load(p) for p in paths_to_models]
 
-    def models_equivalent(model1: torch.nn.Module, model2: torch.nn.Module):
-        for p1, p2 in zip(model1.parameters(), model2.parameters()):
-            if not torch.equal(p1, p2):
+    def state_dicts_equivalent(sd1, sd2):
+        if len(sd1) != len(sd2):
+            print('state_dicts have different sizes.')
+            return False
+    
+        for key in sd1:
+            if not sd1[key].equal(sd2[key]):
+                print(f'{key} has nonequal tensors in state_dicts')
                 return False
+
         return True
         
-    for model2 in models[1:]:
-        assert models_equivalent(models[0], model2)
+    for sd2 in state_dicts[1:]:
+        assert state_dicts_equivalent(state_dicts[0], sd2)
+
+
+# --- TESTS ---
 
 
 class TestPretrainLoop:
@@ -221,7 +312,7 @@ class TestPretrainLoop:
         )
         p.start()
         p.join()
-
+        
         expected_training_run_dir = tmp_path / 'pretrain_runs' / 'test'
         assert expected_training_run_dir.is_dir()
 
@@ -237,8 +328,8 @@ class TestPretrainLoop:
         )
         check_saved_model(
             training_run_dir=expected_training_run_dir,
-            expected_name='pretrained_state_dict.pt',
-            state_dict_template=pretrained_model_template.state_dict()
+            model_template=pretrained_model_template,
+            device_suffix=('cuda_0' if n_gpus == 1 else 'cpu')
         )
 
 
@@ -288,11 +379,17 @@ class TestPretrainLoop:
             )
         check_saved_model(
             training_run_dir=expected_training_run_dir,
-            expected_name='pretrained_state_dict_cuda_0.pt',
-            state_dict_template=pretrained_model_template.state_dict()
+            model_template=pretrained_model_template,
+            device_suffix='cuda_0'
         )
-        check_models_equivalent(
+        check_state_dicts_equivalent(
             training_run_dir=expected_training_run_dir,
+            file_base_name='bert_state_dict',
+            n_gpus=n_gpus
+        )
+        check_state_dicts_equivalent(
+            training_run_dir=expected_training_run_dir,
+            file_base_name='generator_state_dict',
             n_gpus=n_gpus
         )
 
@@ -344,8 +441,8 @@ class TestFinetuneLoop:
         )
         check_saved_model(
             training_run_dir=expected_training_run_dir,
-            expected_name='finetuned_state_dict.pt',
-            state_dict_template=finetuned_model_template.state_dict()
+            model_template=finetuned_model_template,
+            device_suffix=('cuda_0' if n_gpus == 1 else 'cpu')
         )
     
 
@@ -353,7 +450,6 @@ class TestFinetuneLoop:
         self,
         tmp_finetune_working_dir,
         finetune_hyperparams_path,
-        expected_pretrain_hyperparams,
         expected_finetune_hyperparams,
         expected_finetune_log_cols,
         finetuned_model_template,
@@ -397,10 +493,16 @@ class TestFinetuneLoop:
             )
         check_saved_model(
             training_run_dir=expected_training_run_dir,
-            expected_name='finetuned_state_dict_cuda_0.pt',
-            state_dict_template=finetuned_model_template.state_dict()
+            model_template=finetuned_model_template,
+            device_suffix='cuda_0'
         )
-        check_models_equivalent(
+        check_state_dicts_equivalent(
             training_run_dir=expected_training_run_dir,
+            file_base_name='bert_state_dict',
+            n_gpus=n_gpus
+        )
+        check_state_dicts_equivalent(
+            training_run_dir=expected_training_run_dir,
+            file_base_name='classifier_state_dict',
             n_gpus=n_gpus
         )

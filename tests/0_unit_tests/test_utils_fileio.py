@@ -1,7 +1,53 @@
+from copy import deepcopy
 from tests.resources.mockups import MockDistributedDataParallel, MockDevice
 import pytest
-import source.utils.fileio as fileio
+from source.nn import models
+from source.utils import fileio
 import torch
+
+
+@pytest.fixture
+def dummy_pretrain_model():
+    bert = models.Cdr3Bert(
+        num_encoder_layers=2,
+        d_model=2,
+        nhead=2,
+        dim_feedforward=4
+    )
+    model = models.Cdr3BertPretrainWrapper(
+        bert=bert
+    )
+
+    return model
+
+
+@pytest.fixture
+def dummy_finetune_model():
+    alpha_bert = models.Cdr3Bert(
+        num_encoder_layers=2,
+        d_model=2,
+        nhead=2,
+        dim_feedforward=4
+    )
+    beta_bert = deepcopy(alpha_bert)
+    embedder = models.TcrEmbedder(alpha_bert=alpha_bert, beta_bert=beta_bert)
+    model = models.Cdr3BertFineTuneWrapper(tcr_embedder=embedder)
+
+    return model
+
+
+def state_dicts_equivalent(
+    state_dict_1: dict[str, torch.Tensor],
+    state_dict_2: dict[str, torch.Tensor]
+) -> bool:
+    if len(state_dict_1) != len(state_dict_2):
+        return False
+    
+    for key in state_dict_1:
+        if not state_dict_1[key].equal(state_dict_2[key]):
+            return False
+
+    return True
 
 
 class TestResolvedPathFromMaybeStr:
@@ -146,62 +192,117 @@ class TestTrainingRecordManager:
         assert result_contents == expected_contents
     
 
-    @pytest.mark.parametrize(
-        ('distributed', 'test_mode', 'device', 'expected_filename'),
-        (
-            (False, False, MockDevice('cpu'), 'model_state_dict.pt'),
-            (False, True, MockDevice('cpu'), 'model_state_dict.pt'),
-            (True, False, MockDevice('cuda:0'), 'model_state_dict.pt'),
-            (True, False, MockDevice('cuda:1'), None),
-            (True, True, MockDevice('cuda:0'), 'model_state_dict_cuda_0.pt')
+    def test_save_model_pretrained(self, tmp_path, dummy_pretrain_model):
+        manager = fileio.TrainingRecordManager(
+            training_run_dir=tmp_path,
+            distributed=False,
+            device=MockDevice('cpu'),
+            test_mode=False
         )
+
+        manager.save_model(model=dummy_pretrain_model)
+
+        bert_state_dict_path = tmp_path/'bert_state_dict.pt'
+        generator_state_dict_path = tmp_path/'generator_state_dict.pt'
+
+        assert bert_state_dict_path.is_file()
+        assert generator_state_dict_path.is_file()
+
+        bert_state_dict = torch.load(bert_state_dict_path)
+        generator_state_dict = torch.load(generator_state_dict_path)
+
+        assert state_dicts_equivalent(
+            dummy_pretrain_model.bert.state_dict(),
+            bert_state_dict
+        )
+        assert state_dicts_equivalent(
+            dummy_pretrain_model.generator.state_dict(),
+            generator_state_dict
+        )
+
+
+    def test_save_model_finetuned(self, tmp_path, dummy_finetune_model):
+        manager = fileio.TrainingRecordManager(
+            training_run_dir=tmp_path,
+            distributed=False,
+            device=MockDevice('cpu'),
+            test_mode=False
+        )
+
+        manager.save_model(model=dummy_finetune_model)
+
+        alpha_bert_state_dict_path = tmp_path/'alpha_bert_state_dict.pt'
+        beta_bert_state_dict_path = tmp_path/'beta_bert_state_dict.pt'
+        classifier_state_dict_path = tmp_path/'classifier_state_dict.pt'
+
+        assert alpha_bert_state_dict_path.is_file()
+        assert beta_bert_state_dict_path.is_file()
+        assert classifier_state_dict_path.is_file()
+
+        alpha_bert_state_dict = torch.load(alpha_bert_state_dict_path)
+        beta_bert_state_dict = torch.load(beta_bert_state_dict_path)
+        classifier_state_dict = torch.load(classifier_state_dict_path)
+
+        assert state_dicts_equivalent(
+            dummy_finetune_model.embedder.alpha_bert.state_dict(),
+            alpha_bert_state_dict
+        )
+        assert state_dicts_equivalent(
+            dummy_finetune_model.embedder.beta_bert.state_dict(),
+            beta_bert_state_dict
+        )
+        assert state_dicts_equivalent(
+            dummy_finetune_model.classifier.state_dict(),
+            classifier_state_dict
+        )
+
+
+    @pytest.mark.parametrize(
+        'device', (MockDevice('cuda:0'), MockDevice('cuda:1'))
     )
-    def test_save_model(
+    def test_save_model_distributed(
         self,
         tmp_path,
-        distributed,
-        test_mode,
-        device,
-        expected_filename
+        dummy_pretrain_model,
+        device
     ):
         manager = fileio.TrainingRecordManager(
             training_run_dir=tmp_path,
-            distributed=distributed,
+            distributed=True,
             device=device,
-            test_mode=test_mode
+            test_mode=False
         )
 
-        model = torch.nn.Linear(3,3)
-        if distributed:
-            model = MockDistributedDataParallel(model)
+        manager.save_model(
+            model=MockDistributedDataParallel(module=dummy_pretrain_model)
+        )
 
-        def equivalent(
-            state_dict_1: dict[torch.Tensor],
-            state_dict_2: dict[torch.Tensor]
-        ) -> bool:
-            if len(state_dict_1) != len(state_dict_2):
-                print('state_dicts have different lengths.')
-                return False
-            
-            for key in state_dict_1:
-                if not state_dict_1[key].equal(state_dict_2[key]):
-                    return False
-
-            return True
-
-        manager.save_model(model=model, name='model')
-
-        if expected_filename is None:
+        if device.index == 1:
             assert len(list(tmp_path.iterdir())) == 0
             return
 
-        expected_path = tmp_path / expected_filename
-        assert expected_path.is_file()
+        bert_state_dict_path = tmp_path/'bert_state_dict.pt'
+        generator_state_dict_path = tmp_path/'generator_state_dict.pt'
 
-        result_model = torch.load(expected_path)
-        if distributed:
-            model = model.module
-        assert equivalent(model.state_dict(), result_model)
+        assert bert_state_dict_path.is_file()
+        assert generator_state_dict_path.is_file()
+
+    
+    def test_save_model_test_mode(self, tmp_path, dummy_pretrain_model):
+        manager = fileio.TrainingRecordManager(
+            training_run_dir=tmp_path,
+            distributed=False,
+            device=MockDevice('cuda:0'),
+            test_mode=True
+        )
+
+        manager.save_model(model=dummy_pretrain_model)
+
+        bert_state_dict_path = tmp_path/'bert_state_dict_cuda_0.pt'
+        generator_state_dict_path = tmp_path/'generator_state_dict_cuda_0.pt'
+
+        assert bert_state_dict_path.is_file()
+        assert generator_state_dict_path.is_file()
 
 
 class TestBoolConvert:
