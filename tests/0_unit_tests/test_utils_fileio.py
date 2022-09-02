@@ -37,8 +37,8 @@ def dummy_finetune_model():
 
 
 def state_dicts_equivalent(
-    state_dict_1: dict[str, torch.Tensor],
-    state_dict_2: dict[str, torch.Tensor]
+    state_dict_1: dict,
+    state_dict_2: dict
 ) -> bool:
     if len(state_dict_1) != len(state_dict_2):
         return False

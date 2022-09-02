@@ -129,7 +129,7 @@ class TrainingRecordManager:
     def _decompose_state_dicts(
         self,
         model: torch.nn.Module
-    ) -> dict[str, dict]:
+    ) -> dict:
         if type(model) == models.Cdr3BertPretrainWrapper:
             return {
                 'bert': model.bert.state_dict(),
