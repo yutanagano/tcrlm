@@ -498,7 +498,12 @@ class TestFinetuneLoop:
         )
         check_state_dicts_equivalent(
             training_run_dir=expected_training_run_dir,
-            file_base_name='bert_state_dict',
+            file_base_name='alpha_bert_state_dict',
+            n_gpus=n_gpus
+        )
+        check_state_dicts_equivalent(
+            training_run_dir=expected_training_run_dir,
+            file_base_name='beta_bert_state_dict',
             n_gpus=n_gpus
         )
         check_state_dicts_equivalent(
