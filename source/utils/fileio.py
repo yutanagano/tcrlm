@@ -160,6 +160,7 @@ class TrainingRecordManager:
         if self._distributed:
             model = model.module
 
+        model = model.cpu()
         state_dicts = self._decompose_state_dicts(model)
 
         assert len(state_dicts) > 0
