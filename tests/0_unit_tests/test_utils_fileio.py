@@ -9,6 +9,7 @@ import torch
 @pytest.fixture
 def dummy_pretrain_model():
     bert = models.Cdr3Bert(
+        aa_vocab_size=20,
         num_encoder_layers=2,
         d_model=2,
         nhead=2,
@@ -24,6 +25,7 @@ def dummy_pretrain_model():
 @pytest.fixture
 def dummy_finetune_model():
     alpha_bert = models.Cdr3Bert(
+        aa_vocab_size=20,
         num_encoder_layers=2,
         d_model=2,
         nhead=2,
@@ -324,11 +326,14 @@ class TestParseHyperparams:
         expected = {
             'path_train_data': 'tests/resources/data/mock_unlabelled.csv',
             'path_valid_data': 'tests/resources/data/mock_unlabelled.csv',
+            'aa_vocab_size': 20,
             'num_encoder_layers': 16,
             'd_model': 16,
             'nhead': 4,
             'dim_feedforward': 128,
             'activation': 'gelu',
+            'tokeniser_class': 'AaTokeniser',
+            'tokeniser_hyperparams': '{"len_tuplet":1}',
             'train_batch_size': 6,
             'valid_batch_size': 6,
             'batch_optimisation': True,

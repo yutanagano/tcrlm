@@ -2,11 +2,41 @@
 
 
 import torch
+from torch.nn import CrossEntropyLoss
+from torch.nn import functional as F
+from torch import Tensor
 from typing import Tuple
 
 
+class AdjustedCELoss(CrossEntropyLoss):
+    '''
+    Custom cross entropy loss class which subtracts 2 from the input labels
+    before running the cross entropy funciton. This is because our models'
+    vocabulary space is indexed from 0...X whereas the target data's vocabulary
+    is indexed from 2...X+2 (index 0 and 1 are reserved for the padding and
+    masked tokens respectively).
+    '''
+
+    def __init__( self, label_smoothing: float = 0 ) -> None:
+        super().__init__(label_smoothing=label_smoothing, ignore_index=-2)
+        # ignore_index is set to -2 here because the padding token, indexed at
+        # 0 in the target vocabulary space, will be mapped to -2 when
+        # moving all indices two places down.
+
+    
+    def forward(self, input: Tensor, target: Tensor) -> Tensor:
+        return F.cross_entropy(
+            input,
+            target-2,
+            weight=self.weight,
+            ignore_index=self.ignore_index,
+            reduction=self.reduction,
+            label_smoothing=self.label_smoothing
+        )
+
+
 @torch.no_grad()
-def get_cdr3_lens(x: torch.Tensor) -> torch.Tensor:
+def get_cdr3_lens(x: Tensor) -> Tensor:
     '''
     Given a 2D tensor representing a batch of tokenised CDR3s with padding, get
     the lengths of each CDR3 collected as a 1D tensor.
@@ -18,9 +48,9 @@ def get_cdr3_lens(x: torch.Tensor) -> torch.Tensor:
 
 @torch.no_grad()
 def get_cdr3_third(
-    lens: torch.Tensor,
+    lens: Tensor,
     third: int
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> Tuple[Tensor, Tensor]:
     '''
     Given the lengths of various CDR3s, calculate where the first, second or
     final thirds of the sequence would begin and end, and output the results
@@ -48,10 +78,10 @@ def get_cdr3_third(
 
 @torch.no_grad()
 def get_cdr3_partial_mask(
-    x: torch.Tensor,
-    start_indices: torch.Tensor,
-    end_indices: torch.Tensor
-) -> torch.Tensor:
+    x: Tensor,
+    start_indices: Tensor,
+    end_indices: Tensor
+) -> Tensor:
     '''
     Given the y tensor and two tensors representing the starting and ending
     indices for the regions of interest for each CDR3, generate a mask
@@ -72,9 +102,9 @@ def get_cdr3_partial_mask(
 
 @torch.no_grad()
 def pretrain_accuracy(
-    logits: torch.Tensor,
-    y: torch.Tensor,
-    mask: torch.Tensor = None
+    logits: Tensor,
+    y: Tensor,
+    mask: Tensor = None
 ) -> float:
     '''
     Calculate the accuracy of model predictions ignoring any padding tokens. If
@@ -100,10 +130,10 @@ def pretrain_accuracy(
 
 @torch.no_grad()
 def pretrain_topk_accuracy(
-    logits: torch.Tensor,
-    y: torch.Tensor,
+    logits: Tensor,
+    y: Tensor,
     k: int,
-    mask: torch.Tensor = None
+    mask: Tensor = None
 ) -> float:
     '''
     Calculate the top-5 accuracy of model predictions ignoring any padding
@@ -134,9 +164,9 @@ def pretrain_topk_accuracy(
 
 
 def pretrain_accuracy_third(
-    logits: torch.Tensor,
-    x: torch.tensor,
-    y: torch.Tensor,
+    logits: Tensor,
+    x: Tensor,
+    y: Tensor,
     third: int
 ) -> float:
     '''
@@ -152,9 +182,9 @@ def pretrain_accuracy_third(
 
 
 def pretrain_topk_accuracy_third(
-    logits: torch.Tensor,
-    x: torch.Tensor,
-    y: torch.Tensor,
+    logits: Tensor,
+    x: Tensor,
+    y: Tensor,
     k: int,
     third: int
 ) -> float:
@@ -173,7 +203,7 @@ def pretrain_topk_accuracy_third(
 
 
 @torch.no_grad()
-def finetune_accuracy(x: torch.Tensor, y: torch.Tensor) -> float:
+def finetune_accuracy(x: Tensor, y: Tensor) -> float:
     '''
     Calculate the accuracy of model predictions.
     '''

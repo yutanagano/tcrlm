@@ -2,7 +2,8 @@ import pandas as pd
 from pathlib import Path
 import pytest
 import random
-import source.datahandling.datasets as datasets
+from source.datahandling import datasets, tokenisers
+import torch
 
 
 @pytest.fixture(scope='module')
@@ -27,276 +28,152 @@ def labelled_data_df():
     return df
 
 
-def reconstruct(x, y):
-    '''
-    Using the x and y outputs of the pretrain dataset, reconstruct the original
-    CDR3 sequence before masking.
-    '''
-
-    unmasked_in_y = [p for p in enumerate(y) if p[1] != '-']
-    reconstructed = list(x)
-    for idx, a_a in unmasked_in_y:
-        assert(a_a in 'ACDEFGHIKLMNPQRSTVWY')
-        reconstructed[idx] = a_a
-    return ''.join(reconstructed)
+@pytest.fixture(scope='module')
+def tokeniser():
+    t = tokenisers.AaTokeniser(len_tuplet=1)
+    return t
 
 
 class TestTcrDataset:
-    def test_init_dataframe(self, unlabelled_data_df):
-        dataset = datasets.TcrDataset(data=unlabelled_data_df)
+    def test_init_dataframe(self, unlabelled_data_df, tokeniser):
+        dataset = datasets.TcrDataset(
+            data=unlabelled_data_df,
+            tokeniser=tokeniser
+        )
         assert dataset._dataframe.equals(unlabelled_data_df)
 
 
-    def test_init_path(self, path_to_unlabelled_data, unlabelled_data_df):
-        dataset = datasets.TcrDataset(data=path_to_unlabelled_data)
+    def test_init_path(
+        self,
+        path_to_unlabelled_data,
+        unlabelled_data_df,
+        tokeniser
+    ):
+        dataset = datasets.TcrDataset(
+            data=path_to_unlabelled_data,
+            tokeniser=tokeniser
+        )
         assert dataset._dataframe.equals(unlabelled_data_df)
 
 
-    def test_init_nonexistent_csv(self):
-        with pytest.raises(RuntimeError):
-            datasets.TcrDataset(data='foobar/baz.csv')
-
-
-    def test_init_noncsv_path(self):
+    def test_error_nonexistent_csv(self, tokeniser):
         with pytest.raises(RuntimeError):
             datasets.TcrDataset(
-                data='tests/0_unit_tests/test_datahandling_datasets.py'
+                data='foobar/baz.csv',
+                tokeniser=tokeniser
             )
 
 
-    def test_init_bad_type(self):
+    def test_error_noncsv_path(self, tokeniser):
         with pytest.raises(RuntimeError):
-            datasets.TcrDataset(data=1)
+            datasets.TcrDataset(
+                data='tests/0_unit_tests/test_datahandling_datasets.py',
+                tokeniser=tokeniser
+            )
 
 
-    def test_len(self, unlabelled_data_df):
-        dataset = datasets.TcrDataset(data=unlabelled_data_df)
+    def test_error_bad_type(self, tokeniser):
+        with pytest.raises(RuntimeError):
+            datasets.TcrDataset(
+                data=1,
+                tokeniser=tokeniser
+            )
+
+
+    def test_len(self, unlabelled_data_df, tokeniser):
+        dataset = datasets.TcrDataset(
+            data=unlabelled_data_df,
+            tokeniser=tokeniser
+        )
         assert len(dataset) == 29
 
 
 class TestCdr3PretrainDataset:
     @pytest.mark.parametrize(
-        ('p_mask'), (-0.1, 1.1)
-    )
-    def test_init_bad_p_mask(self, p_mask):
-        with pytest.raises(AssertionError):
-            datasets.Cdr3PretrainDataset(
-                data=unlabelled_data_df,
-                p_mask=p_mask
-            )
-    
-
-    @pytest.mark.parametrize(
-        ('p_mask_random'), (-0.1, 1.1)
-    )
-    def test_init_bad_p_mask_random(self, p_mask_random):
-        with pytest.raises(AssertionError):
-            datasets.Cdr3PretrainDataset(
-                data=unlabelled_data_df,
-                p_mask_random=p_mask_random
-            )
-    
-
-    @pytest.mark.parametrize(
-        ('p_mask_keep'), (-0.1, 1.1)
-    )
-    def test_init_bad_p_mask_keep(self, p_mask_keep):
-        with pytest.raises(AssertionError):
-            datasets.Cdr3PretrainDataset(
-                data=unlabelled_data_df,
-                p_mask_keep=p_mask_keep
-            )
-    
-
-    def test_init_large_p_mask_random_keep_sum(self):
-        with pytest.raises(AssertionError):
-            datasets.Cdr3PretrainDataset(
-                data=unlabelled_data_df,
-                p_mask_random=0.6,
-                p_mask_keep=0.6
-            )
-
-
-    def test_init_bad_format(self, path_to_bad_format_data):
-        with pytest.raises(RuntimeError):
-            datasets.Cdr3PretrainDataset(
-                data=path_to_bad_format_data
-            )
-    
-
-    def test_get_jumble(self, unlabelled_data_df):
-        dataset = datasets.Cdr3PretrainDataset(
-            data=unlabelled_data_df,
-            jumble=False
-        )
-        assert dataset._jumble == False
-        assert dataset.jumble == False
-    
-
-    def test_set_jumble(self, unlabelled_data_df):
-        dataset = datasets.Cdr3PretrainDataset(
-            data=unlabelled_data_df,
-            jumble=False
-        )
-        dataset.jumble = True
-        assert dataset._jumble == True
-
-
-    def test_get_respect_frequencies(self, unlabelled_data_df):
-        dataset = datasets.Cdr3PretrainDataset(
-            data=unlabelled_data_df,
-            respect_frequencies=False
-        )
-        assert dataset._respect_frequencies == False
-        assert dataset.respect_frequencies == False
-
-
-    def test_set_respect_frequencies(self, unlabelled_data_df):
-        dataset = datasets.Cdr3PretrainDataset(
-            data=unlabelled_data_df,
-            respect_frequencies=False
-        )
-        dataset.respect_frequencies = True
-        assert dataset._respect_frequencies == True
-
-
-    @pytest.mark.parametrize(
         ('respect_frequencies', 'expected'),
-        ((False, 29), (True, 34))
+        (
+            (False, 29),
+            (True, 34)
+        )
     )
-    def test_len(self, unlabelled_data_df, respect_frequencies, expected):
+    def test_len(
+        self,
+        unlabelled_data_df,
+        tokeniser,
+        respect_frequencies,
+        expected
+    ):
         dataset = datasets.Cdr3PretrainDataset(
             data=unlabelled_data_df,
+            tokeniser=tokeniser,
             respect_frequencies=respect_frequencies
         )
+
         assert len(dataset) == expected
 
 
     @pytest.mark.parametrize(
-        ('respect_frequencies', 'jumble', 'index', 'expected_reconstructed'),
+        ('respect_frequencies', 'jumble', 'index', 'token_list'),
         (
-            (False, False, 0, 'CASRRREAFF'),
-            (False, False, 28, 'CASSPTSRGPTPSGSYEQYF'),
-            (True, False, 0, 'CASRRREAFF'),
-            (True, False, 28, 'CASSGAGTSRNTQYF'),
-            (True, False, 33, 'CASSPTSRGPTPSGSYEQYF'),
-            (False, True, 28, 'CASSPTSRGPTPSGSYEQYF')
+            (False, False, 0, [3,2,17,16,16,16,5,2,6,6]),
+            (False, False, 28, [3,2,17,17,14,18,17,16,7,14,18,14,17,7,17,21,5,15,21,6]),
+            (True, False, 0, [3,2,17,16,16,16,5,2,6,6]),
+            (True, False, 28, [3,2,17,17,7,2,7,18,17,16,13,18,15,21,6]),
+            (True, False, 33, [3,2,17,17,14,18,17,16,7,14,18,14,17,7,17,21,5,15,21,6]),
+            (False, True, 28, [3,2,17,17,14,18,17,16,7,14,18,14,17,7,17,21,5,15,21,6])
         )
     )
     def test_getitem(
         self,
         unlabelled_data_df,
+        tokeniser,
         respect_frequencies,
         jumble,
         index,
-        expected_reconstructed
+        token_list
     ):
         dataset = datasets.Cdr3PretrainDataset(
             data=unlabelled_data_df,
+            tokeniser=tokeniser,
             respect_frequencies=respect_frequencies,
             jumble=jumble
         )
+
         result_x, result_y = dataset[index]
-        reconstructed = reconstruct(result_x, result_y)
+        expected = torch.tensor(token_list, dtype=torch.long)
 
-        assert type(result_x) == type(result_y) == list
+        def reconstruct(x, y):
+            masked_indices = [i for i, t in enumerate(y) if t != 0]
+            reconstructed = x.clone()
+            for i in masked_indices:
+                reconstructed[i] = y[i]
+            return reconstructed, masked_indices
 
-        unmasked_in_y = [p for p in enumerate(result_y) if p[1] != '-']
+        reconstructed, masked_indices = reconstruct(result_x, result_y)
 
-        assert len(unmasked_in_y) in (2,3)
+        assert type(result_x) == torch.Tensor
+        assert type(result_y) == torch.Tensor
+        assert len(masked_indices) in (2, 3)
 
         if jumble:
-            assert sorted(reconstructed) == sorted(expected_reconstructed)
-            assert reconstructed != expected_reconstructed
-            return
-        
-        assert reconstructed == expected_reconstructed
-
-
-    @pytest.mark.parametrize(
-        ('index', 'expected'),
-        (
-            (0, 'CASRRREAFF'),
-            (28, 'CASSPTSRGPTPSGSYEQYF')
-        )
-    )
-    def test_getitem_p_mask_zero(self, unlabelled_data_df, index, expected):
-        dataset = datasets.Cdr3PretrainDataset(
-            data=unlabelled_data_df,
-            p_mask=0
-        )
-        result_x, result_y = dataset[index]
-
-        assert ''.join(result_x) == expected
-        assert result_y == ['-'] * len(expected)
-
-
-    def test_mask_token(self, unlabelled_data_df):
-        dataset = datasets.Cdr3PretrainDataset(
-            data=unlabelled_data_df,
-            p_mask=0.5,
-            p_mask_random=0,
-            p_mask_keep=0
-        )
-
-        for _ in range(10):
-            idx = random.randrange(len(unlabelled_data_df))
-            result_x, result_y = dataset[idx]
-
-            unmasked_in_y = [p for p in enumerate(result_y) if p[1] != '-']
-            
-            assert all([result_x[i] == '?' for i, token in unmasked_in_y])
-    
-
-    def test_random_token(self, unlabelled_data_df):
-        dataset = datasets.Cdr3PretrainDataset(
-            data=unlabelled_data_df,
-            p_mask=0.5,
-            p_mask_random=1,
-            p_mask_keep=0
-        )
-
-        for _ in range(10):
-            idx = random.randrange(len(unlabelled_data_df))
-            expected = unlabelled_data_df.iloc[idx, 0]
-            result_x, result_y = dataset[idx]
-
-            unmasked_in_y = [p for p in enumerate(result_y) if p[1] != '-']
-            
-            assert all(
-                [
-                    result_x[i] in datasets.amino_acids and \
-                    result_x[i] != expected[i] for i, token in unmasked_in_y
-                ]
-            )
-
-
-    def test_keep_token(self, unlabelled_data_df):
-        dataset = datasets.Cdr3PretrainDataset(
-            data=unlabelled_data_df,
-            p_mask=0.5,
-            p_mask_random=0,
-            p_mask_keep=1
-        )
-
-        for _ in range(10):
-            idx = random.randrange(len(unlabelled_data_df))
-            expected = unlabelled_data_df.iloc[idx, 0]
-            result_x, result_y = dataset[idx]
-
-            unmasked_in_y = [p for p in enumerate(result_y) if p[1] != '-']
-            
-            assert all(
-                [result_x[i] == expected[i] for i, token in unmasked_in_y]
-            )
+            assert reconstructed.sort().values.equal(expected.sort().values)
+            assert not reconstructed.equal(expected)
+        else:
+            assert reconstructed.equal(expected)
 
 
     @pytest.mark.parametrize(
         ('index'), (34, -35)
     )
-    def test_dynamic_index_out_of_bounds(self, unlabelled_data_df, index):
+    def test_dynamic_index_out_of_bounds(
+        self,
+        unlabelled_data_df,
+        tokeniser,
+        index
+    ):
         dataset = datasets.Cdr3PretrainDataset(
             data=unlabelled_data_df,
+            tokeniser=tokeniser,
             respect_frequencies=True
         )
         with pytest.raises(IndexError):
@@ -313,95 +190,139 @@ class TestCdr3PretrainDataset:
     def test_get_length(
         self,
         unlabelled_data_df,
+        tokeniser,
         respect_frequencies,
         index,
         expected
     ):
         dataset = datasets.Cdr3PretrainDataset(
             data=unlabelled_data_df,
+            tokeniser=tokeniser,
             respect_frequencies=respect_frequencies
         )
         result = dataset.get_length(index)
         assert result == expected
 
 
+    def test_error_bad_format_data(self, path_to_bad_format_data, tokeniser):
+        with pytest.raises(RuntimeError):
+            datasets.Cdr3PretrainDataset(
+                data=path_to_bad_format_data,
+                tokeniser=tokeniser
+            )
+
+
 class TestCdr3FinetuneDataset:
-    @pytest.mark.parametrize(
-        ('p_matched_pair'),
-        (0, 1)
-    )
-    def test_init_bad_p_matched_pair(self, labelled_data_df, p_matched_pair):
-        with pytest.raises(RuntimeError):
-            datasets.Cdr3FineTuneDataset(
-                data=labelled_data_df,
-                p_matched_pair=p_matched_pair
-            )
-    
-
-    def test_init_bad_format(self, path_to_bad_format_data):
-        with pytest.raises(RuntimeError):
-            datasets.Cdr3FineTuneDataset(
-                data=path_to_bad_format_data
-            )
-
-
-    def test_get_matched_cdr3(self, labelled_data_df):
-        dataset = datasets.Cdr3FineTuneDataset(data=labelled_data_df)
-
-        for _ in range(10):
-            idx = random.randrange(len(labelled_data_df))
-
-            ref_epitope = labelled_data_df.iloc[idx, 0]
-            cdr3a, cdr3b, label = dataset._get_matched_cdr3(ref_epitope)
-
-            assert label
-            assert ref_epitope in \
-                labelled_data_df[
-                    (labelled_data_df['Alpha CDR3'] == cdr3a) &
-                    (labelled_data_df['Beta CDR3'] == cdr3b)
-                ]['Epitope'].unique()
-
-
-    def test_get_unmatched_cdr3(self, labelled_data_df):
-        dataset = datasets.Cdr3FineTuneDataset(data=labelled_data_df)
-        
-        for _ in range(10):
-            idx = random.randrange(len(labelled_data_df))
-
-            ref_epitope = labelled_data_df.iloc[idx, 0]
-            cdr3a, cdr3b, label = dataset._get_unmatched_cdr3(ref_epitope)
-
-            assert not label
-            assert ref_epitope not in \
-                labelled_data_df[
-                    (labelled_data_df['Alpha CDR3'] == cdr3a) &
-                    (labelled_data_df['Beta CDR3'] == cdr3b)
-                ]['Epitope'].unique()
-
-
-    def test_getitem(self, labelled_data_df):
-        dataset = datasets.Cdr3FineTuneDataset(data=labelled_data_df)
+    def test_getitem(self, labelled_data_df, tokeniser):
+        dataset = datasets.Cdr3FineTuneDataset(
+            data=labelled_data_df,
+            tokeniser=tokeniser
+        )
         
         for _ in range(10):
             idx = random.randrange(len(labelled_data_df))
 
             cdr3_1a, cdr3_1b, cdr3_2a, cdr3_2b, label = dataset[idx]
 
-            epitopes_1 = set(
-                labelled_data_df[
-                    (labelled_data_df['Alpha CDR3'] == cdr3_1a) &
-                    (labelled_data_df['Beta CDR3'] == cdr3_1b)
-                ]['Epitope'].unique()
+            epitopes_1 = self.get_epitope_set_of_tcr(
+                cdr3a=cdr3_1a,
+                cdr3b=cdr3_1b,
+                df=labelled_data_df,
+                tokeniser=tokeniser
             )
 
-            epitopes_2 = set(
-                labelled_data_df[
-                    (labelled_data_df['Alpha CDR3'] == cdr3_2a) &
-                    (labelled_data_df['Beta CDR3'] == cdr3_2b)
-                ]['Epitope'].unique()
+            epitopes_2 = self.get_epitope_set_of_tcr(
+                cdr3a=cdr3_2a,
+                cdr3b=cdr3_2b,
+                df=labelled_data_df,
+                tokeniser=tokeniser
             )
 
             if label:
                 assert not epitopes_1.isdisjoint(epitopes_2)
             else:
                 assert epitopes_1.isdisjoint(epitopes_2)
+
+
+    @pytest.mark.parametrize(
+        ('p_matched_pair', 'expected_label'),
+        (
+            (0, 0),
+            (1, 1)
+        )
+    )
+    def test_p_matched_pair(
+        self,
+        labelled_data_df,
+        tokeniser,
+        p_matched_pair,
+        expected_label
+    ):
+        dataset = datasets.Cdr3FineTuneDataset(
+            data=labelled_data_df,
+            tokeniser=tokeniser,
+            p_matched_pair=p_matched_pair
+        )
+        
+        for _ in range(10):
+            idx = random.randrange(len(labelled_data_df))
+
+            cdr3_1a, cdr3_1b, cdr3_2a, cdr3_2b, label = dataset[idx]
+
+            epitopes_1 = self.get_epitope_set_of_tcr(
+                cdr3a=cdr3_1a,
+                cdr3b=cdr3_1b,
+                df=labelled_data_df,
+                tokeniser=tokeniser
+            )
+
+            epitopes_2 = self.get_epitope_set_of_tcr(
+                cdr3a=cdr3_2a,
+                cdr3b=cdr3_2b,
+                df=labelled_data_df,
+                tokeniser=tokeniser
+            )
+
+            assert label == expected_label
+
+            if expected_label:
+                assert not epitopes_1.isdisjoint(epitopes_2)
+            else:
+                assert epitopes_1.isdisjoint(epitopes_2)
+
+
+    @pytest.mark.parametrize(
+        'p_matched_pair', (-0.1, 1.1)
+    )
+    def test_error_bad_p_matched_pair(
+        self,
+        labelled_data_df,
+        tokeniser,
+        p_matched_pair
+    ):
+        with pytest.raises(RuntimeError):
+            datasets.Cdr3FineTuneDataset(
+                data=labelled_data_df,
+                tokeniser=tokeniser,
+                p_matched_pair=p_matched_pair
+            )
+    
+
+    def test_error_bad_format_data(self, path_to_bad_format_data, tokeniser):
+        with pytest.raises(RuntimeError):
+            datasets.Cdr3FineTuneDataset(
+                data=path_to_bad_format_data,
+                tokeniser=tokeniser
+            )
+
+
+    def get_epitope_set_of_tcr(self, cdr3a, cdr3b, df, tokeniser) -> set:
+        cdr3a_tokenised = df['Alpha CDR3'].map(tokeniser.tokenise)
+        cdr3b_tokenised = df['Beta CDR3'].map(tokeniser.tokenise)
+
+        cdr3a_filter = cdr3a_tokenised.map(lambda x: x.equal(cdr3a))
+        cdr3b_filter = cdr3b_tokenised.map(lambda x: x.equal(cdr3b))
+
+        return set(
+            df[cdr3a_filter & cdr3b_filter]['Epitope'].unique()
+        )

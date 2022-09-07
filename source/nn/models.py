@@ -9,10 +9,6 @@ import torch.nn as nn
 from typing import Tuple
 
 
-def create_padding_mask(x: torch.Tensor) -> torch.Tensor:
-    return x == 21
-
-
 def masked_average_pool(
     token_embeddings: torch.Tensor,
     padding_mask: torch.Tensor
@@ -50,11 +46,21 @@ class AaEmbedder(nn.Module):
     Helper class to convert tensor of input indices to corresponding tensor of
     token embeddings.
     '''
-    def __init__(self, embedding_dim: int):
+
+
+    def __init__(self, aa_vocab_size: int, embedding_dim: int):
+        '''
+        The vocabulary size passed to aa_vocab_size should not include the two
+        token indices reserved for the padding token (0) and mask token (1).
+        '''
+
         super(AaEmbedder, self).__init__()
-        self.embedding = nn.Embedding(num_embeddings=22, # 20 aa's + mask + pad
-                                      embedding_dim=embedding_dim,
-                                      padding_idx=21)
+        self.embedding = nn.Embedding(
+            num_embeddings=aa_vocab_size+2, # pad (0) + mask (1) + aa vocab
+            embedding_dim=embedding_dim,
+            padding_idx=0
+        )
+        self.aa_vocab_size = aa_vocab_size
         self.embedding_dim = embedding_dim
     
 
@@ -112,6 +118,7 @@ class Cdr3Bert(torch.nn.Module):
 
     def __init__(
         self,
+        aa_vocab_size: int,
         num_encoder_layers: int,
         d_model: int,
         nhead: int,
@@ -120,11 +127,17 @@ class Cdr3Bert(torch.nn.Module):
         activation: str = 'gelu',
         layer_norm_eps: float = 1e-5
     ):
+        '''
+        The vocabulary size passed to aa_vocab_size should not include the two
+        token indices reserved for the padding token (0) and mask token (1).
+        '''
+
         super(Cdr3Bert, self).__init__()
 
-        self._d_model = d_model
-        self._nhead = nhead
-        self._dim_feedforward = dim_feedforward
+        self.aa_vocab_size = aa_vocab_size
+        self.d_model = d_model
+        self.nhead = nhead
+        self.dim_feedforward = dim_feedforward
 
         # Create an instance of the encoder layer that we want
         encoder_layer = torch.nn.TransformerEncoderLayer(
@@ -146,7 +159,10 @@ class Cdr3Bert(torch.nn.Module):
         # Create an embedder that can take in a LongTensor representing padded
         # batch of cdr3 sequences, and output a similar FloatTensor with an
         # extra dimension representing the embedding dimension.
-        self.embedder = AaEmbedder(embedding_dim=d_model)
+        self.embedder = AaEmbedder(
+            aa_vocab_size=aa_vocab_size,
+            embedding_dim=d_model
+        )
 
         # Create an instance of a position encoder
         self.position_encoder = PositionEncoder(
@@ -158,21 +174,6 @@ class Cdr3Bert(torch.nn.Module):
         for p in self.parameters():
             if p.dim() > 1:
                 torch.nn.init.xavier_uniform_(p)
-
-
-    @property
-    def d_model(self) -> int:
-        return self._d_model
-    
-
-    @property
-    def nhead(self) -> int:
-        return self._nhead
-
-
-    @property
-    def dim_feedforward(self) -> int:
-        return self._dim_feedforward
 
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -188,7 +189,7 @@ class Cdr3Bert(torch.nn.Module):
         S - number of tokens in sequence i.e. sequence length
         E - number of dimensions in embedding
         '''
-        padding_mask = create_padding_mask(x)
+        padding_mask = (x == 0)
 
         # Create an embedding of the input tensor (with positional info)
         x_emb = self.position_encoder(self.embedder(x))
@@ -234,33 +235,24 @@ class TcrEmbedder(torch.nn.Module):
 
     def __init__(self, alpha_bert: Cdr3Bert, beta_bert: Cdr3Bert):
         # Ensure that the alpha and beta bert models share the same model shape
+        assert alpha_bert.aa_vocab_size == beta_bert.aa_vocab_size
         assert alpha_bert.d_model == beta_bert.d_model
         assert alpha_bert.nhead == beta_bert.nhead
         assert alpha_bert.dim_feedforward == beta_bert.dim_feedforward
 
         super(TcrEmbedder, self).__init__()
-        self._alpha_bert = alpha_bert
-        self._beta_bert = beta_bert
+        self.alpha_bert = alpha_bert
+        self.beta_bert = beta_bert
     
 
     @property
     def d_model(self) -> int:
-        return self._alpha_bert.d_model
-    
-
-    @property
-    def alpha_bert(self) -> Cdr3Bert:
-        return self._alpha_bert
-    
-
-    @property
-    def beta_bert(self) -> Cdr3Bert:
-        return self._beta_bert
+        return self.alpha_bert.d_model
     
 
     def forward(self, x_a: torch.Tensor, x_b: torch.Tensor) -> torch.Tensor:
-        alpha_embedding = self._alpha_bert.embed(x_a)
-        beta_embedding = self._beta_bert.embed(x_b)
+        alpha_embedding = self.alpha_bert.embed(x_a)
+        beta_embedding = self.beta_bert.embed(x_b)
 
         return torch.cat((alpha_embedding, beta_embedding), dim=1)
 
@@ -276,20 +268,15 @@ class Cdr3BertPretrainWrapper(torch.nn.Module):
     
     def __init__(self, bert: Cdr3Bert):
         super(Cdr3BertPretrainWrapper, self).__init__()
-        self._bert = bert
+        self.bert = bert
 
         # The generator is a linear layer whose job is to take CDR3BERT's final
         # layer output, then project that onto a probability distribution over
         # the 20 possible amino acids.
         self.generator = torch.nn.Linear(
             in_features=bert.d_model,
-            out_features=20
+            out_features=bert.aa_vocab_size
         )
-    
-
-    @property
-    def bert(self) -> Cdr3Bert:
-        return self._bert
 
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -305,7 +292,7 @@ class Cdr3BertPretrainWrapper(torch.nn.Module):
         S - number of tokens in sequence i.e. sequence length
         V - vocabulary size (in this case 20 for 20 amino acids)
         '''
-        return self.generator(self._bert(x)[0])
+        return self.generator(self.bert(x)[0])
 
 
 class Cdr3BertFineTuneWrapper(torch.nn.Module):
@@ -320,7 +307,7 @@ class Cdr3BertFineTuneWrapper(torch.nn.Module):
     def __init__(self, tcr_embedder: TcrEmbedder):
         super(Cdr3BertFineTuneWrapper, self).__init__()
 
-        self._embedder = tcr_embedder
+        self.embedder = tcr_embedder
         self.classifier = torch.nn.Linear(
             6 * tcr_embedder.d_model,
             2,
@@ -330,12 +317,7 @@ class Cdr3BertFineTuneWrapper(torch.nn.Module):
 
     @property
     def d_model(self) -> int:
-        return self._embedder.d_model
-
-    
-    @property
-    def embedder(self) -> TcrEmbedder:
-        return self._embedder
+        return self.embedder.d_model
 
     
     def forward(
@@ -355,8 +337,8 @@ class Cdr3BertFineTuneWrapper(torch.nn.Module):
         N - number of items in batch i.e. batch size
         S - number of tokens in sequence i.e. sequence length
         '''
-        x_1_embedding = self._embedder(x_1a, x_1b)
-        x_2_embedding = self._embedder(x_2a, x_2b)
+        x_1_embedding = self.embedder(x_1a, x_1b)
+        x_2_embedding = self.embedder(x_2a, x_2b)
         difference = x_1_embedding - x_2_embedding
 
         combined = torch.cat((x_1_embedding, x_2_embedding, difference), dim=1)
@@ -366,4 +348,4 @@ class Cdr3BertFineTuneWrapper(torch.nn.Module):
 
     def custom_trainmode(self):
         self.train()
-        self._embedder.eval()
+        self.embedder.eval()

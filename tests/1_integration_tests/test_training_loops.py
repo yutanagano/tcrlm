@@ -48,6 +48,7 @@ def expected_finetune_hyperparams(finetune_hyperparams_path):
 @pytest.fixture(scope='module')
 def pretrained_model_template(expected_pretrain_hyperparams):
     bert = models.Cdr3Bert(
+        aa_vocab_size=expected_pretrain_hyperparams['aa_vocab_size'],
         num_encoder_layers=expected_pretrain_hyperparams['num_encoder_layers'],
         d_model=expected_pretrain_hyperparams['d_model'],
         nhead=expected_pretrain_hyperparams['nhead'],

@@ -1,180 +1,199 @@
 import pytest
-import source.datahandling.dataloaders as dataloaders
-import source.datahandling.datasets as datasets
+from source.datahandling import dataloaders, datasets, samplers, tokenisers
 import torch
+from torch.utils.data import (RandomSampler, SequentialSampler, BatchSampler)
 from torch.utils.data.distributed import DistributedSampler
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture
 def pretrain_dataset():
     dataset = datasets.Cdr3PretrainDataset(
         data='tests/resources/data/mock_unlabelled.csv',
+        tokeniser=tokenisers.AaTokeniser(len_tuplet=1)
     )
     return dataset
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture
 def finetune_dataset():
     dataset = datasets.Cdr3FineTuneDataset(
-        data='tests/resources/data/mock_labelled.csv'
+        data='tests/resources/data/mock_labelled.csv',
+        tokeniser=tokenisers.AaTokeniser(len_tuplet=1)
     )
     return dataset
 
 
-@pytest.fixture(scope='function')
-def sorted_batch_sampler(pretrain_dataset):
-    sampler = dataloaders.SortedBatchSampler(
-        num_samples=len(pretrain_dataset),
-        batch_size=5,
-        sort_a=pretrain_dataset.get_length
-    )
-    return sampler
-
-
-@pytest.mark.parametrize(
-    ('input_seq','expected'),
-    (
-        ('CAST', torch.tensor([1,0,15,16])),
-        ('MESH', torch.tensor([10,3,15,6])),
-        ('WILL', torch.tensor([18,7,9,9]))
-    )
-)
-def test_tokenise(input_seq, expected):
-    assert torch.equal(dataloaders.tokenise(input_seq), expected)
-
-
-class TestDefineSampling:
-    def test_vanilla(self, pretrain_dataset):
-        result = dataloaders.define_sampling(
+class TestTcrDataLoader:
+    def test_init_vanilla(self, pretrain_dataset):
+        dataloader = dataloaders.TcrDataLoader(
             dataset=pretrain_dataset,
-            batch_size=10,
-            shuffle=True,
-            distributed=False,
-            batch_optimisation=False
+            batch_size=10
         )
-        expected = {
-            'batch_size': 10,
-            'shuffle': True,
-            'sampler': None,
-            'batch_sampler': None
-        }
 
-        assert result == expected
+        assert dataloader.dataset == pretrain_dataset
+        assert dataloader.batch_size == 10
+        assert type(dataloader.sampler) == SequentialSampler
+        assert dataloader.sampler.data_source == pretrain_dataset
+        assert type(dataloader.batch_sampler) == BatchSampler
+        assert dataloader.batch_sampler.sampler == dataloader.sampler
+        assert dataloader.batch_sampler.batch_size == 10
 
-    
-    def test_distributed(self, pretrain_dataset):
-        result = dataloaders.define_sampling(
+
+    def test_init_shuffle(self, pretrain_dataset):
+        dataloader = dataloaders.TcrDataLoader(
             dataset=pretrain_dataset,
             batch_size=10,
-            shuffle=False,
+            shuffle=True
+        )
+
+        assert dataloader.dataset == pretrain_dataset
+        assert dataloader.batch_size == 10
+        assert type(dataloader.sampler) == RandomSampler
+        assert dataloader.sampler.data_source == pretrain_dataset
+        assert type(dataloader.batch_sampler) == BatchSampler
+        assert dataloader.batch_sampler.sampler == dataloader.sampler
+        assert dataloader.batch_sampler.batch_size == 10
+
+
+    def test_init_num_workers(self, pretrain_dataset):
+        dataloader = dataloaders.TcrDataLoader(
+            dataset=pretrain_dataset,
+            batch_size=10,
+            num_workers=5
+        )
+
+        assert dataloader.dataset == pretrain_dataset
+        assert dataloader.batch_size == 10
+        assert type(dataloader.sampler) == SequentialSampler
+        assert dataloader.sampler.data_source == pretrain_dataset
+        assert type(dataloader.batch_sampler) == BatchSampler
+        assert dataloader.batch_sampler.sampler == dataloader.sampler
+        assert dataloader.batch_sampler.batch_size == 10
+        assert dataloader.num_workers == 5
+
+
+    def test_init_collate_fn(self, pretrain_dataset):
+        collate_fn = lambda x: x
+
+        dataloader = dataloaders.TcrDataLoader(
+            dataset=pretrain_dataset,
+            batch_size=10,
+            collate_fn=collate_fn
+        )
+
+        assert dataloader.dataset == pretrain_dataset
+        assert dataloader.batch_size == 10
+        assert type(dataloader.sampler) == SequentialSampler
+        assert dataloader.sampler.data_source == pretrain_dataset
+        assert type(dataloader.batch_sampler) == BatchSampler
+        assert dataloader.batch_sampler.sampler == dataloader.sampler
+        assert dataloader.batch_sampler.batch_size == 10
+        assert dataloader.collate_fn == collate_fn
+
+
+    @pytest.mark.parametrize(
+        'shuffle', (True, False)
+    )
+    def test_init_distributed(self, pretrain_dataset, shuffle):
+        dataloader = dataloaders.TcrDataLoader(
+            dataset=pretrain_dataset,
+            batch_size=10,
+            shuffle=shuffle,
             distributed=True,
-            batch_optimisation=False,
             num_replicas=2,
             rank=0
         )
 
-        assert result['batch_size'] == 10
-        assert result['shuffle'] is None
-        assert type(result['sampler']) == DistributedSampler
-        assert result['sampler'].dataset == pretrain_dataset
-        assert result['sampler'].num_replicas == 2
-        assert result['sampler'].rank == 0
-        assert result['sampler'].shuffle == False
-        assert result['sampler'].seed == 0
-        assert result['batch_sampler'] is None
+        assert dataloader.dataset == pretrain_dataset
+        assert dataloader.batch_size == 10
+        assert type(dataloader.sampler) == DistributedSampler
+        assert dataloader.sampler.dataset == pretrain_dataset
+        assert dataloader.sampler.num_replicas == 2
+        assert dataloader.sampler.rank == 0
+        assert dataloader.sampler.shuffle == shuffle
+        assert dataloader.sampler.seed == 0
+        assert type(dataloader.batch_sampler) == BatchSampler
+        assert dataloader.batch_sampler.sampler == dataloader.sampler
+        assert dataloader.batch_sampler.batch_size == 10
 
 
-    def test_batch_optimisation(self, pretrain_dataset):
+    @pytest.mark.parametrize(
+        'shuffle', (True, False)
+    )
+    def test_init_batch_optimisation(self, pretrain_dataset, shuffle):
         sort_a = lambda x: x
 
-        result = dataloaders.define_sampling(
+        dataloader = dataloaders.TcrDataLoader(
             dataset=pretrain_dataset,
             batch_size=10,
-            shuffle=True,
-            distributed=False,
+            shuffle=shuffle,
             batch_optimisation=True,
             sort_a=sort_a
         )
 
-        assert result['batch_size'] == 1
-        assert result['shuffle'] is None
-        assert result['sampler'] is None
-        assert type(result['batch_sampler']) == dataloaders.SortedBatchSampler
-        assert result['batch_sampler']._num_samples == 29
-        assert result['batch_sampler']._batch_size == 10
-        assert result['batch_sampler']._sort_a == sort_a
-        assert result['batch_sampler']._shuffle == True
-    
+        assert dataloader.dataset == pretrain_dataset
+        assert dataloader.batch_size == None
+        assert type(dataloader.sampler) == SequentialSampler
+        assert dataloader.sampler.data_source == pretrain_dataset
+        assert type(dataloader.batch_sampler) == samplers.SortedBatchSampler
+        assert dataloader.batch_sampler._num_samples == len(pretrain_dataset)
+        assert dataloader.batch_sampler._batch_size == 10
+        assert dataloader.batch_sampler._sort_a == sort_a
+        assert dataloader.batch_sampler._shuffle == shuffle
 
-    def test_distributed_no_num_replicas_rank(self, pretrain_dataset):
+
+    def test_error_distributed_with_no_num_replicas(self, pretrain_dataset):
         with pytest.raises(RuntimeError):
-            dataloaders.define_sampling(
+            dataloaders.TcrDataLoader(
                 dataset=pretrain_dataset,
                 batch_size=10,
-                shuffle=False,
                 distributed=True,
-                batch_optimisation=False
-            )
-
-
-    def test_distributed_batch_optimisation(self, pretrain_dataset):
-        with pytest.raises(RuntimeError):
-            dataloaders.define_sampling(
-                dataset=pretrain_dataset,
-                batch_size=10,
-                shuffle=True,
-                distributed=True,
-                batch_optimisation=True,
-                num_replicas=2,
                 rank=0
             )
 
 
-    def test_batch_optimisation_no_sort_a(self, pretrain_dataset):
+    def test_error_distributed_with_no_rank(self, pretrain_dataset):
         with pytest.raises(RuntimeError):
-            dataloaders.define_sampling(
+            dataloaders.TcrDataLoader(
                 dataset=pretrain_dataset,
                 batch_size=10,
-                shuffle=False,
-                distributed=False,
+                distributed=True,
+                num_replicas=2
+            )
+
+        
+    def test_error_distributed_with_batch_optimisation(self, pretrain_dataset):
+        with pytest.raises(RuntimeError):
+            dataloaders.TcrDataLoader(
+                dataset=pretrain_dataset,
+                batch_size=10,
+                distributed=True,
+                num_replicas=2,
+                rank=0,
+                batch_optimisation=True,
+                sort_a=(lambda x: x)
+            )
+
+
+    def test_error_batch_optimisation_with_no_sort_a(self, pretrain_dataset):
+        with pytest.raises(RuntimeError):
+            dataloaders.TcrDataLoader(
+                dataset=pretrain_dataset,
+                batch_size=10,
                 batch_optimisation=True
             )
 
 
-class TestSortedBatchSampler:
-    def test_iter(self, sorted_batch_sampler):
-        for i, batch in enumerate(sorted_batch_sampler):
-            if i == 0:
-                assert batch[0] == 0
-                continue
-            if i == 5:
-                assert batch[-1] == 28
-    
-
-    def test_len(self, sorted_batch_sampler):
-        assert len(sorted_batch_sampler) == 6
-
-
-class TestTcrDataLoader:
     def test_init_bad_dataset_type(self):
         with pytest.raises(AssertionError):
             dataloaders.TcrDataLoader(dataset=[0,1,2], batch_size=10)
 
 
 class TestCdr3PretrainDataLoader:
-    def test_init_bad_dataset_type(self):
-        with pytest.raises(AssertionError):
-            dataloaders.Cdr3PretrainDataLoader(dataset=[0,1,2], batch_size=10)
-
-
-    @pytest.mark.parametrize(
-        ('shuffle'), (False, True)
-    )
-    def test_iter(self, pretrain_dataset, shuffle):
+    def test_iter(self, pretrain_dataset):
         dataloader = dataloaders.Cdr3PretrainDataLoader(
             dataset=pretrain_dataset,
-            batch_size=5,
-            shuffle=shuffle
+            batch_size=5
         )
         
         for src_batch, tgt_batch in dataloader:
@@ -185,14 +204,10 @@ class TestCdr3PretrainDataLoader:
             assert src_batch.dim() == 2
 
 
-    @pytest.mark.parametrize(
-        ('shuffle'), (False, True)
-    )
-    def test_iter_distributed(self, pretrain_dataset, shuffle):
+    def test_iter_distributed(self, pretrain_dataset):
         dataloader = dataloaders.Cdr3PretrainDataLoader(
             dataset=pretrain_dataset,
             batch_size=5,
-            shuffle=shuffle,
             distributed=True,
             num_replicas=2,
             rank=0
@@ -212,14 +227,10 @@ class TestCdr3PretrainDataLoader:
             assert src_batch.dim() == 2
 
     
-    @pytest.mark.parametrize(
-        ('shuffle'), (False, True)
-    )
-    def test_iter_batch_optimisation(self, pretrain_dataset, shuffle):
+    def test_iter_batch_optimisation(self, pretrain_dataset):
         dataloader = dataloaders.Cdr3PretrainDataLoader(
             dataset=pretrain_dataset,
             batch_size=5,
-            shuffle=shuffle,
             batch_optimisation=True
         )
 
@@ -240,19 +251,10 @@ class TestCdr3PretrainDataLoader:
 
 
 class TestCdr3FineTuneDataLoader:
-    def test_init_bad_dataset_type(self):
-        with pytest.raises(AssertionError):
-            dataloaders.Cdr3FineTuneDataLoader(dataset=[0,1,2], batch_size=10)
-
-
-    @pytest.mark.parametrize(
-        ('shuffle'), (False, True)
-    )
-    def test_iter(self, finetune_dataset, shuffle):
+    def test_iter(self, finetune_dataset):
         dataloader = dataloaders.Cdr3FineTuneDataLoader(
             dataset=finetune_dataset,
-            batch_size=5,
-            shuffle=shuffle
+            batch_size=5
         )
 
         for x_1a_batch, x_1b_batch, x_2a_batch, x_2b_batch, y_batch \
@@ -267,14 +269,10 @@ class TestCdr3FineTuneDataLoader:
             assert y_batch.dim() == 1
     
 
-    @pytest.mark.parametrize(
-        ('shuffle'), (False, True)
-    )
-    def test_iter_distributed(self, finetune_dataset, shuffle):
+    def test_iter_distributed(self, finetune_dataset):
         dataloader = dataloaders.Cdr3FineTuneDataLoader(
             dataset=finetune_dataset,
             batch_size=5,
-            shuffle=shuffle,
             distributed=True,
             num_replicas=2,
             rank=0

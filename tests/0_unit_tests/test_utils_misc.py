@@ -2,7 +2,8 @@ import io
 import os
 import pandas as pd
 import pytest
-import source.utils.misc as misc
+from source.datahandling import tokenisers
+from source.utils import misc
 import sys
 from tests.resources.mockups import MockDevice
 
@@ -74,3 +75,26 @@ class TestCheckDataframeFormat:
                 dataframe=df,
                 columns=['bar','baz']
             )
+
+
+class TestInstantiateTokeniser:
+    def test_instantiate_aatokeniser(self):
+        hyperparams = {
+            'tokeniser_class': 'AaTokeniser',
+            'tokeniser_hyperparams': '{"len_tuplet":1}'
+        }
+
+        result = misc.instantiate_tokeniser(hyperparameters=hyperparams)
+
+        assert type(result) == tokenisers.AaTokeniser
+        assert result._len_tuplet == 1
+
+
+    def test_error_unrecognised_tokeniser_class(self):
+        hyperparams = {
+            'tokeniser_class': 'foobarbaz',
+            'tokeniser_hyperparams': '{"foo":"bar"}'
+        }
+
+        with pytest.raises(RuntimeError):
+            misc.instantiate_tokeniser(hyperparameters=hyperparams)

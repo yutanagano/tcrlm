@@ -1,7 +1,43 @@
 import pytest
+from source.nn import metrics
 import torch
+from torch.testing import assert_close
 
-import source.nn.metrics as metrics
+
+class TestAdjustedCELoss:
+    def test_init(self):
+        criterion = metrics.AdjustedCELoss(label_smoothing=0.5)
+
+        assert criterion.label_smoothing == 0.5
+        assert criterion.ignore_index == -2
+
+
+    @pytest.mark.parametrize(
+        ('y', 'expected'),
+        (
+            (torch.tensor([3,3]), torch.tensor(1.1864500045776367)),
+            (torch.tensor([0,2]), torch.tensor(1.1330687999725342)),
+            (torch.tensor([4,0]), torch.tensor(1.1398310661315918))
+        )
+    )
+    def test_forward(self, y, expected):
+        criterion = metrics.AdjustedCELoss()
+        x = torch.tensor([[0.5,0.2,0.3],[0.3,0.3,0.4]])
+
+        result = criterion(x, y)
+
+        assert_close(result, expected)
+
+
+    @pytest.mark.parametrize(
+        'token', (1,5,-100)
+    )
+    def test_error_padding_tokens(self, token):
+        criterion = metrics.AdjustedCELoss()
+        x = torch.tensor([[0.5,0.2,0.3]])
+
+        with pytest.raises(IndexError):
+            criterion(x, torch.tensor([token]))
 
 
 @pytest.mark.parametrize(
@@ -37,7 +73,7 @@ import source.nn.metrics as metrics
 )
 def test_get_cdr3_lens(x, expected):
     result = metrics.get_cdr3_lens(x)
-    assert torch.equal(result, expected)
+    assert_close(result, expected)
 
 
 class TestGetCdr3Third:
@@ -72,8 +108,8 @@ class TestGetCdr3Third:
     )
     def test_get_cdr3_third(self, lens, third, expected):
         result = metrics.get_cdr3_third(lens, third)
-        assert torch.equal(result[0],expected[0])
-        assert torch.equal(result[1],expected[1])
+        assert_close(result[0],expected[0])
+        assert_close(result[1],expected[1])
 
 
     @pytest.mark.parametrize(
@@ -119,7 +155,7 @@ class TestGetCdr3Third:
 )
 def test_get_cdr3_partial_mask(x,start_indices,end_indices,expected):
     result = metrics.get_cdr3_partial_mask(x, start_indices, end_indices)
-    assert torch.equal(result, expected)
+    assert_close(result, expected)
 
 
 class TestPretrainMetrics:
@@ -196,7 +232,7 @@ class TestPretrainMetrics:
     )
     def test_pretrain_accuracy(self,logits,y,expected):
         calculated = metrics.pretrain_accuracy(logits, y)
-        assert calculated == expected
+        assert_close(calculated, expected)
 
 
     @pytest.mark.parametrize(
@@ -274,7 +310,7 @@ class TestPretrainMetrics:
     )
     def test_pretrain_topk_accuracy(self,logits,y,k,expected):
         calculated = metrics.pretrain_topk_accuracy(logits, y, k)
-        assert calculated == expected
+        assert_close(calculated, expected)
 
 
     @pytest.mark.parametrize(
@@ -428,7 +464,12 @@ class TestPretrainMetrics:
     )
     def test_pretrain_accuracy_third(self,logits,x,y,third,expected):
         calculated = metrics.pretrain_accuracy_third(logits, x, y, third)
-        assert calculated == expected
+
+        if expected is None:
+            assert calculated is None
+            return
+        
+        assert_close(calculated, expected)
 
 
     @pytest.mark.parametrize(
@@ -585,8 +626,19 @@ class TestPretrainMetrics:
         )
     )
     def test_pretrain_topk_accuracy_third(self,logits,x,y,k,third,expected):
-        calculated = metrics.pretrain_topk_accuracy_third(logits, x, y, k, third)
-        assert calculated == expected
+        calculated = metrics.pretrain_topk_accuracy_third(
+            logits,
+            x,
+            y,
+            k,
+            third
+        )
+
+        if expected is None:
+            assert calculated is None
+            return
+
+        assert_close(calculated, expected)
 
 
 class TestFinetuneMetrics:
@@ -631,4 +683,4 @@ class TestFinetuneMetrics:
     )
     def test_finetune_accuracy(self,x,y,expected):
         calculated = metrics.finetune_accuracy(x, y)
-        assert calculated == expected
+        assert_close(calculated, expected)

@@ -10,15 +10,15 @@ import shutil
 from source.datahandling.dataloaders import Cdr3PretrainDataLoader
 from source.datahandling.datasets import Cdr3PretrainDataset
 from source.nn.grad import AdamWithScheduling
-import source.nn.metrics as metrics
+from source.nn import metrics
 from source.nn.models import Cdr3Bert, Cdr3BertPretrainWrapper
-import source.utils.fileio as fileio
-import source.utils.misc as misc
+from source.utils import fileio
+from source.utils import misc
 import time
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-from torch.nn import CrossEntropyLoss, Module
+from torch.nn import Module
 from torch.nn.parallel import DistributedDataParallel
 from tqdm import tqdm
 from typing import Union
@@ -88,6 +88,7 @@ def instantiate_model(
     'Instantiate a Cdr3Bert model and wrap it in a pretraining wrapper.'
     
     bert = Cdr3Bert(
+        aa_vocab_size=hyperparameters['aa_vocab_size'],
         num_encoder_layers=hyperparameters['num_encoder_layers'],
         d_model=hyperparameters['d_model'],
         nhead=hyperparameters['nhead'],
@@ -348,7 +349,8 @@ def train(
 
     # Training data
     train_dataset = Cdr3PretrainDataset(
-        data=hyperparameters['path_train_data']
+        data=hyperparameters['path_train_data'],
+        tokeniser=misc.instantiate_tokeniser(hyperparameters)
     )
     train_dataloader = Cdr3PretrainDataLoader(
             dataset=train_dataset,
@@ -364,6 +366,7 @@ def train(
     # Validation data
     val_dataset = Cdr3PretrainDataset(
         data=hyperparameters['path_valid_data'],
+        tokeniser=misc.instantiate_tokeniser(hyperparameters),
         p_mask_random=0,
         p_mask_keep=0
     )
@@ -379,7 +382,7 @@ def train(
         'Instantiating other misc. objects for training...',
         device
     )
-    loss_fn = CrossEntropyLoss(ignore_index=21,label_smoothing=0.1)
+    loss_fn = metrics.AdjustedCELoss(label_smoothing=0.1)
     optimiser = AdamWithScheduling(
         params=model.parameters(),
         d_model=hyperparameters['d_model'],

@@ -11,9 +11,9 @@ from source.datahandling.dataloaders import Cdr3FineTuneDataLoader
 from source.datahandling.datasets import Cdr3FineTuneDataset
 from source.nn.grad import AdamWithScheduling
 from source.nn.metrics import finetune_accuracy
-import source.nn.models as models
-import source.utils.fileio as fileio
-from source.utils.misc import print_with_deviceid, set_env_vars
+from source.nn import models
+from source.utils import fileio
+from source.utils import misc
 import time
 import torch
 import torch.distributed as dist
@@ -102,35 +102,65 @@ def resolve_pretrain_dir_paths(
     }
 
 
-def load_pretrained_model(
-    pretrain_dir_paths: dict,
-    device: torch.device
-) -> models.Cdr3BertFineTuneWrapper:
+def retrieve_pretrain_hyperparams(pretrain_dir_paths: dict) -> tuple:
     alpha_dir_path = pretrain_dir_paths['alpha_dir_path']
     beta_dir_path = pretrain_dir_paths['beta_dir_path']
 
-    alpha_pretrain_hyperparams = fileio.parse_hyperparams(
+    alpha_hyperparams = fileio.parse_hyperparams(
         alpha_dir_path / 'hyperparams.csv')
-    beta_pretrain_hyperparams = fileio.parse_hyperparams(
+    beta_hyperparams = fileio.parse_hyperparams(
         beta_dir_path / 'hyperparams.csv'
     )
+
+    # Make sure that the tokenisation settings for both pretrained models are
+    # the same to ensure compatibility (more compatibility checks such as model
+    # shapes are done later on when instantiating the finetune model).
+    assert alpha_hyperparams['tokeniser_class'] == \
+        beta_hyperparams['tokeniser_class']
+    assert alpha_hyperparams['tokeniser_hyperparams'] == \
+        beta_hyperparams['tokeniser_hyperparams']
+
+    return {
+        'alpha': alpha_hyperparams, 
+        'beta': beta_hyperparams
+    }
+
+
+def retrieve_pretrain_state_dicts(pretrain_dir_paths: dict) -> tuple:
+    alpha_dir_path = pretrain_dir_paths['alpha_dir_path']
+    beta_dir_path = pretrain_dir_paths['beta_dir_path']
 
     alpha_state_dict = torch.load(alpha_dir_path / 'bert_state_dict.pt')
     beta_state_dict = torch.load(beta_dir_path / 'bert_state_dict.pt')
 
+    return {
+        'alpha': alpha_state_dict,
+        'beta': beta_state_dict
+    }
+
+
+def load_pretrained_model(
+    alpha_state_dict: dict,
+    beta_state_dict: dict,
+    alpha_hyperparams: dict,
+    beta_hyperparams: dict,
+    device: torch.device
+) -> models.Cdr3BertFineTuneWrapper:
     alpha_bert = models.Cdr3Bert(
-        num_encoder_layers=alpha_pretrain_hyperparams['num_encoder_layers'],
-        d_model=alpha_pretrain_hyperparams['d_model'],
-        nhead=alpha_pretrain_hyperparams['nhead'],
-        dim_feedforward=alpha_pretrain_hyperparams['dim_feedforward'],
-        activation=alpha_pretrain_hyperparams['activation']
+        aa_vocab_size=alpha_hyperparams['aa_vocab_size'],
+        num_encoder_layers=alpha_hyperparams['num_encoder_layers'],
+        d_model=alpha_hyperparams['d_model'],
+        nhead=alpha_hyperparams['nhead'],
+        dim_feedforward=alpha_hyperparams['dim_feedforward'],
+        activation=alpha_hyperparams['activation']
     )
     beta_bert = models.Cdr3Bert(
-        num_encoder_layers=beta_pretrain_hyperparams['num_encoder_layers'],
-        d_model=beta_pretrain_hyperparams['d_model'],
-        nhead=beta_pretrain_hyperparams['nhead'],
-        dim_feedforward=beta_pretrain_hyperparams['dim_feedforward'],
-        activation=beta_pretrain_hyperparams['activation']
+        aa_vocab_size=beta_hyperparams['aa_vocab_size'],
+        num_encoder_layers=beta_hyperparams['num_encoder_layers'],
+        d_model=beta_hyperparams['d_model'],
+        nhead=beta_hyperparams['nhead'],
+        dim_feedforward=beta_hyperparams['dim_feedforward'],
+        activation=beta_hyperparams['activation']
     )
 
     alpha_bert.load_state_dict(alpha_state_dict)
@@ -291,14 +321,19 @@ def train(
     )
 
     # Load model
-    print_with_deviceid(
+    misc.print_with_deviceid(
         'Loading pretrained model from pretrain run IDs: '
         f'alpha - {hyperparameters["alpha_pretrain_id"]}, '
         f'beta - {hyperparameters["beta_pretrain_id"]}...',
         device
     )
+    pretrain_state_dicts = retrieve_pretrain_state_dicts(pretrain_dir_paths)
+    pretrain_hyperparams = retrieve_pretrain_hyperparams(pretrain_dir_paths)
     model = load_pretrained_model(
-        pretrain_dir_paths=pretrain_dir_paths,
+        alpha_state_dict=pretrain_state_dicts['alpha'],
+        beta_state_dict=pretrain_state_dicts['beta'],
+        alpha_hyperparams=pretrain_hyperparams['alpha'],
+        beta_hyperparams=pretrain_hyperparams['beta'],
         device=device
     )
 
@@ -310,11 +345,12 @@ def train(
         model = DistributedDataParallel(model, device_ids=[device])
 
     # Load training and validation data
-    print_with_deviceid('Loading cdr3 data into memory...', device)
+    misc.print_with_deviceid('Loading cdr3 data into memory...', device)
 
     # Training data
     train_dataset = Cdr3FineTuneDataset(
-        data = hyperparameters['path_train_data']
+        data=hyperparameters['path_train_data'],
+        tokeniser=misc.instantiate_tokeniser(pretrain_hyperparams['alpha'])
     )
     train_dataloader = Cdr3FineTuneDataLoader(
         dataset=train_dataset,
@@ -329,6 +365,7 @@ def train(
     # Validation data
     val_dataset = Cdr3FineTuneDataset(
         data=hyperparameters['path_valid_data'],
+        tokeniser=misc.instantiate_tokeniser(pretrain_hyperparams['alpha'])
     )
     val_dataloader = Cdr3FineTuneDataLoader(
         dataset=val_dataset,
@@ -337,7 +374,7 @@ def train(
     )
 
     # Instantiate loss function and optimiser
-    print_with_deviceid(
+    misc.print_with_deviceid(
         'Instantiating other misc. objects for training...',
         device
     )
@@ -350,14 +387,14 @@ def train(
         decay=hyperparameters['lr_decay']
     )
 
-    print_with_deviceid('Commencing training...', device)
+    misc.print_with_deviceid('Commencing training...', device)
 
     stats_log = dict()
     start_time = time.time()
 
     # Main training loop
     for epoch in range(1, hyperparameters['num_epochs']+1):
-        print_with_deviceid(f'Beginning epoch {epoch}...', device)
+        misc.print_with_deviceid(f'Beginning epoch {epoch}...', device)
 
         # If in distributed mode, inform the distributed sampler that a new
         # epoch is beginning
@@ -374,7 +411,7 @@ def train(
         )
 
         # Validate model performance
-        print_with_deviceid('Validating model...', device)
+        misc.print_with_deviceid('Validating model...', device)
         valid_stats = validate(
             model,
             val_dataloader,
@@ -384,12 +421,12 @@ def train(
         )
 
         # Quick feedback
-        print_with_deviceid(
+        misc.print_with_deviceid(
             f'training loss: {train_stats["train_loss"]:.3f} | '\
             f'training accuracy: {train_stats["train_acc"]:.3f}',
             device
         )
-        print_with_deviceid(
+        misc.print_with_deviceid(
             f'validation loss: {valid_stats["valid_loss"]:.3f} | '\
             f'validation accuracy: {valid_stats["valid_acc"]:.3f}',
             device
@@ -398,10 +435,10 @@ def train(
         # Log stats
         stats_log[epoch] = {**train_stats, **valid_stats}
 
-    print_with_deviceid('Training finished.', device)
+    misc.print_with_deviceid('Training finished.', device)
 
     time_taken = int(time.time() - start_time)
-    print_with_deviceid(
+    misc.print_with_deviceid(
         f'Total time taken: {time_taken}s ({time_taken / 60} min)',
         device
     )
@@ -481,7 +518,7 @@ def main(
             hyperparams['train_batch_size'] //= n_gpus
 
         # Set up a process group
-        set_env_vars(master_addr='localhost', master_port='7777')
+        misc.set_env_vars(master_addr='localhost', master_port='7777')
         mp.spawn(
             train,
             args=(

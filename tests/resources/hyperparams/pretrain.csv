@@ -1,11 +1,14 @@
 param_name,type,value
 path_train_data,str,tests/resources/data/mock_unlabelled.csv
 path_valid_data,str,tests/resources/data/mock_unlabelled.csv
+aa_vocab_size,int,20
 num_encoder_layers,int,16
 d_model,int,16
 nhead,int,4
 dim_feedforward,int,128
 activation,str,gelu
+tokeniser_class,str,AaTokeniser
+tokeniser_hyperparams,str,{"len_tuplet":1}
 train_batch_size,int,6
 valid_batch_size,int,6
 batch_optimisation,bool,True
