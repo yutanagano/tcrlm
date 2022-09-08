@@ -142,7 +142,7 @@ def train_epoch(
         optimiser.zero_grad()
 
         loss = criterion(
-            logits.view(-1,20),
+            logits.flatten(0,1),
             y.view(-1)
         )
         loss.backward()
@@ -233,7 +233,7 @@ def validate(
 
         # Loss calculation
         loss = criterion(
-            logits.view(-1,20),
+            logits.flatten(0,1),
             y.view(-1)
         )
 
