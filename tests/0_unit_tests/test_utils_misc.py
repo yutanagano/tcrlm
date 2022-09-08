@@ -3,9 +3,9 @@ import os
 import pandas as pd
 import pytest
 from source.datahandling import tokenisers
+from source.testing.mockups import MockDevice
 from source.utils import misc
 import sys
-from tests.resources.mockups import MockDevice
 
 
 def test_print_with_deviceid():

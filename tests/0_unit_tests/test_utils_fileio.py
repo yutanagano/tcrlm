@@ -1,7 +1,7 @@
 from copy import deepcopy
-from tests.resources.mockups import MockDistributedDataParallel, MockDevice
 import pytest
 from source.nn import models
+from source.testing.mockups import MockDistributedDataParallel, MockDevice
 from source.utils import fileio
 import torch
 
