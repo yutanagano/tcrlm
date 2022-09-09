@@ -34,38 +34,36 @@ def parse_command_line_arguments() -> argparse.Namespace:
         '-g', '--gpus',
         default=0,
         type=int,
-        help='The number of GPUs to utilise. If set to 0, the training '
-            'loop will be run on the CPU.'
+        help='The number of GPUs to utilise. If set to 0, the training loop '
+            'will be run on the CPU.'
     )
     parser.add_argument(
         '-b','--fixed-batch-size',
         action='store_true',
-        help='Without this option, when the program is running in '
-            'distributed training mode, the batch size will be adaptively '
-            'modified based on how many CUDA devices are available. That '
-            'is, new_batch_size = old_batch_size // nGPUs. If this flag '
-            'is specified, this feature is disabled and the batch size '
-            'will be kept constant regardless of the number of CUDA devices.'
+        help='Without this option, when the program is running in distributed '
+            'training mode, the batch size will be adaptively modified based '
+            'on how many CUDA devices are available. That is, new_batch_size '
+            '= old_batch_size // nGPUs. If this flag is specified, this '
+            'feature is disabled and the batch size will be kept constant '
+            'regardless of the number of CUDA devices.'
     )
     parser.add_argument(
         '-q', '--no-progressbars',
         action='store_true',
-        help='Running with this flag will suppress the output of any '
-            'progress bars. This may be useful to keep the output stream '
-            'clean when running the program on the cluster, especially '
-            'if the program will be run in distributed training mode '
-            '(accross multiple GPUs).'
+        help='Running with this flag will suppress the output of any progress '
+            'bars. This may be useful to keep the output stream clean when '
+            'running the program on the cluster, especially if the program '
+            'will be run in distributed training mode (accross multiple GPUs).'
     )
     parser.add_argument(
         '-t', '--test',
         action='store_true',
-        help='Run the training script in testing mode. Used for '
-            'debugging. Note that when using this flag, the run_id of the '
-            'training run will always be set to "test" regardless of what '
-            'is specified in the command line argument. The '
-            'hyperparameters path will also always be set to '
-            '"tests/data/pretrain_hyperparams.csv". If a "test" '
-            'pretraining run directory already exists, this will be '
+        help='Run the training script in testing mode. Used for debugging. '
+            'Note that when using this flag, the run_id of the training run '
+            'will always be set to "test" regardless of what is specified in '
+            'the command line argument. The hyperparameters path will also '
+            'always be set to "tests/data/pretrain_hyperparams.csv". If a '
+            '"test" pretraining run directory already exists, this will be '
             'deleted along with any contents.'
     )
     parser.add_argument(
@@ -74,8 +72,8 @@ def parse_command_line_arguments() -> argparse.Namespace:
     )
     parser.add_argument(
         'hyperparams_path',
-        help='Path to a csv file containing hyperparameter values to be '
-            'used for this run.'
+        help='Path to a csv file containing hyperparameter values to be used '
+            'for this run.'
     )
 
     return parser.parse_args()
