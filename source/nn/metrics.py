@@ -42,7 +42,7 @@ def get_cdr3_lens(x: Tensor) -> Tensor:
     the lengths of each CDR3 collected as a 1D tensor.
     '''
 
-    cdr3_mask = (x != 21)
+    cdr3_mask = (x != 0)
     return torch.count_nonzero(cdr3_mask, dim=-1)
 
 
@@ -112,7 +112,7 @@ def pretrain_accuracy(
     where the mask evaluates to True will be considered.
     '''
 
-    final_mask = (y != 21) # ignore any padding tokens
+    final_mask = (y != 0) # ignore any padding tokens
     if mask is not None:
         # combine with supplied mask if exists
         final_mask = final_mask & mask
@@ -122,7 +122,7 @@ def pretrain_accuracy(
     if total_residues_considered.item() == 0:
         return None
     
-    correct = (torch.argmax(logits,dim=-1) == y)
+    correct = (torch.argmax(logits,dim=-1) == (y - 2)) # minus two to translate from input vocabulary space to output vocabulary space
     correct_masked = (correct & final_mask)
 
     return (correct_masked.sum() / total_residues_considered).item()
@@ -143,7 +143,7 @@ def pretrain_topk_accuracy(
     will be considered.
     '''
 
-    final_mask = (y != 21) # ignore any padding tokens
+    final_mask = (y != 0) # ignore any padding tokens
     if mask is not None:
         # combine with supplied mask if exists
         final_mask = final_mask & mask
@@ -157,7 +157,7 @@ def pretrain_topk_accuracy(
     final_mask = final_mask.unsqueeze(-1)
 
     _, x_topk_indices = logits.topk(k, dim=-1, sorted=False)
-    correct = (x_topk_indices == y)
+    correct = (x_topk_indices == (y - 2)) # minus two to translate from input vocabulary space to output vocabulary space
     correct_masked = (correct & final_mask)
 
     return (correct_masked.sum() / total_residues_considered).item()
