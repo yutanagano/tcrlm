@@ -246,6 +246,11 @@ class TcrEmbedder(torch.nn.Module):
     
 
     @property
+    def aa_vocab_size(self) -> int:
+        return self.alpha_bert.aa_vocab_size
+
+
+    @property
     def d_model(self) -> int:
         return self.alpha_bert.d_model
     
@@ -313,6 +318,11 @@ class Cdr3BertFineTuneWrapper(torch.nn.Module):
             2,
             bias=False
         )
+
+
+    @property
+    def aa_vocab_size(self) -> int:
+        return self.embedder.aa_vocab_size
 
 
     @property

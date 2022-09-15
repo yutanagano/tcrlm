@@ -336,6 +336,7 @@ def train(
     )
 
     # Take note of d_model, used later when instantiating optimiser
+    aa_vocab_size = model.aa_vocab_size
     d_model = model.d_model
 
     # Wrap the model with DistributedDataParallel if distributed
@@ -379,6 +380,7 @@ def train(
     loss_fn = CrossEntropyLoss()
     optimiser = AdamWithScheduling(
         params=model.parameters(),
+        aa_vocab_size=aa_vocab_size,
         d_model=d_model,
         n_warmup_steps=hyperparameters['optim_warmup'],
         lr=hyperparameters['lr'],
