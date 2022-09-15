@@ -12,16 +12,18 @@ from typing import Iterable
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import numpy as np
-import os
 import pandas as pd
+from pathlib import Path
+from source.datahandling.datasets import Cdr3PretrainDataset
+from source.datahandling.dataloaders import Cdr3PretrainDataLoader
+from source.nn.models import Cdr3Bert
+from source.utils import fileio
+from source.utils import misc
 from sklearn.decomposition import PCA
 from sklearn import metrics
 import torch
 from tqdm import tqdm
 from typing import Iterable, Union
-
-from source.datahandling.datasets import Cdr3PretrainDataset
-from source.datahandling.dataloaders import Cdr3PretrainDataLoader
 
 
 # Some settings
@@ -45,18 +47,21 @@ def parse_command_line_arguments() -> str:
 
 
 def generate_embeddings(pretrain_id: str, vdjdb_df: pd.DataFrame):
-    cache_file_name = os.path.join(
-        'cache',
-        f'vdjdb_embeddings_{pretrain_id}.npy'
-    )
+    cache_file_name = Path('cache')/f'vdjdb_embeddings_{pretrain_id}.npy'
 
     # If embeddings exist in cache then load that
-    if os.path.isfile(cache_file_name):
+    if cache_file_name.is_file():
         print(f'Loading embeddings for {pretrain_id} from cache...')
         return np.load(cache_file_name)
     
     # Otherwise create the embedding now
     print(f'Generating embeddings for {pretrain_id}...')
+
+    # Load necessary files
+    print('Loading pretrain run hyperparameters...')
+    hyperparams = fileio.parse_hyperparams(
+        Path('pretrain_runs')/pretrain_id/'hyperparams.csv'
+    )
 
     # Use GPU if available
     if torch.cuda.is_available():
@@ -71,6 +76,7 @@ def generate_embeddings(pretrain_id: str, vdjdb_df: pd.DataFrame):
     df_formatted.loc[:,('frequency')] = 1
     ds = Cdr3PretrainDataset(
         data=df_formatted,
+        tokeniser=misc.instantiate_tokeniser(hyperparams),
         p_mask=0
     )
     dl = Cdr3PretrainDataLoader(
@@ -81,9 +87,19 @@ def generate_embeddings(pretrain_id: str, vdjdb_df: pd.DataFrame):
 
     # Load model
     print('Loading model...')
-    model = torch.load(
-        os.path.join('pretrain_runs', pretrain_id, 'pretrained.ptnn')
-    ).bert.eval().to(device)
+    bert_state_dict = torch.load(
+        Path('pretrain_runs')/pretrain_id/'bert_state_dict.pt'
+    )
+
+    model = Cdr3Bert(
+        aa_vocab_size=hyperparams['aa_vocab_size'],
+        num_encoder_layers=hyperparams['num_encoder_layers'],
+        d_model=hyperparams['d_model'],
+        nhead=hyperparams['nhead'],
+        dim_feedforward=hyperparams['dim_feedforward'],
+        activation=hyperparams['activation']
+    ).to(device=device)
+    model.load_state_dict(bert_state_dict)
 
     # Run data through model and get resulting embeddings
     print('Obtaining model embeddings...')
@@ -102,13 +118,10 @@ def generate_embeddings(pretrain_id: str, vdjdb_df: pd.DataFrame):
 
 
 def get_clustering_metric_table(pretrain_id: str):
-    cache_file_name = os.path.join(
-        'cache',
-        f'clustering_metrics_{pretrain_id}.csv'
-    )
+    cache_file_name = Path('cache')/f'clustering_metrics_{pretrain_id}.csv'
 
     # If embeddings exist in cache then load that
-    if os.path.isfile(cache_file_name):
+    if cache_file_name.is_file():
         print(f'Loading embeddings for {pretrain_id} from cache...')
         return pd.read_csv(cache_file_name, index_col=0)
     
@@ -353,7 +366,7 @@ def main(pretrain_id: str):
     
     # Cache the table
     clustering_metrics.to_csv(
-        os.path.join('cache', f'clustering_metrics_{pretrain_id}.csv')
+        Path('cache')/f'clustering_metrics_{pretrain_id}.csv'
     )
 
     print(clustering_metrics)
