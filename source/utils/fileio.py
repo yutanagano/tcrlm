@@ -55,13 +55,17 @@ def create_training_run_directory(
     else:
         raise RuntimeError(f'Unknown mode: {mode}')
 
-    if not parent_dir.is_dir():
-        print(f'Creating new parent directory {parent_dir.name}...')
+    try:
         parent_dir.mkdir()
+        print(f'Creating new parent directory {parent_dir.name}...')
+    except(FileExistsError):
+        pass
 
     training_run_dir = parent_dir / run_id
 
-    if training_run_dir.is_dir():
+    try:
+        training_run_dir.mkdir()
+    except(FileExistsError):
         if overwrite:
             rmtree(training_run_dir)
         else:
@@ -77,8 +81,8 @@ def create_training_run_directory(
                 training_run_dir = parent_dir / f'{run_id}_{suffix_int}'
 
             print(f'Run directory adjusted to {training_run_dir}.')
-
-    training_run_dir.mkdir()
+        
+        training_run_dir.mkdir()
     
     return training_run_dir
 
