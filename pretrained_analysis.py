@@ -47,7 +47,8 @@ def parse_command_line_arguments() -> str:
 
 
 def generate_embeddings(pretrain_id: str, vdjdb_df: pd.DataFrame):
-    cache_file_name = Path('cache')/f'vdjdb_embeddings_{pretrain_id}.npy'
+    cache_file_name = \
+        Path('.analysis_cache')/f'vdjdb_embeddings_{pretrain_id}.npy'
 
     # If embeddings exist in cache then load that
     if cache_file_name.is_file():
@@ -112,13 +113,19 @@ def generate_embeddings(pretrain_id: str, vdjdb_df: pd.DataFrame):
 
     # Cache results
     print(f'Caching result as {cache_file_name}...')
-    np.save(cache_file_name, embs)
+
+    try:
+        np.save(cache_file_name, embs)
+    except(FileNotFoundError):
+        Path('.analysis_cache').mkdir()
+        np.save(cache_file_name, embs)
 
     return embs
 
 
 def get_clustering_metric_table(pretrain_id: str):
-    cache_file_name = Path('cache')/f'clustering_metrics_{pretrain_id}.csv'
+    cache_file_name = \
+        Path('pretrain_runs')/pretrain_id/'analysis'/'clustering_metrics.csv'
 
     # If embeddings exist in cache then load that
     if cache_file_name.is_file():
@@ -184,7 +191,7 @@ def generate_2dvis(
         colours = colours.iloc[new_indices]
 
     # Draw plot
-    plt.figure(figsize=(10,10))
+    fig = plt.figure(figsize=(10,10))
     plt.title(title)
     plt.scatter(
         pca[:,0], pca[:,1], c=colours, s=marker_size, alpha=marker_alpha,
@@ -192,7 +199,8 @@ def generate_2dvis(
     )
     if l_elements is not None:
         plt.legend(handles=l_elements)
-    plt.show()
+
+    return fig
 
 
 def generate_3dvis(
@@ -211,7 +219,7 @@ def generate_3dvis(
         colours = colours.iloc[new_indices]
 
     # Draw plot
-    plt.figure(figsize=(10,10))
+    fig = plt.figure(figsize=(10,10))
     ax = plt.axes(projection='3d')
     plt.title(title)
     ax.scatter3D(
@@ -220,7 +228,8 @@ def generate_3dvis(
     )
     if l_elements is not None:
         plt.legend(handles=l_elements)
-    plt.show()
+    
+    return fig
 
 
 def compute_metrics(
@@ -286,49 +295,91 @@ def main(pretrain_id: str):
         pca=embspca,
         title='Overall plot'
     )
+    plt.show()
+
+    # Create a folder to save these images in
+    analysis_folder = Path('pretrain_runs')/pretrain_id/'analysis'
+    try:
+        analysis_folder.mkdir()
+    except(FileExistsError):
+        pass
 
     # According to V region
     colours, legend = generate_labels(df['V'])
+    generate_2dvis(
+        pca=embspca,
+        title='Coloured by V region',
+        colours=colours,
+        l_elements=legend
+    ).savefig(analysis_folder/'v.png')
     generate_3dvis(
         pca=embspca,
         title='Coloured by V region',
         colours=colours,
         l_elements=legend
     )
+    plt.show()
     
     # According to J region
     colours, legend = generate_labels(df['J'])
+    generate_2dvis(
+        pca=embspca,
+        title='Coloured by J region',
+        colours=colours,
+        l_elements=legend
+    ).savefig(analysis_folder/'j.png')
     generate_3dvis(
         pca=embspca,
         title='Coloured by J region',
         colours=colours,
         l_elements=legend
     )
+    plt.show()
 
     # According to MHC A restriction
     colours, legend = generate_labels(df['MHC A'])
+    generate_2dvis(
+        pca=embspca,
+        title='Coloured by MHC A restriction',
+        colours=colours,
+        l_elements=legend
+    ).savefig(analysis_folder/'mhca.png')
     generate_3dvis(
         pca=embspca,
         title='Coloured by MHC A restriction',
         colours=colours,
         l_elements=legend
     )
+    plt.show()
 
     # According to MHC class
     colours, legend = generate_labels(df['MHC class'])
+    generate_2dvis(
+        pca=embspca,
+        title='Coloured by MHC class',
+        colours=colours,
+        l_elements=legend
+    ).savefig(analysis_folder/'mhc.png')
     generate_3dvis(
         pca=embspca,
         title='Coloured by MHC class',
         colours=colours,
         l_elements=legend
     )
+    plt.show()
 
     # According to CDR3 length
+    generate_2dvis(
+        pca=embspca,
+        title='Coloured by length',
+        colours=df['CDR3'].str.len()
+    ).savefig(analysis_folder/'cdr3len.png')
     generate_3dvis(
         pca=embspca,
         title='Coloured by length',
         colours=df['CDR3'].str.len()
     )
+    plt.show()
 
     # According to epitope specificity
     high_confidence = df[df['Score'] >= 2].copy()
@@ -342,6 +393,13 @@ def main(pretrain_id: str):
     colours, legend = generate_labels(
         high_confidence['Epitope']
     )
+    generate_2dvis(
+        pca=filtered_data,
+        title='Coloured by epitope specificity',
+        colours=colours,
+        l_elements=legend,
+        marker_size=100
+    ).savefig(analysis_folder/'epitope.png')
     generate_3dvis(
         pca=filtered_data,
         title='Coloured by epitope specificity',
@@ -349,6 +407,7 @@ def main(pretrain_id: str):
         l_elements=legend,
         marker_size=100
     )
+    plt.show()
 
     # Create table to keep track of clustering metrics
     print("Computing clustering metrics...")
@@ -366,7 +425,7 @@ def main(pretrain_id: str):
     
     # Cache the table
     clustering_metrics.to_csv(
-        Path('cache')/f'clustering_metrics_{pretrain_id}.csv'
+        analysis_folder/f'clustering_metrics.csv'
     )
 
     print(clustering_metrics)

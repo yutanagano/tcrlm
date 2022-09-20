@@ -1,5 +1,6 @@
 __pycache__
 .ipynb_checkpoints
+.analysis_cache
 .pytest_cache
 .vscode
 .coverage
@@ -10,4 +11,3 @@ __pycache__
 /pretrain_runs
 /hyperparams
 /dep
-/cache
