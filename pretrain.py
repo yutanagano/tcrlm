@@ -383,7 +383,6 @@ def train(
     loss_fn = metrics.AdjustedCELoss(label_smoothing=0.1)
     optimiser = AdamWithScheduling(
         params=model.parameters(),
-        aa_vocab_size=hyperparameters['aa_vocab_size'],
         d_model=hyperparameters['d_model'],
         n_warmup_steps=hyperparameters['optim_warmup'],
         lr=hyperparameters['lr'],

@@ -14,7 +14,6 @@ def adam_scheduling_decay(temp_model):
     optim = AdamWithScheduling(
         params=temp_model.parameters(),
         d_model=4,
-        aa_vocab_size=20,
         n_warmup_steps=5,
         lr_multiplier=2,
         scheduling=True,
@@ -28,7 +27,6 @@ def adam_scheduling(temp_model):
     optim = AdamWithScheduling(
         params=temp_model.parameters(),
         d_model=4,
-        aa_vocab_size=20,
         n_warmup_steps=5,
         lr_multiplier=2,
         scheduling=True,
@@ -42,7 +40,6 @@ def adam(temp_model):
     optim = AdamWithScheduling(
         params=temp_model.parameters(),
         d_model=4,
-        aa_vocab_size=20,
         n_warmup_steps=5,
         lr_multiplier=2,
         scheduling=False,
@@ -61,7 +58,7 @@ class TestScheduledAdamWithDecay:
 
     def test_lr(self, adam_scheduling_decay):
         def calculate_lr(step_num):
-            return 2 * (80 ** -0.5) * \
+            return 2 * (4 ** -0.5) * \
                 min((step_num ** -0.5), (step_num * (5 ** -1.5)))
         
         for i in range(1,1+10):

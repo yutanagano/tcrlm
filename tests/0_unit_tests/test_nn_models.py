@@ -198,7 +198,6 @@ class TestCdr3Bert:
 
 class TestTcrEmbedder:
     def test_init_attributes(self, tcr_embedder, cdr3bert):
-        assert tcr_embedder.aa_vocab_size == 20
         assert tcr_embedder.d_model == 6
         assert tcr_embedder.alpha_bert == cdr3bert
         assert tcr_embedder.beta_bert == cdr3bert
@@ -230,7 +229,6 @@ class TestCdr3BertPretrainWrapper:
 
 class TestCdr3BertFineTuneWrapper:
     def test_init_attributes(self, finetune_wrapper, tcr_embedder):
-        assert finetune_wrapper.aa_vocab_size == 20
         assert finetune_wrapper.d_model == 6
         assert finetune_wrapper.embedder == tcr_embedder
 

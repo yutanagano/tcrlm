@@ -11,7 +11,6 @@ class AdamWithScheduling:
     def __init__(
         self,
         params,
-        aa_vocab_size: int,
         d_model: int,
         n_warmup_steps: int,
         lr: float = 0.001,
@@ -28,7 +27,7 @@ class AdamWithScheduling:
             eps=eps
         )
         self._lr_multiplier = lr_multiplier
-        self._model_size_factor = aa_vocab_size * d_model
+        self._d_model = d_model
         self._n_warmup_steps = n_warmup_steps
         self._scheduling = scheduling
         self._decay = decay
@@ -66,7 +65,7 @@ class AdamWithScheduling:
     def calculate_lr(self, step_num: int) -> float:
         # Learning rate decays inversely with the square root of step number
         if self._decay:
-            return self._lr_multiplier * self._model_size_factor ** -0.5 * \
+            return self._lr_multiplier * self._d_model ** -0.5 * \
                 min(
                     step_num ** (-0.5),
                     step_num * self._n_warmup_steps ** (-1.5)
