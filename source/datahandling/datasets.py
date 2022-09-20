@@ -68,6 +68,12 @@ class Cdr3PretrainDataset(TcrDataset):
         )
 
         check_dataframe_format(self._dataframe, columns=['CDR3', 'frequency'])
+
+        # filter dataframe for sequences shorter than tokeniser's len_tuplet
+        self._dataframe = self._dataframe[
+            self._dataframe['CDR3'].str.len() >= tokeniser.len_tuplet
+        ]
+
         self._freq_cumsum = self._dataframe['frequency'].cumsum()
 
         self.p_mask = p_mask

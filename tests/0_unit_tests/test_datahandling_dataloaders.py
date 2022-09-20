@@ -199,7 +199,7 @@ class TestCdr3PretrainDataLoader:
         for src_batch, tgt_batch in dataloader:
             assert type(src_batch) == type(tgt_batch) == torch.Tensor
             assert src_batch.size() == tgt_batch.size()
-            assert src_batch.size(0) in (4, 5)
+            assert src_batch.size(0) == 5
             assert src_batch.size(1) >= 10 and src_batch.size(1) <= 20
             assert src_batch.dim() == 2
 
@@ -222,7 +222,7 @@ class TestCdr3PretrainDataLoader:
         for src_batch, tgt_batch in dataloader:
             assert type(src_batch) == type(tgt_batch) == torch.Tensor
             assert src_batch.size() == tgt_batch.size()
-            assert src_batch.size(0) in (4, 5)
+            assert src_batch.size(0) == 5
             assert src_batch.size(1) >= 10 and src_batch.size(1) <= 20
             assert src_batch.dim() == 2
 
@@ -239,7 +239,7 @@ class TestCdr3PretrainDataLoader:
         for src_batch, tgt_batch in dataloader:
             assert type(src_batch) == type(tgt_batch) == torch.Tensor
             assert src_batch.size() == tgt_batch.size()
-            assert src_batch.size(0) in (4, 5)
+            assert src_batch.size(0) == 5
             assert src_batch.size(1) >= 10 and src_batch.size(1) <= 20
             assert src_batch.dim() == 2
             min_batch_seq_len_encountered = min(

@@ -85,15 +85,15 @@ class TestTcrDataset:
             data=unlabelled_data_df,
             tokeniser=tokeniser
         )
-        assert len(dataset) == 29
+        assert len(dataset) == 30
 
 
 class TestCdr3PretrainDataset:
     @pytest.mark.parametrize(
         ('respect_frequencies', 'expected'),
         (
-            (False, 29),
-            (True, 34)
+            (False, 30),
+            (True, 35)
         )
     )
     def test_len(
@@ -115,12 +115,12 @@ class TestCdr3PretrainDataset:
     @pytest.mark.parametrize(
         ('respect_frequencies', 'jumble', 'index', 'token_list'),
         (
-            (False, False, 0, [3,2,17,16,16,16,5,2,6,6]),
-            (False, False, 28, [3,2,17,17,14,18,17,16,7,14,18,14,17,7,17,21,5,15,21,6]),
-            (True, False, 0, [3,2,17,16,16,16,5,2,6,6]),
-            (True, False, 28, [3,2,17,17,7,2,7,18,17,16,13,18,15,21,6]),
-            (True, False, 33, [3,2,17,17,14,18,17,16,7,14,18,14,17,7,17,21,5,15,21,6]),
-            (False, True, 28, [3,2,17,17,14,18,17,16,7,14,18,14,17,7,17,21,5,15,21,6])
+            (False, False, 1, [3,2,17,16,16,16,5,2,6,6]),
+            (False, False, 29, [3,2,17,17,14,18,17,16,7,14,18,14,17,7,17,21,5,15,21,6]),
+            (True, False, 1, [3,2,17,16,16,16,5,2,6,6]),
+            (True, False, 29, [3,2,17,17,7,2,7,18,17,16,13,18,15,21,6]),
+            (True, False, 34, [3,2,17,17,14,18,17,16,7,14,18,14,17,7,17,21,5,15,21,6]),
+            (False, True, 29, [3,2,17,17,14,18,17,16,7,14,18,14,17,7,17,21,5,15,21,6])
         )
     )
     def test_getitem(
@@ -163,7 +163,7 @@ class TestCdr3PretrainDataset:
 
 
     @pytest.mark.parametrize(
-        ('index'), (34, -35)
+        ('index'), (35, -36)
     )
     def test_dynamic_index_out_of_bounds(
         self,
@@ -183,8 +183,8 @@ class TestCdr3PretrainDataset:
     @pytest.mark.parametrize(
         ('respect_frequencies', 'index', 'expected'),
         (
-            (False, 28, 20),
-            (True, 28, 15)
+            (False, 29, 20),
+            (True, 29, 15)
         )
     )
     def test_get_length(
@@ -202,6 +202,31 @@ class TestCdr3PretrainDataset:
         )
         result = dataset.get_length(index)
         assert result == expected
+
+
+    def test_filter_for_tokeniser_tuplet_len(
+        self,
+        unlabelled_data_df
+    ):
+        dataset = datasets.Cdr3PretrainDataset(
+            data=unlabelled_data_df,
+            tokeniser=tokenisers.AaTokeniser(len_tuplet=3)
+        )
+
+        result_x, result_y = dataset[0]
+        expected = torch.tensor([417, 316, 6296, 5896, 5885, 5662, 1206, 86], dtype=torch.long)
+
+        def reconstruct(x, y):
+            masked_indices = [i for i, t in enumerate(y) if t != 0]
+            reconstructed = x.clone()
+            for i in masked_indices:
+                reconstructed[i] = y[i]
+            return reconstructed, masked_indices
+
+        reconstructed, _ = reconstruct(result_x, result_y)
+
+        assert len(dataset) == 29
+        assert reconstructed.equal(expected)
 
 
     def test_error_bad_format_data(self, path_to_bad_format_data, tokeniser):

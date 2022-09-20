@@ -87,7 +87,7 @@ class TestInstantiateTokeniser:
         result = misc.instantiate_tokeniser(hyperparameters=hyperparams)
 
         assert type(result) == tokenisers.AaTokeniser
-        assert result._len_tuplet == 1
+        assert result.len_tuplet == 1
 
 
     def test_error_unrecognised_tokeniser_class(self):

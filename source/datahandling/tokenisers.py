@@ -30,6 +30,7 @@ amino_acids = (
 class AaTokeniser:
     def __init__(self, len_tuplet: int) -> None:
         self._len_tuplet = len_tuplet
+
         self._token_to_int = dict()
         self._int_to_token = {
             0: ''
@@ -45,17 +46,22 @@ class AaTokeniser:
             self._int_to_token[2+i] = tuplet
 
 
+    @property
+    def len_tuplet(self) -> int:
+        return self._len_tuplet
+
+
     def tokenise(self, aa_seq: str) -> torch.Tensor:
         '''
         Turn an amino acid sequence from a raw string form to a tokenised
         tensor form.
         '''
 
-        num_tokens = len(aa_seq) + 1 - self._len_tuplet
+        num_tokens = len(aa_seq) + 1 - self.len_tuplet
         tokens = []
 
         for i in range(num_tokens):
-            token = aa_seq[i:i+self._len_tuplet]
+            token = aa_seq[i:i+self.len_tuplet]
 
             # Anything with an unknown residue is mapped to the mask token (1)
             if '?' in token:
@@ -155,8 +161,8 @@ class AaTokeniser:
 
         for i in indices:
             adjusted = [
-                new_i for new_i in range(i+1-self._len_tuplet, i+1) \
-                if new_i >= 0 and new_i < seq_len + 1 - self._len_tuplet
+                new_i for new_i in range(i+1-self.len_tuplet, i+1) \
+                if new_i >= 0 and new_i < seq_len + 1 - self.len_tuplet
             ]
 
             adjusted_indices.extend(adjusted)
