@@ -129,7 +129,27 @@ def get_clustering_metric_table(pretrain_id: str):
 
     # If embeddings exist in cache then load that
     if cache_file_name.is_file():
-        print(f'Loading embeddings for {pretrain_id} from cache...')
+        print(f'Loading metric table for {pretrain_id} from cache...')
+        return pd.read_csv(cache_file_name, index_col=0)
+    
+    # Otherwise return a new dataframe
+    print(f"Generating clustering metric table for {pretrain_id}...")
+    return pd.DataFrame(columns=['Silhouette','CH','DB'])
+
+
+def get_control_table(pretrain_id: str, label_type: str):
+    label_type = label_type.replace(' ', '_')
+
+    cache_file_name = \
+        Path('pretrain_runs')/pretrain_id/'analysis'/\
+        f'clustering_metrics_control_{label_type}.csv'
+
+    # If embeddings exist in cache then load that
+    if cache_file_name.is_file():
+        print(
+            f'Loading {label_type} clustering control table for {pretrain_id} '
+            'from cache...'
+        )
         return pd.read_csv(cache_file_name, index_col=0)
     
     # Otherwise return a new dataframe
@@ -254,6 +274,19 @@ def compute_metrics(
 
     # Set row
     table.loc[row_name] = (silhouette, ch, db)
+
+
+def generate_control_table(
+    pretrain_id: str,
+    label_name: str,
+    df: pd.DataFrame,
+    embs: np.array
+) -> pd.DataFrame:
+    control_table = get_control_table(pretrain_id, label_name)
+    for i in range(5):
+        col_shuffled = df[label_name].sample(frac=1).reset_index(drop=True)
+        compute_metrics(control_table, i, embs, col_shuffled)
+    return control_table
 
 
 def main(pretrain_id: str):
@@ -382,26 +415,29 @@ def main(pretrain_id: str):
     plt.show()
 
     # According to epitope specificity
-    high_confidence = df[df['Score'] >= 2].copy()
+    high_confidence = df[df['Score'] == 3].copy()
+    filtered_data = embspca[high_confidence.index]
+
     group_sizes = high_confidence.groupby('Epitope')['CDR3']\
                     .nunique().sort_values()
     significant_epitopes = group_sizes[-10:].index.to_list()
-    high_confidence = high_confidence[
+    high_confidence_viz = high_confidence[
         high_confidence['Epitope'].isin(significant_epitopes)
     ]
-    filtered_data = embspca[high_confidence.index]
+    filtered_data_viz = embspca[high_confidence_viz.index]
+
     colours, legend = generate_labels(
-        high_confidence['Epitope']
+        high_confidence_viz['Epitope']
     )
     generate_2dvis(
-        pca=filtered_data,
+        pca=filtered_data_viz,
         title='Coloured by epitope specificity',
         colours=colours,
         l_elements=legend,
         marker_size=100
     ).savefig(analysis_folder/'epitope.png')
     generate_3dvis(
-        pca=filtered_data,
+        pca=filtered_data_viz,
         title='Coloured by epitope specificity',
         colours=colours,
         l_elements=legend,
@@ -423,13 +459,78 @@ def main(pretrain_id: str):
         high_confidence['Epitope']
     )
     
-    # Cache the table
+    # Save the table
     clustering_metrics.to_csv(
         analysis_folder/f'clustering_metrics.csv'
     )
 
     print(clustering_metrics)
 
+    # Compute 5 control values for each of the label types
+    # Control for V regions
+    print('Computing control metrics for V regions...')
+    control_v = generate_control_table(
+        pretrain_id=pretrain_id,
+        label_name='V',
+        df=df,
+        embs=embspca
+    )
+    control_v.to_csv(
+        analysis_folder/f'clustering_metrics_control_V.csv'
+    )
+    print(control_v)
+
+    # Control for J regions
+    print('Computing control metrics for J regions...')
+    control_j = generate_control_table(
+        pretrain_id=pretrain_id,
+        label_name='J',
+        df=df,
+        embs=embspca
+    )
+    control_j.to_csv(
+        analysis_folder/f'clustering_metrics_control_J.csv'
+    )
+    print(control_j)
+
+    # Control for MHC A
+    print('Computing control metrics for MHC A...')
+    control_mhca = generate_control_table(
+        pretrain_id=pretrain_id,
+        label_name='MHC A',
+        df=df,
+        embs=embspca
+    )
+    control_mhca.to_csv(
+        analysis_folder/f'clustering_metrics_control_MHC_A.csv'
+    )
+    print(control_mhca)
+
+    # Control for MHC class
+    print('Computing control metrics for MHC class...')
+    control_mhc = generate_control_table(
+        pretrain_id=pretrain_id,
+        label_name='MHC class',
+        df=df,
+        embs=embspca
+    )
+    control_mhc.to_csv(
+        analysis_folder/f'clustering_metrics_control_MHC_class.csv'
+    )
+    print(control_mhc)
+
+    # Control for epitopes
+    print('Computing control metrics for epitopes...')
+    control_epitope = generate_control_table(
+        pretrain_id=pretrain_id,
+        label_name='Epitope',
+        df=high_confidence,
+        embs=filtered_data
+    )
+    control_epitope.to_csv(
+        analysis_folder/f'clustering_metrics_control_Epitope.csv'
+    )
+    print(control_epitope)
 
 
 if __name__ == '__main__':
