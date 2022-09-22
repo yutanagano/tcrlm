@@ -310,9 +310,16 @@ def main(pretrain_id: str):
     pca = PCA()
     embspca = pca.fit_transform(embs)
 
+    # Create a folder to save these images in
+    analysis_folder = Path('pretrain_runs')/pretrain_id/'analysis'
+    try:
+        analysis_folder.mkdir()
+    except(FileExistsError):
+        pass
+
     # Display ratios of variance explained by each of the PCAs
     cumulative = np.cumsum(pca.explained_variance_ratio_)
-    plt.figure()
+    pca_summary = plt.figure()
     ax = plt.axes()
     ax.set_title('Data Variance Attributable to PCAs')
     ax.set_ylabel('Variance per PCA (bars)')
@@ -321,6 +328,7 @@ def main(pretrain_id: str):
     axd.set_ylim(0,1.05)
     ax.bar(range(16), pca.explained_variance_ratio_)
     axd.plot(cumulative, c='C1')
+    pca_summary.savefig(analysis_folder/'pca_summary.png')
     plt.show()
     
     # Display embeddings
@@ -329,13 +337,6 @@ def main(pretrain_id: str):
         title='Overall plot'
     )
     plt.show()
-
-    # Create a folder to save these images in
-    analysis_folder = Path('pretrain_runs')/pretrain_id/'analysis'
-    try:
-        analysis_folder.mkdir()
-    except(FileExistsError):
-        pass
 
     # According to V region
     colours, legend = generate_labels(df['V'])
