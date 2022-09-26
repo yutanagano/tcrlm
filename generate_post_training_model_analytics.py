@@ -319,15 +319,24 @@ def main(pretrain_id: str):
 
     # Display ratios of variance explained by each of the PCAs
     cumulative = np.cumsum(pca.explained_variance_ratio_)
-    pca_summary = plt.figure()
+    pca_summary = plt.figure(figsize=(10,5))
     ax = plt.axes()
     ax.set_title('Data Variance Attributable to PCAs')
     ax.set_ylabel('Variance per PCA (bars)')
     axd = ax.twinx()
     axd.set_ylabel('Cumulative Variance (line)')
     axd.set_ylim(0,1.05)
-    ax.bar(range(16), pca.explained_variance_ratio_)
+    ax.bar(range(embs.shape[1]), pca.explained_variance_ratio_)
     axd.plot(cumulative, c='C1')
+    axd.axhline(cumulative[2], c='C2', ls='--')
+    axd.text(x=embs.shape[1], y=cumulative[2], s=f'{cumulative[2]: .3f}\n', horizontalalignment='right')
+    eighty_threshold = None
+    for i, v in enumerate(cumulative):
+        if v >= 0.8:
+            eighty_threshold = i
+            break
+    axd.axvline(eighty_threshold, c='C3', ls='--')
+    plt.tight_layout()
     pca_summary.savefig(analysis_folder/'pca_summary.png')
     plt.show()
     
@@ -453,12 +462,7 @@ def main(pretrain_id: str):
     compute_metrics(clustering_metrics, 'J regions', embspca, df['J'])
     compute_metrics(clustering_metrics, 'MHC A', embspca, df['MHC A'])
     compute_metrics(clustering_metrics, 'MHC class', embspca, df['MHC class'])
-    compute_metrics(
-        clustering_metrics,
-        'Epitope',
-        filtered_data,
-        high_confidence['Epitope']
-    )
+    compute_metrics(clustering_metrics, 'Epitope', embspca, df['Epitope'])
     
     # Save the table
     clustering_metrics.to_csv(
@@ -525,8 +529,8 @@ def main(pretrain_id: str):
     control_epitope = generate_control_table(
         pretrain_id=pretrain_id,
         label_name='Epitope',
-        df=high_confidence,
-        embs=filtered_data
+        df=df,
+        embs=embspca
     )
     control_epitope.to_csv(
         analysis_folder/f'clustering_metrics_control_Epitope.csv'
@@ -536,4 +540,5 @@ def main(pretrain_id: str):
 
 if __name__ == '__main__':
     pretrain_id = parse_command_line_arguments()
+    plt.style.use('seaborn-dark')
     main(pretrain_id=pretrain_id)
