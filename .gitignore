@@ -1,13 +1,5 @@
 __pycache__
 .ipynb_checkpoints
-.analysis_cache
 .pytest_cache
 .vscode
 .coverage
-/notebooks
-/benchmark_results
-/data
-/finetune_runs
-/pretrain_runs
-/hyperparams
-/dep
