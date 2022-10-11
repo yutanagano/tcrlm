@@ -1,11 +1,8 @@
-from copy import deepcopy
-from finetune import main as main_f
 import multiprocessing as mp
 import pandas as pd
 from pathlib import Path
-from pretrain import main as main_p
+from pretrain import main
 import pytest
-from shutil import copy
 import source.nn.models as models
 from source.utils.misc import check_dataframe_format
 from source.utils.fileio import parse_hyperparams
@@ -25,22 +22,9 @@ def pretrain_hyperparams_path():
 
 
 @pytest.fixture(scope='module')
-def finetune_hyperparams_path():
-    return 'tests/resources/hyperparams/finetune.csv'
-
-
-@pytest.fixture(scope='module')
 def expected_pretrain_hyperparams(pretrain_hyperparams_path):
     hyperparams = parse_hyperparams(
         csv_path=pretrain_hyperparams_path
-    )
-    return hyperparams
-
-
-@pytest.fixture(scope='module')
-def expected_finetune_hyperparams(finetune_hyperparams_path):
-    hyperparams = parse_hyperparams(
-        csv_path=finetune_hyperparams_path
     )
     return hyperparams
 
@@ -56,14 +40,6 @@ def pretrained_model_template(expected_pretrain_hyperparams):
         activation=expected_pretrain_hyperparams['activation']
     )
     return models.Cdr3BertPretrainWrapper(bert)
-
-
-@pytest.fixture(scope='module')
-def finetuned_model_template(pretrained_model_template):
-    alpha_model = deepcopy(pretrained_model_template.bert)
-    beta_model = deepcopy(pretrained_model_template.bert)
-    embedder = models.TcrEmbedder(alpha_bert=alpha_model, beta_bert=beta_model)
-    return models.Cdr3BertFineTuneWrapper(tcr_embedder=embedder)
 
 
 @pytest.fixture(scope='module')
@@ -101,49 +77,6 @@ def expected_pretrain_log_cols():
         'jumble_top5_acc_third2'
     ]
     return cols
-
-
-@pytest.fixture(scope='module')
-def expected_finetune_log_cols():
-    cols = [
-        'epoch',
-        'train_loss',
-        'train_acc',
-        'avg_lr',
-        'epoch_time',
-        'valid_loss',
-        'valid_acc'
-    ]
-    return cols
-
-
-@pytest.fixture(scope='function')
-def tmp_finetune_working_dir(
-    tmp_path,
-    pretrain_hyperparams_path,
-    pretrained_model_template
-):
-    pretrain_runs_dir = tmp_path / 'pretrain_runs'
-    pretrain_runs_dir.mkdir()
-
-    test_dir = pretrain_runs_dir / 'test'
-    test_dir.mkdir()
-
-    bert_save_dest = test_dir / 'bert_state_dict.pt'
-    generator_save_dest = test_dir / 'generator_state_dict.pt'
-
-    copy(pretrain_hyperparams_path, test_dir / 'hyperparams.csv')
-
-    torch.save(
-        pretrained_model_template.bert.state_dict(),
-        bert_save_dest
-    )
-    torch.save(
-        pretrained_model_template.generator.state_dict(),
-        generator_save_dest
-    )
-
-    return tmp_path
 
 
 # --- HELPER FUNCTIONS ---
@@ -302,7 +235,7 @@ class TestPretrainLoop:
 
         # Run the training loop in a separate process
         p = mp.Process(
-            target=main_p,
+            target=main,
             kwargs={
                 'working_directory': tmp_path,
                 'run_id': 'test',
@@ -352,7 +285,7 @@ class TestPretrainLoop:
 
         # Run the training loop in a separate process
         p = mp.Process(
-            target=main_p,
+            target=main,
             kwargs={
                 'working_directory': tmp_path,
                 'run_id': 'test',
@@ -391,124 +324,5 @@ class TestPretrainLoop:
         check_state_dicts_equivalent(
             training_run_dir=expected_training_run_dir,
             file_base_name='generator_state_dict',
-            n_gpus=n_gpus
-        )
-
-
-class TestFinetuneLoop:
-    @pytest.mark.parametrize(
-        ('n_gpus'), (0, 1)
-    )
-    def test_finetune_loop(
-        self,
-        tmp_finetune_working_dir,
-        finetune_hyperparams_path,
-        expected_finetune_hyperparams,
-        expected_finetune_log_cols,
-        finetuned_model_template,
-        n_gpus
-    ):
-        if n_gpus == 1 and not torch.cuda.is_available():
-            warn('Finetune GPU test skipped due to hardware limitations.')
-            return
-
-        # Run the training loop in a separate process
-        p = mp.Process(
-            target=main_f,
-            kwargs={
-                'working_directory': tmp_finetune_working_dir,
-                'run_id': 'test',
-                'hyperparams_path': finetune_hyperparams_path,
-                'n_gpus': n_gpus,
-                'test_mode': True
-            }
-        )
-        p.start()
-        p.join()
-
-        expected_training_run_dir = tmp_finetune_working_dir / \
-            'finetune_runs' / 'test'
-        assert expected_training_run_dir.is_dir()
-
-        check_hyperparam_record(
-            training_run_dir=expected_training_run_dir,
-            expected_hyperparams=expected_finetune_hyperparams
-        )
-        check_training_log(
-            training_run_dir=expected_training_run_dir,
-            expected_name='training_log.csv',
-            expected_columns=expected_finetune_log_cols,
-            expected_length=3
-        )
-        check_saved_model(
-            training_run_dir=expected_training_run_dir,
-            model_template=finetuned_model_template,
-            device_suffix=('cuda_0' if n_gpus == 1 else 'cpu')
-        )
-    
-
-    def test_finetune_loop_distributed(
-        self,
-        tmp_finetune_working_dir,
-        finetune_hyperparams_path,
-        expected_finetune_hyperparams,
-        expected_finetune_log_cols,
-        finetuned_model_template,
-    ):
-        n_gpus = torch.cuda.device_count()
-        if n_gpus <= 1:
-            warn(
-                'Finetune distributed test skipped due to hardware '
-                'limitations.'
-            )
-            return
-
-        # Run the training loop in a separate process
-        p = mp.Process(
-            target=main_f,
-            kwargs={
-                'working_directory': tmp_finetune_working_dir,
-                'run_id': 'test',
-                'hyperparams_path': finetune_hyperparams_path,
-                'n_gpus': n_gpus,
-                'test_mode': True
-            }
-        )
-        p.start()
-        p.join()
-
-        expected_training_run_dir = tmp_finetune_working_dir / \
-            'finetune_runs' / 'test'
-        assert expected_training_run_dir.is_dir()
-
-        check_hyperparam_record(
-            training_run_dir=expected_training_run_dir,
-            expected_hyperparams=expected_finetune_hyperparams
-        )
-        for i in range(n_gpus):
-            check_training_log(
-                training_run_dir=expected_training_run_dir,
-                expected_name=f'training_log_cuda_{i}.csv',
-                expected_columns=expected_finetune_log_cols,
-                expected_length=3
-            )
-        check_saved_model(
-            training_run_dir=expected_training_run_dir,
-            model_template=finetuned_model_template,
-            device_suffix='cuda_0'
-        )
-        check_state_dicts_equivalent(
-            training_run_dir=expected_training_run_dir,
-            file_base_name='alpha_bert_state_dict',
-            n_gpus=n_gpus
-        )
-        check_state_dicts_equivalent(
-            training_run_dir=expected_training_run_dir,
-            file_base_name='beta_bert_state_dict',
-            n_gpus=n_gpus
-        )
-        check_state_dicts_equivalent(
-            training_run_dir=expected_training_run_dir,
-            file_base_name='classifier_state_dict',
             n_gpus=n_gpus
         )
