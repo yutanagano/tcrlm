@@ -28,5 +28,4 @@ class TestCDR3Tokeniser:
         ]
 
         for (_, item), target in zip(mock_data_df.iterrows(), expected):
-            print(item)
             assert torch.equal(tokeniser.tokenise(item), target)
