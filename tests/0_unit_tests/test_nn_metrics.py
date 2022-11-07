@@ -1,5 +1,5 @@
 import pytest
-from source.nn import metrics
+from src.nn import metrics
 import torch
 from torch.testing import assert_close
 

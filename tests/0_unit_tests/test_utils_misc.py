@@ -2,9 +2,9 @@ import io
 import os
 import pandas as pd
 import pytest
-from source.datahandling import tokenisers
-from source.testing.mockups import MockDevice
-from source.utils import misc
+from src.datahandling import tokenisers
+from src.testing.mockups import MockDevice
+from src.utils import misc
 import sys
 
 

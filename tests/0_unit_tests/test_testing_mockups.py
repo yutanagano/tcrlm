@@ -1,5 +1,5 @@
 import pytest
-from source.testing import mockups
+from src.testing import mockups
 import torch
 
 

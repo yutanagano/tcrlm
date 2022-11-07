@@ -1,4 +1,4 @@
-from source.datahandling import samplers
+from src.datahandling import samplers
 
 
 class TestSortedBatchSampler:

@@ -14,11 +14,11 @@ from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from source.datahandling.datasets import Cdr3PretrainDataset
-from source.datahandling.dataloaders import Cdr3PretrainDataLoader
-from source.nn.models import Cdr3Bert
-from source.utils import fileio
-from source.utils import misc
+from src.datahandling.datasets import Cdr3PretrainDataset
+from src.datahandling.dataloaders import Cdr3PretrainDataLoader
+from src.nn.models import Cdr3Bert
+from src.utils import fileio
+from src.utils import misc
 from sklearn.decomposition import PCA
 from sklearn import metrics
 import torch

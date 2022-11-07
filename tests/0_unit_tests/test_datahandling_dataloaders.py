@@ -1,5 +1,5 @@
 import pytest
-from source.datahandling import dataloaders, datasets, samplers, tokenisers
+from src.datahandling import dataloaders, datasets, samplers, tokenisers
 import torch
 from torch.utils.data import (RandomSampler, SequentialSampler, BatchSampler)
 from torch.utils.data.distributed import DistributedSampler

@@ -7,13 +7,13 @@ instance on unlabelled CDR3 data.
 import argparse
 from pathlib import Path
 import shutil
-from source.datahandling.dataloaders import Cdr3PretrainDataLoader
-from source.datahandling.datasets import Cdr3PretrainDataset
-from source.nn.grad import AdamWithScheduling
-from source.nn import metrics
-from source.nn.models import Cdr3Bert, Cdr3BertPretrainWrapper
-from source.utils import fileio
-from source.utils import misc
+from src.datahandling.dataloaders import Cdr3PretrainDataLoader
+from src.datahandling.datasets import Cdr3PretrainDataset
+from src.nn.grad import AdamWithScheduling
+from src.nn import metrics
+from src.nn.models import Cdr3Bert, Cdr3BertPretrainWrapper
+from src.utils import fileio
+from src.utils import misc
 import time
 import torch
 import torch.distributed as dist

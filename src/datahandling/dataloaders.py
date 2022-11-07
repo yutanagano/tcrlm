@@ -1,8 +1,8 @@
 'Custom dataloader classes.'
 
 
-from source.datahandling import datasets
-from source.datahandling.samplers import SortedBatchSampler
+from src.datahandling import datasets
+from src.datahandling.samplers import SortedBatchSampler
 import torch
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler

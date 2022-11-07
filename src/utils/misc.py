@@ -4,7 +4,7 @@
 import json
 import os
 import pandas as pd
-from source.datahandling import tokenisers
+from src.datahandling import tokenisers
 from statistics import fmean
 import torch
 

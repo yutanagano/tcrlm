@@ -1,7 +1,7 @@
 import pytest
 import torch
 from torch.testing import assert_close
-import source.nn.models as models
+import src.nn.models as models
 
 
 @pytest.fixture(scope='module')

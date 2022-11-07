@@ -2,7 +2,7 @@ import pandas as pd
 from pathlib import Path
 import pytest
 import random
-from source.datahandling import datasets, tokenisers
+from src.datahandling import datasets, tokenisers
 import torch
 
 

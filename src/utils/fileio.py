@@ -4,8 +4,8 @@
 import pandas as pd
 from pathlib import Path
 from shutil import rmtree
-from source.nn import models
-from source.utils.misc import check_dataframe_format, print_with_deviceid
+from src.nn import models
+from src.utils.misc import check_dataframe_format, print_with_deviceid
 import torch
 from typing import Union
 

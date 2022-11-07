@@ -4,9 +4,9 @@
 import random
 import pandas as pd
 from pathlib import Path
-from source.datahandling import tokenisers
-from source.utils.fileio import resolved_path_from_maybe_str
-from source.utils.misc import check_dataframe_format
+from src.datahandling import tokenisers
+from src.utils.fileio import resolved_path_from_maybe_str
+from src.utils.misc import check_dataframe_format
 from torch import Tensor
 from torch.utils.data import Dataset
 from typing import Tuple, Union

@@ -1,5 +1,5 @@
 import pytest
-from source.datahandling import tokenisers
+from src.datahandling import tokenisers
 import torch
 
 

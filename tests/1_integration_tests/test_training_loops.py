@@ -3,9 +3,9 @@ import pandas as pd
 from pathlib import Path
 from pretrain import main
 import pytest
-import source.nn.models as models
-from source.utils.misc import check_dataframe_format
-from source.utils.fileio import parse_hyperparams
+import src.nn.models as models
+from src.utils.misc import check_dataframe_format
+from src.utils.fileio import parse_hyperparams
 import torch
 from warnings import warn
 
