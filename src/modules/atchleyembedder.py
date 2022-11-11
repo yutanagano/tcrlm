@@ -18,8 +18,10 @@ class AtchleyEmbedder(Module):
     def __init__(self) -> None:
         super().__init__()
 
-        atchley_factors = torch.tensor(
-            [[-0.591,-1.302,-0.733, 1.570,-0.146], # A
+        atchley_factors_with_special_tokens = torch.tensor(
+            [[ 0.000, 0.000, 0.000, 0.000, 0.000], # <pad>
+             [ 0.000, 0.000, 0.000, 0.000, 0.000], # <mask>
+             [-0.591,-1.302,-0.733, 1.570,-0.146], # A
              [-1.343, 0.465,-0.862,-1.020,-0.255], # C
              [ 1.050, 0.302,-3.656,-0.259,-3.242], # D
              [ 1.357,-1.453, 1.477, 0.113,-0.837], # E
@@ -42,12 +44,10 @@ class AtchleyEmbedder(Module):
             dtype=torch.float32
         )
 
-        # Padding index is 0, but because we will translate the token indices
-        # down by 2 (so A gets mapped to 0), the padding index ends up at -2
         self.embedding = Embedding.from_pretrained(
-            embeddings=atchley_factors,
+            embeddings=atchley_factors_with_special_tokens,
             freeze=True,
-            padding_idx=-2
+            padding_idx=0
         )
 
 
@@ -62,12 +62,11 @@ class AtchleyEmbedder(Module):
             the alpha CDR3 (dims 0-4) and beta CDR3 (dims 5-9).
         '''
 
-        padding_mask = (x[:,:,[0]] != 0)
+        padding_mask = (x[:,:,[0]] >= 2)
         alpha_mask = padding_mask * (x[:,:,[1]] == 0)
         beta_mask = padding_mask * (x[:,:,[1]] == 1)
 
-        # Translate the amino acid indices down 2 so A ends up at index 0
-        as_atchley = self.embedding(x[:,:,0]-2)
+        as_atchley = self.embedding(x[:,:,0])
 
         # Get averaged atchley vector for CDR3A
         cdr3as_as_atchley = as_atchley * alpha_mask

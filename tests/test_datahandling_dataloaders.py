@@ -1,18 +1,6 @@
 import pytest
 from src.datahandling import dataloaders
-from src.datahandling.datasets import TCRDataset
-from src.datahandling.tokenisers import CDR3Tokeniser
 import torch
-
-
-@pytest.fixture
-def cdr3t_dataset(mock_data_path):
-    dataset = TCRDataset(
-        data=mock_data_path,
-        tokeniser=CDR3Tokeniser()
-    )
-
-    return dataset
 
 
 class TestTCRDataLoader:
