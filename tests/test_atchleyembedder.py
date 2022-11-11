@@ -1,6 +1,6 @@
 import pandas as pd
 import pytest
-from src.datahandling.datasets import TcrDataset
+from src.datahandling.datasets import TCRDataset
 from src.datahandling.tokenisers import CDR3Tokeniser
 from src.modules import AtchleyEmbedder
 import torch
@@ -9,7 +9,7 @@ import torch
 @pytest.fixture
 def mock_data():
     df = pd.read_csv('tests/resources/mock_data.csv', dtype='string')
-    ds = TcrDataset(df, tokeniser=CDR3Tokeniser())
+    ds = TCRDataset(df, tokeniser=CDR3Tokeniser())
     return ds
 
 

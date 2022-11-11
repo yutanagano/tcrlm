@@ -1,4 +1,6 @@
-'Custom dataset classes.'
+'''
+Custom dataset classes.
+'''
 
 
 import pandas as pd
@@ -8,7 +10,7 @@ from torch.utils.data import Dataset
 from typing import Union
 
 
-class TcrDataset(Dataset):
+class TCRDataset(Dataset):
     '''
     Base dataset class to load and tokenise TCR data.
     '''
@@ -24,7 +26,7 @@ class TcrDataset(Dataset):
         :param tokeniser: TCR tokeniser
         :type tokeniser: Tokeniser
         '''
-        super(TcrDataset, self).__init__()
+        super(TCRDataset, self).__init__()
 
         if type(data) != pd.DataFrame:
             data = pd.read_csv(data, dtype='string')
