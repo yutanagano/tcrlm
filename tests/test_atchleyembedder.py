@@ -1,4 +1,3 @@
-import pandas as pd
 import pytest
 from src.datahandling.dataloaders import TCRDataLoader
 from src.modules import AtchleyEmbedder
@@ -32,11 +31,15 @@ class TestAtchleyEmbedder:
 
         batch = next(iter(cdr3t_dataloader))
 
-        print(batch)
-
         torch.testing.assert_close(
-            embedder(batch),
+            embedder.embed(batch),
             expected,
             atol=0,
             rtol=0.001
         )
+
+
+    def test_name(self):
+        embedder = AtchleyEmbedder()
+
+        assert embedder.name == 'Atchley embedder'

@@ -1,10 +1,11 @@
+from src.modules.embedder import Embedder
 import torch
 from torch import Tensor
-from torch.nn import Embedding, Module
+from torch.nn import Embedding
 from torch.nn.functional import normalize
 
 
-class AtchleyEmbedder(Module):
+class AtchleyEmbedder(Embedder):
     '''
     Simplest baseline TCR representation method, where a fixed-size vector
     representation of a TCR is obtained by averaging the atchley factors for
@@ -12,8 +13,9 @@ class AtchleyEmbedder(Module):
     doing the same to the beta CDR3 to obtain another 5-dimensional vector,
     concatenating them, and l2-normalising the result.
 
-    Compatible tokeniser: CDR3Tokeniser
+    Compatible tokenisers: CDR3Tokeniser
     '''
+
 
     def __init__(self) -> None:
         super().__init__()
@@ -51,7 +53,12 @@ class AtchleyEmbedder(Module):
         )
 
 
-    def forward(self, x: Tensor) -> Tensor:
+    @property
+    def name(self) -> str:
+        return 'Atchley embedder'
+
+
+    def embed(self, x: Tensor) -> Tensor:
         '''
         :param x: Tensor representing a batch of tokenised TCRs. Expected
             shape is (B,L,2), where B is the batch size, L is the max length

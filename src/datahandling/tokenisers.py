@@ -29,7 +29,10 @@ class Tokeniser(ABC):
 
     @abstractmethod
     def tokenise(self, tcr: Series) -> Tensor:
-        pass
+        '''
+        Given a pandas Series containing information on a particular TCR,
+        generate a tokenisation of it.
+        '''
 
 
 class CDR3Tokeniser(Tokeniser):
