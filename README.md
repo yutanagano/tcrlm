@@ -1,12 +1,22 @@
-# CDR3 encoding
+# TCR embedder
 
-A repository for the CDR3 encoding project.
+This is a codebase containing useful modules and analysis notebooks for the
+TCR embedding/representation learning project.
 
-## Notes on the amino acid tuplet vocabulary system
+## Prescribed data format (csv)
 
-Because of this codebase's modular tokenisation system, the models' vocabulary
-can change depending on how the tokenistaion is set. However, to keep things
-consistent, there are always two tokens that get mapped to the same index:
+All TCR data concerned with this project should be saved as a csv file with
+the following columns, in this order, with the specified data:
 
-- The padding token, which is always `0`
-- The mask token, which is always `1`
+| Column name | Column datatype | Column contents |
+|---|---|---|
+|TRAV|`str`|IMGT symbol for the alpha chain V gene (excluding any allele specifiers)|
+|CDR3A|`str`|Amino acid sequence of the alpha chain CDR3, including the first C and last W/F residues, in all caps|
+|TRAJ|`str`|IMGT symbol for the alpha chain J gene (excluding any allele specifiers)|
+|TRBV|`str`|IMGT symbol for the beta chain V gene (excluding any allele specifiers)|
+|CDR3B|`str`|Amino acid sequence of the beta chain CDR3, including the first C and last W/F residues, in all caps|
+|TRBJ|`str`|IMGT symbol for the beta chain J gene (excluding any allele specifiers)|
+|Epitope|`str`|Amino acid sequence of the target epitope, in all caps|
+|MHCA|`str`|IMGT symbol for the MHC alpha chain gene (excluding any allele specifiers)|
+|MHCB|`str`|IMGT symbol for the MHC beta chain gene (excluding any allele specifiers) (N.B. if class I MHC, the value here is B2M)|
+|duplicate_count|`int`|The number of times this particular TCR-pMHC combination is seen in the dataset|
