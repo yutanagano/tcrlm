@@ -42,4 +42,4 @@ class TestAtchleyEmbedder:
     def test_name(self):
         embedder = AtchleyEmbedder()
 
-        assert embedder.name == 'Atchley embedder'
+        assert embedder.name == 'atchley_embedder'
