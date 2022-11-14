@@ -20,6 +20,6 @@ class TestAtchleyEmbedder:
 
 
     def test_name(self):
-        embedder = RandomEmbedder()
+        embedder = RandomEmbedder(name_idx=7)
 
-        assert embedder.name == 'Random embedder'
+        assert embedder.name == 'random_embedder_7'

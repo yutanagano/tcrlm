@@ -17,7 +17,7 @@ class RandomEmbedder(Embedder):
     '''
 
 
-    def __init__(self, dim: int = 5) -> None:
+    def __init__(self, dim: int = 5, name_idx: int = 0) -> None:
         super().__init__()
 
         self.embedding = Embedding(
@@ -26,11 +26,12 @@ class RandomEmbedder(Embedder):
             padding_idx=0
         )
         self.embedding.weight.requires_grad = False
+        self._name_idx = name_idx
 
 
     @property
     def name(self) -> str:
-        return 'Random embedder'
+        return f'random_embedder_{self._name_idx}'
 
 
     def embed(self, x: Tensor) -> Tensor:

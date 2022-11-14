@@ -55,7 +55,7 @@ class AtchleyEmbedder(Embedder):
 
     @property
     def name(self) -> str:
-        return 'Atchley embedder'
+        return 'atchley_embedder'
 
 
     def embed(self, x: Tensor) -> Tensor:
