@@ -1,3 +1,4 @@
+import pytest
 from src import metrics
 import torch
 
@@ -41,3 +42,39 @@ class TestUniformity:
                 ) - \
                 torch.tensor(4.0)
         )
+
+
+class TestAdjustedCELoss:
+    def test_init(self):
+        criterion = metrics.AdjustedCELoss(label_smoothing=0.5)
+
+        assert criterion.label_smoothing == 0.5
+        assert criterion.ignore_index == -2
+
+
+    @pytest.mark.parametrize(
+        ('y', 'expected'),
+        (
+            (torch.tensor([3,3]), torch.tensor(1.1864500045776367)),
+            (torch.tensor([0,2]), torch.tensor(1.1330687999725342)),
+            (torch.tensor([4,0]), torch.tensor(1.1398310661315918))
+        )
+    )
+    def test_forward(self, y, expected):
+        criterion = metrics.AdjustedCELoss()
+        x = torch.tensor([[0.5,0.2,0.3],[0.3,0.3,0.4]])
+
+        result = criterion(x, y)
+
+        torch.testing.assert_close(result, expected)
+
+
+    @pytest.mark.parametrize(
+        'token', (1,5,-100)
+    )
+    def test_error_padding_tokens(self, token):
+        criterion = metrics.AdjustedCELoss()
+        x = torch.tensor([[0.5,0.2,0.3]])
+
+        with pytest.raises(IndexError):
+            criterion(x, torch.tensor([token]))

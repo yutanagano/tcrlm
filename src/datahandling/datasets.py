@@ -29,7 +29,21 @@ class TCRDataset(Dataset):
         super(TCRDataset, self).__init__()
 
         if type(data) != pd.DataFrame:
-            data = pd.read_csv(data, dtype='string')
+            data = pd.read_csv(
+                data,
+                dtype={
+                    'TRAV': 'string',
+                    'CDR3A': 'string',
+                    'TRAJ': 'string',
+                    'TRBV': 'string',
+                    'CDR3B': 'string',
+                    'TRBJ': 'string',
+                    'Epitope': 'string',
+                    'MHCA': 'string',
+                    'MHCB': 'string',
+                    'duplicate_count': 'UInt32'
+                }
+            )
 
         self._data = data
         self._tokeniser = tokeniser
