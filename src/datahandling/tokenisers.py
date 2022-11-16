@@ -2,11 +2,16 @@
 Custom tokeniser classes for TCR tokenisation.
 
 Because of how this codebase modularises tokenisation, the vocabulary can
-change depending on the setting. To keep some consistency, there are two
-indices that are reserved for the following special tokens:
+change depending on the setting. To keep some consistency, there is one index
+that is reserved in all cases for padding values:
 
-0: reserved for the padding token
-1: reserved for the 'masked' or 'unknown' token
+0: reserved for padding
+
+In addition, in the case of token indices (as opposed to indices that may
+describe chain, position, etc.), there is one more reserved index for the mask
+token (in MLM):
+
+1: reserved for <mask> (only in token indices)
 '''
 
 
