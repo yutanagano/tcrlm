@@ -60,7 +60,7 @@ class CDR3Tokeniser(Tokeniser):
             from either the alpha or beta CDR3s. Each column is a 2-dimensional
             vector where the first element is the amino acid index (as
             described above) and the second element is an integer indicating
-            whether the residue came from the alpha (0) or beta (1) CDR3.
+            whether the residue came from the alpha (1) or beta (2) CDR3.
         '''
 
         cdr3a = tcr.loc['CDR3A']
@@ -70,10 +70,10 @@ class CDR3Tokeniser(Tokeniser):
 
         if notna(cdr3a):
             for aa in cdr3a:
-                tokenised.append([self._aa_to_index[aa], 0])
+                tokenised.append([self._aa_to_index[aa], 1])
 
         if notna(cdr3b):
             for aa in cdr3b:
-                tokenised.append([self._aa_to_index[aa], 1])
+                tokenised.append([self._aa_to_index[aa], 2])
 
         return torch.tensor(tokenised, dtype=torch.long)
