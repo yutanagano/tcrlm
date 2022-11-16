@@ -12,7 +12,21 @@ def mock_data_path():
 
 @pytest.fixture
 def mock_data_df(mock_data_path):
-    df = pd.read_csv(mock_data_path, dtype='string')
+    df = pd.read_csv(
+        mock_data_path,
+        dtype={
+            'TRAV': 'string',
+            'CDR3A': 'string',
+            'TRAJ': 'string',
+            'TRBV': 'string',
+            'CDR3B': 'string',
+            'TRBJ': 'string',
+            'Epitope': 'string',
+            'MHCA': 'string',
+            'MHCB': 'string',
+            'duplicate_count': 'UInt32'
+        }
+    )
     return df
 
 
