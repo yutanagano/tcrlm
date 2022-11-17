@@ -78,3 +78,32 @@ class TestAdjustedCELoss:
 
         with pytest.raises(IndexError):
             criterion(x, torch.tensor([token]))
+
+
+class TestMLMAccuracy:
+    @pytest.mark.parametrize(
+        ('logits', 'y', 'expected'),
+        (
+            (
+                torch.tensor(
+                    [[[0,1,0,0,0],[0,1,0,0,0],[0,0,1,0,0]],
+                     [[0,0,0,0,1],[0,0,0,0,1],[0,0,1,0,0]]],
+                    dtype=torch.float
+                ),
+                torch.tensor([[2,3,4],[6,5,4]], dtype=torch.long),
+                4/6
+            ),
+            (
+                torch.tensor(
+                    [[[0,1,0,0,0],[0,1,0,0,0],[0,0,1,0,0]],
+                     [[0,0,0,0,1],[0,0,0,0,1],[0,0,1,0,0]]],
+                    dtype=torch.float
+                ),
+                torch.tensor([[2,3,4],[6,0,0]], dtype=torch.long),
+                3/4
+            )
+        )
+    )
+    def test_pretrain_accuracy(self, logits, y, expected):
+        calculated = metrics.mlm_acc(logits, y)
+        torch.testing.assert_close(calculated, expected)

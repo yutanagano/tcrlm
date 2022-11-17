@@ -4,7 +4,6 @@ Custom optimisers
 
 
 import torch
-from typing import Tuple
 
 
 class AdamWithScheduling:
