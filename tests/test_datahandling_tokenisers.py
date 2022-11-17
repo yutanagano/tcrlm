@@ -29,3 +29,9 @@ class TestCDR3Tokeniser:
 
         for (_, item), target in zip(mock_data_df.iterrows(), expected):
             assert torch.equal(tokeniser.tokenise(item), target)
+
+
+    def test_vocab_size(self):
+        tokeniser = tokenisers.CDR3Tokeniser()
+
+        assert tokeniser.vocab_size == 20
