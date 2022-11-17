@@ -32,6 +32,14 @@ class Tokeniser(ABC):
     Abstract base class for tokenisers.
     '''
 
+    @property
+    @abstractmethod
+    def vocab_size(self) -> int:
+        '''
+        Return this tokeniser's vocabulary size.
+        '''
+
+
     @abstractmethod
     def tokenise(self, tcr: Series) -> Tensor:
         '''
@@ -51,6 +59,11 @@ class CDR3Tokeniser(Tokeniser):
 
         for i, aa in enumerate(amino_acids):
             self._aa_to_index[aa] = 2+i
+
+
+    @property
+    def vocab_size(self) -> int:
+        return 20
 
 
     def tokenise(self, tcr: Series) -> Tensor:

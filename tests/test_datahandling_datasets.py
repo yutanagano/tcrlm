@@ -11,6 +11,10 @@ def dummy_tokeniser():
         Dummy tokeniser that just returns the row index of an item in the
         dataset as the 'tokenisation'
         '''
+        @property
+        def vocab_size(self) -> int:
+            return 0
+
         def tokenise(self, x):
             return x.name
     

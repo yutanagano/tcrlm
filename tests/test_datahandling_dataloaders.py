@@ -1,4 +1,3 @@
-import pytest
 from src.datahandling import dataloaders
 import torch
 
@@ -30,3 +29,20 @@ class TestTCRDataLoader:
         first_batch = next(iter(dataloader))
 
         assert first_batch.equal(expected)
+
+
+class TestMLMDataLoader:
+    def test_shapes(self, cdr3t_dataset):
+        dataloader = dataloaders.MLMDataLoader(
+            dataset=cdr3t_dataset,
+            batch_size=3
+        )
+
+        masked, target = next(iter(dataloader))
+
+        assert type(masked) == type(target) == torch.Tensor
+        assert masked.dim() == 3
+        assert target.dim() == 2
+        assert masked.size(0) == target.size(0) == 3
+        assert masked.size(1) == target.size(1) == 11
+        assert masked.size(2) == 2
