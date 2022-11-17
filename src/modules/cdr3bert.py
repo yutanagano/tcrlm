@@ -3,7 +3,7 @@ CDR3BERT classes
 '''
 
 
-from .embedder import Embedder
+from .embedder import MLMEmbedder
 import math
 from src.utils import masked_average_pool
 import torch
@@ -40,7 +40,7 @@ class AAEmbedding_c(Module):
                 * math.sqrt(self.embedding_dim)
 
 
-class CDR3BERT_c(Embedder):
+class CDR3BERT_c(MLMEmbedder):
     '''
     CDR3BERT model that only gets amino acid and chain information.
 

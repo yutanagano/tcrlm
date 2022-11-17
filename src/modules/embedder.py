@@ -23,3 +23,19 @@ class Embedder(ABC, Module):
         Given a tensor of tokenised TCRs, generate fixed-size vector embeddings
         for each of them.
         '''
+
+
+class MLMEmbedder(Embedder):
+    '''
+    Abstract base class for MLM embedders.
+    '''
+
+
+    @abstractmethod
+    def mlm(self, x: Tensor) -> Tensor:
+        '''
+        Given a tensor of tokenised TCRs with masked tokens, predict the
+        identities of the masked tokens.
+
+        :return: Logits tensor of probability distribution over tokens.
+        '''
