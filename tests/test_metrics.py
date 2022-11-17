@@ -104,6 +104,37 @@ class TestMLMAccuracy:
             )
         )
     )
-    def test_pretrain_accuracy(self, logits, y, expected):
+    def test_mlm_accuracy(self, logits, y, expected):
         calculated = metrics.mlm_acc(logits, y)
+        torch.testing.assert_close(calculated, expected)
+
+
+class TestMLMTopkAccuracy:
+    @pytest.mark.parametrize(
+        ('logits', 'y', 'k', 'expected'),
+        (
+            (
+                torch.tensor(
+                    [[[0.2,0.5,0.3,0,0],[0.3,0.5,0.2,0,0],[0.2,0.5,0.3,0,0]],
+                     [[0.2,0,0.3,0,0.5],[0,0.3,0,0.2,0.5],[0,0,0.5,0.3,0.2]]],
+                    dtype=torch.float
+                ),
+                torch.tensor([[2,3,4],[6,5,4]], dtype=torch.long),
+                2,
+                4/6
+            ),
+            (
+                torch.tensor(
+                    [[[0.2,0.5,0.3,0,0],[0.3,0.5,0.2,0,0],[0.2,0.5,0.3,0,0]],
+                     [[0.2,0,0.3,0,0.5],[0,0.3,0,0.2,0.5],[0,0,0.5,0.3,0.2]]],
+                    dtype=torch.float
+                ),
+                torch.tensor([[2,3,4],[6,0,0]], dtype=torch.long),
+                2,
+                3/4
+            )
+        )
+    )
+    def test_mlm_topk_accuracy(self, logits, y, k, expected):
+        calculated = metrics.mlm_topk_acc(logits, y, k)
         torch.testing.assert_close(calculated, expected)
