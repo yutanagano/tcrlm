@@ -3,7 +3,9 @@ Custom dataloader classes.
 '''
 
 
+import random
 from src.datahandling.datasets import TCRDataset
+import torch
 from torch import Tensor
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader
@@ -53,3 +55,94 @@ class TCRDataLoader(DataLoader):
             batch_first=True,
             padding_value=0
         )
+
+
+class MLMDataLoader(TCRDataLoader):
+    '''
+    MLM dataloader class
+    '''
+
+
+    def __init__(
+        self,
+        dataset: TCRDataset,
+        batch_size: Optional[int] = 1,
+        shuffle: bool = False,
+        p_mask: float = 0.15,
+        p_mask_random: float = 0.1,
+        p_mask_keep: float = 0.1,
+        **kwargs
+    ):
+        if p_mask < 0 or p_mask >= 1:
+            raise RuntimeError(f'p_mask must lie in [0,1): {p_mask}')
+        
+        if p_mask_random < 0 or p_mask_random > 1:
+            raise RuntimeError(
+                f'p_mask_random must lie in [0,1]: {p_mask_random}'
+            )
+
+        if p_mask_keep < 0 or p_mask_keep > 1:
+            raise RuntimeError(
+                f'p_mask_keep must lie in [0,1]: {p_mask_keep}'
+            )
+
+        if p_mask_random + p_mask_keep > 1:
+            raise RuntimeError(
+                'p_mask_random + p_mask_keep must be less than 1.'
+            )
+
+        super().__init__(dataset, batch_size, shuffle, **kwargs)
+        self._vocabulary = set(range(2, dataset._tokeniser.vocab_size+2))
+        self._p_mask = p_mask
+        self._p_mask_random = p_mask_random
+        self._p_mask_keep = p_mask_keep
+
+
+    def _pick_masking_indices(self, seq_len: int) -> list:
+        if self._p_mask == 0:
+            return []
+        
+        num_to_be_masked = max(1, round(seq_len * self._p_mask))
+        return random.sample(range(seq_len), num_to_be_masked)
+
+
+    def _generate_masked(self, x: Tensor, indices: list) -> Tensor:
+        x = x.detach().clone()
+
+        for idx in indices:
+            r = random.random()
+            if r < self._p_mask_random:
+                x[idx,0] = random.sample(self._vocabulary-{x[idx,0]}, 1)[0]
+                continue
+            
+            if r < 1-self._p_mask_keep:
+                x[idx,0] = 1
+                continue
+
+        return x
+
+
+    def _generate_target(self, x: Tensor, indices: list) -> Tensor:
+        target = torch.zeros_like(x[:,0])
+
+        for idx in indices:
+            target[idx] = x[idx,0]
+        
+        return target
+
+
+    def _make_mlm_pair(self, x: Tensor) -> Tuple[Tensor]:
+        seq_len = len(x)
+
+        indices_to_mask = self._pick_masking_indices(seq_len)
+
+        masked = self._generate_masked(x, indices_to_mask)
+        target = self._generate_target(x, indices_to_mask)
+
+        return (masked, target)
+
+
+    def collate_fn(self, batch) -> Union[Tuple[Tensor], Tensor]:
+        batch = [self._make_mlm_pair(x) for x in batch]
+
+        return super().collate_fn(batch)
