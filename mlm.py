@@ -10,7 +10,7 @@ from pathlib import Path
 from src import modules
 from src.modules.embedder import MLMEmbedder
 from src.datahandling import tokenisers
-from src.datahandling.dataloaders import TCRDataLoader
+from src.datahandling.dataloaders import MLMDataLoader
 from src.datahandling.datasets import TCRDataset
 from src.metrics import AdjustedCELoss, mlm_acc, mlm_topk_acc
 from src.optim import AdamWithScheduling
@@ -19,6 +19,7 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from typing import Union
+from warnings import warn
 
 
 MODELS = {
@@ -36,7 +37,11 @@ def parse_command_line_arguments() -> argparse.Namespace:
     )
     parser.add_argument(
         '-d', '--working-directory',
-        help='Path to tcr_embedder project working directory'
+        help='Path to tcr_embedder project working directory.'
+    )
+    parser.add_argument(
+        '-n', '--name',
+        help='Name of the training run.'
     )
     parser.add_argument(
         'config_path',
@@ -75,7 +80,7 @@ def train(
     return {'loss': total_loss / divisor}
 
 
-@torch.no_grad
+@torch.no_grad()
 def validate(model: MLMEmbedder, dl: DataLoader, loss_fn, device) -> dict:
     model.eval()
 
@@ -106,22 +111,21 @@ def validate(model: MLMEmbedder, dl: DataLoader, loss_fn, device) -> dict:
     }
 
 
-def mlm(device: Union[str, int], wd: Path, config: dict):
+def mlm(device: Union[str, int], wd: Path, name: str, config: dict):
     # Set device
     device = torch.device(device)
 
     # Load training data
+    print('Loading data...')
     tokeniser = TOKENISERS[config['tokeniser']]()
-
-    train_dl = TCRDataLoader(
+    train_dl = MLMDataLoader(
         dataset=TCRDataset(
             data=config['train_data_path'],
             tokeniser=tokeniser
         ),
         **config['dataloader_config']
     )
-
-    valid_dl = TCRDataLoader(
+    valid_dl = MLMDataLoader(
         dataset=TCRDataset(
             data=config['valid_data_path'],
             tokeniser=tokeniser
@@ -130,6 +134,7 @@ def mlm(device: Union[str, int], wd: Path, config: dict):
     )
 
     # Instantiate model
+    print('Instantiating model...')
     model = MODELS[config['model']](**config['model_config']).to(device)
 
     # Instantiate loss function and optimiser
@@ -144,30 +149,38 @@ def mlm(device: Union[str, int], wd: Path, config: dict):
 
     # Go through epochs of training
     for epoch in range(1, config['n_epochs']+1):
+        print(f'Starting epoch {epoch}...')
+        print('Training...')
         train_metrics = train(model, train_dl, loss_fn, optimiser, device)
+        print('Validating...')
         valid_metrics = validate(model, valid_dl, loss_fn, device)
         metric_log[epoch] = {**train_metrics, **valid_metrics}
     
     # Save results
+    print('Saving results...')
     save(
         wd=wd,
-        save_name=datetime.now().strftime(r"%Y%m%d_%H%M%S"),
+        save_name=name,
         model=model,
         log=metric_log,
         config=config
     )
+    
+    print('Done!')
 
 
-def main(wd: Path, config: dict):
+def main(wd: Path, name: str, config: dict):
     if config['n_gpus'] > 1:
-        return
+        warn('Distributed training currently not implemented.')
 
     if config['n_gpus'] == 1:
-        mlm(device=0, wd=wd, config=config)
+        print('Commencing training on CUDA device...')
+        mlm(device=0, wd=wd, name=name, config=config)
         return
 
     if config['n_gpus'] == 0:
-        mlm(device='cpu', wd=wd, config=config)
+        print('Commencing training on CPU...')
+        mlm(device='cpu', wd=wd, name=name, config=config)
         return
 
 
@@ -179,9 +192,12 @@ if __name__ == '__main__':
     else:
         wd = Path(args.working_directory).resolve()
 
+    if args.name is None:
+        name = datetime.now().strftime(r'%Y%m%d_%H%M%S')
+
     assert wd.is_dir()
 
     with open(args.config_path, 'r') as f:
         config = json.load(f)
 
-    main(wd=wd, config=config)
+    main(wd=wd, name=name, config=config)
