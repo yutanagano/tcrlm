@@ -9,6 +9,7 @@ import torch
 from torch import Tensor
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
 from typing import Optional, Tuple, Union
 
 
@@ -16,20 +17,30 @@ class TCRDataLoader(DataLoader):
     '''
     Base dataloader class.
     '''
-
     def __init__(
         self,
         dataset: TCRDataset,
         batch_size: Optional[int] = 1,
-        shuffle: bool = False,
-        **kwargs
+        shuffle: bool = True,
+        num_workers: int = 0,
+        distributed: bool = False,
+        num_replicas: Optional[int] = None,
+        rank: Optional[int] = None
     ):
-        super().__init__(
+        sampling_settings = self._define_sampling(
             dataset=dataset,
             batch_size=batch_size,
             shuffle=shuffle,
+            distributed=distributed,
+            num_replicas=num_replicas,
+            rank=rank
+        )
+
+        super().__init__(
+            dataset=dataset,
+            num_workers=num_workers,
             collate_fn=self.collate_fn,
-            **kwargs
+            **sampling_settings
         )
 
 
@@ -57,21 +68,52 @@ class TCRDataLoader(DataLoader):
         )
 
 
+    def _define_sampling(
+        self,
+        dataset: TCRDataset,
+        batch_size: int,
+        shuffle: bool,
+        distributed: bool,
+        num_replicas: Optional[int],
+        rank: Optional[int]
+    ) -> dict:
+        if distributed:
+            assert not (num_replicas is None or rank is None)
+            return {
+                'batch_size': batch_size,
+                'shuffle': None,
+                'sampler': DistributedSampler(
+                    dataset=dataset,
+                    num_replicas=num_replicas,
+                    rank=rank,
+                    shuffle=shuffle,
+                    seed=0
+                )
+            }
+        
+        return {
+            'batch_size': batch_size,
+            'shuffle': shuffle,
+            'sampler': None
+        }
+
+
 class MLMDataLoader(TCRDataLoader):
     '''
     MLM dataloader class
     '''
-
-
     def __init__(
         self,
         dataset: TCRDataset,
         batch_size: Optional[int] = 1,
-        shuffle: bool = False,
+        shuffle: bool = True,
+        num_workers: int = 0,
+        distributed: bool = False,
+        num_replicas: Optional[int] = None,
+        rank: Optional[int] = None,
         p_mask: float = 0.15,
         p_mask_random: float = 0.1,
-        p_mask_keep: float = 0.1,
-        **kwargs
+        p_mask_keep: float = 0.1
     ):
         if p_mask < 0 or p_mask >= 1:
             raise RuntimeError(f'p_mask must lie in [0,1): {p_mask}')
@@ -91,7 +133,16 @@ class MLMDataLoader(TCRDataLoader):
                 'p_mask_random + p_mask_keep must be less than 1.'
             )
 
-        super().__init__(dataset, batch_size, shuffle, **kwargs)
+        super().__init__(
+            dataset,
+            batch_size,
+            shuffle,
+            num_workers,
+            distributed,
+            num_replicas,
+            rank
+        )
+
         self._vocabulary = set(range(2, dataset._tokeniser.vocab_size+2))
         self._p_mask = p_mask
         self._p_mask_random = p_mask_random

@@ -24,6 +24,26 @@ def cdr3bert_c_template():
     return model
 
 
+def get_config(n_gpus: int) -> dict:
+    config = {
+        'model': 'CDR3BERT_c',
+        'model_config': {
+            'num_encoder_layers': 2,
+            'd_model': 4,
+            'nhead': 2,
+            'dim_feedforward': 16
+        },
+        'train_data_path': 'tests/resources/mock_data.csv',
+        'valid_data_path': 'tests/resources/mock_data.csv',
+        'tokeniser': 'CDR3Tokeniser',
+        'dataloader_config': {},
+        'optimiser_config': {'n_warmup_steps': 10000},
+        'n_epochs': 3,
+        'n_gpus': n_gpus
+    }
+    return config
+
+
 def model_saved(save_path: Path, model_template: Module) -> bool:
     result = torch.load(save_path)
     expected = model_template.state_dict()
@@ -61,29 +81,19 @@ def config_saved(save_path: Path, config_template: dict) -> bool:
 
 class TestMLM:
     @pytest.mark.parametrize(
-        'n_gpus', (0, 1)
+        'n_gpus', (0, 1, 2)
     )
     def test_mlm(self, cdr3bert_c_template, tmp_path, n_gpus):
         if n_gpus == 1 and not torch.cuda.is_available():
             warn('MLM GPU test skipped due to hardware limitations.')
+            return
+        
+        if n_gpus == 2 and torch.cuda.device_count() < 2:
+            warn('MLM distributed test skipped due to hardware limitations.')
+            return
 
         # Set up config
-        config = {
-            'model': 'CDR3BERT_c',
-            'model_config': {
-                'num_encoder_layers': 2,
-                'd_model': 4,
-                'nhead': 2,
-                'dim_feedforward': 16
-            },
-            'train_data_path': 'tests/resources/mock_data.csv',
-            'valid_data_path': 'tests/resources/mock_data.csv',
-            'tokeniser': 'CDR3Tokeniser',
-            'dataloader_config': {},
-            'optimiser_config': {'n_warmup_steps': 10000},
-            'n_epochs': 3,
-            'n_gpus': n_gpus
-        }
+        config = get_config(n_gpus)
 
         # Run MLM training loop in separate process
         p = mp.Process(

@@ -6,7 +6,7 @@ import torch
 
 @pytest.fixture
 def cdr3t_dataloader(cdr3t_dataset):
-    dl = TCRDataLoader(dataset=cdr3t_dataset, batch_size=3)
+    dl = TCRDataLoader(dataset=cdr3t_dataset, batch_size=3, shuffle=False)
     return dl
 
 
