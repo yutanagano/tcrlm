@@ -1,12 +1,56 @@
 from src.datahandling import dataloaders
 import torch
+from torch.utils.data import BatchSampler, RandomSampler
+from torch.utils.data.distributed import DistributedSampler
 
 
 class TestTCRDataLoader:
+    def test_init(self, cdr3t_dataset):
+        dataloader = dataloaders.TCRDataLoader(
+            dataset=cdr3t_dataset,
+            batch_size=3,
+            num_workers=3
+        )
+
+        assert dataloader.dataset == cdr3t_dataset
+        assert dataloader.batch_size == 3
+        assert type(dataloader.sampler) == RandomSampler
+        assert dataloader.sampler.data_source == cdr3t_dataset
+        assert type(dataloader.batch_sampler) == BatchSampler
+        assert dataloader.batch_sampler.sampler == dataloader.sampler
+        assert dataloader.batch_sampler.batch_size == 3
+        assert dataloader.num_workers == 3
+
+
+    def test_init_distributed(self, cdr3t_dataset):
+        dataloader = dataloaders.TCRDataLoader(
+            dataset=cdr3t_dataset,
+            batch_size=3,
+            num_workers=3,
+            distributed=True,
+            num_replicas=2,
+            rank=0
+        )
+
+        assert dataloader.dataset == cdr3t_dataset
+        assert dataloader.batch_size == 3
+        assert type(dataloader.sampler) == DistributedSampler
+        assert dataloader.sampler.dataset == cdr3t_dataset
+        assert dataloader.sampler.num_replicas == 2
+        assert dataloader.sampler.rank == 0
+        assert dataloader.sampler.shuffle == True
+        assert dataloader.sampler.seed == 0
+        assert type(dataloader.batch_sampler) == BatchSampler
+        assert dataloader.batch_sampler.sampler == dataloader.sampler
+        assert dataloader.batch_sampler.batch_size == 3
+        assert dataloader.num_workers == 3
+
+
     def test_padding_collation(self, cdr3t_dataset):
         dataloader = dataloaders.TCRDataLoader(
             dataset=cdr3t_dataset,
-            batch_size=3
+            batch_size=3,
+            shuffle=False
         )
 
         expected = torch.tensor(
