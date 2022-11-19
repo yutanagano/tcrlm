@@ -59,11 +59,12 @@ class CDR3BERT_c(MLMEmbedder):
     ):
         super().__init__()
 
+        self.embed_layer = num_encoder_layers - 1
+
         self._num_layers = num_encoder_layers
         self._d_model = d_model
         self._nhead = nhead
         self._dim_feedforward = dim_feedforward
-        self._embed_layer = num_encoder_layers - 1
 
         # Create an instance of the encoder layer that we want
         encoder_layer = torch.nn.TransformerEncoderLayer(
@@ -99,7 +100,7 @@ class CDR3BERT_c(MLMEmbedder):
     @property
     def name(self) -> str:
         return f'CDR3BERT_c_{self._num_layers}_{self._d_model}_'\
-            f'{self._nhead}_{self._dim_feedforward}-embed_{self._embed_layer}'
+            f'{self._nhead}_{self._dim_feedforward}-embed_{self.embed_layer}'
 
 
     def forward(self, x: Tensor) -> Tuple[Tensor, Tensor]:
@@ -121,7 +122,7 @@ class CDR3BERT_c(MLMEmbedder):
         # Run the input partially through the BERT stack
         padding_mask = (x[:,:,0] == 0)
         x_emb = self.embedder(x)
-        for layer in self.encoder_stack.layers[:self._embed_layer]:
+        for layer in self.encoder_stack.layers[:self.embed_layer]:
             x_emb = layer(src=x_emb, src_key_padding_mask=padding_mask)
 
         # Compute the masked average pool
