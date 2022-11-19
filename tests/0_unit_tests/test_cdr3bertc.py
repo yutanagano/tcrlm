@@ -47,11 +47,11 @@ class TestAAEmbedding_c:
 
 class TestCDR3BERT_c:
     def test_init_attributes(self, cdr3bert_c):
+        assert cdr3bert_c.embed_layer == 5
         assert cdr3bert_c._num_layers == 6
         assert cdr3bert_c._d_model == 64
         assert cdr3bert_c._nhead == 8
         assert cdr3bert_c._dim_feedforward == 256
-        assert cdr3bert_c._embed_layer == 5
 
 
     def test_forward(self, cdr3bert_c):
