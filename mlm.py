@@ -26,7 +26,8 @@ from typing import Union
 
 
 MODELS = {
-    'CDR3BERT_c': modules.CDR3BERT_c
+    'CDR3BERT_c': modules.CDR3BERT_c,
+    'CDR3BERT_cp': modules.CDR3BERT_cp
 }
 
 TOKENISERS = {
