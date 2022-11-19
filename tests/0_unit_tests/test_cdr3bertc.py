@@ -55,7 +55,7 @@ class TestCDR3BERT_c:
 
 
     def test_forward(self, cdr3bert_c):
-        batch = torch.zeros((3,10,2), dtype=torch.long)
+        batch = torch.zeros((3,10,3), dtype=torch.long)
         out, padding_mask = cdr3bert_c(x=batch)
 
         assert out.size() == (3,10,64)
@@ -64,14 +64,22 @@ class TestCDR3BERT_c:
 
 
     def test_embed(self, cdr3bert_c):
-        batch = torch.zeros((3,10,2), dtype=torch.long)
+        batch = torch.tensor(
+            [
+                [[3,1,1],[4,1,2],[5,1,3],[3,2,1],[4,2,2],[5,2,3]],
+                [[6,1,1],[7,1,2],[8,1,3],[6,2,1],[7,2,2],[8,2,3]],
+                [[3,1,1],[4,1,2],[5,1,3],[6,2,1],[7,2,2],[8,2,3]]
+            ],
+            dtype=torch.long
+        )
         out = cdr3bert_c.embed(x=batch)
 
         assert out.size() == (3,64)
+        torch.testing.assert_close(out.norm(dim=1), torch.ones(3))
 
 
     def test_mlm(self, cdr3bert_c):
-        batch = torch.zeros((3,10,2), dtype=torch.long)
+        batch = torch.zeros((3,10,3), dtype=torch.long)
         out = cdr3bert_c.mlm(x=batch)
 
         assert out.size() == (3,10,20)
