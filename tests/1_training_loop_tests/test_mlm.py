@@ -119,7 +119,13 @@ class TestMLM:
         # Check that log is saved correctly
         assert log_saved(
             save_path=expected_save_dir/'log.csv',
-            expected_cols=['loss','valid_loss','valid_acc','valid_top5_acc'],
+            expected_cols=[
+                'loss',
+                'lr',
+                'valid_loss',
+                'valid_acc',
+                'valid_top5_acc'
+            ],
             expected_len=3
         )
 
