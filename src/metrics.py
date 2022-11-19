@@ -51,7 +51,7 @@ def mlm_acc(logits: Tensor, y: Tensor, mask: Tensor = None) -> float:
     if total_residues_considered.item() == 0:
         return None
     
-    correct = (torch.argmax(logits,dim=-1) == (y - 2)) # minus two to translate from input vocabulary space to output vocabulary space
+    correct = (torch.argmax(logits,dim=-1) == (y - 3)) # minus two to translate from input vocabulary space to output vocabulary space
     correct_masked = (correct & final_mask)
 
     return (correct_masked.sum() / total_residues_considered).item()
@@ -86,7 +86,7 @@ def mlm_topk_acc(
     final_mask = final_mask.unsqueeze(-1)
 
     _, x_topk_indices = logits.topk(k, dim=-1, sorted=False)
-    correct = (x_topk_indices == (y - 2)) # minus two to translate from input vocabulary space to output vocabulary space
+    correct = (x_topk_indices == (y - 3)) # minus two to translate from input vocabulary space to output vocabulary space
     correct_masked = (correct & final_mask)
 
     return (correct_masked.sum() / total_residues_considered).item()
