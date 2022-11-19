@@ -53,6 +53,11 @@ def parse_command_line_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def metric_feedback(metrics: dict) -> None:
+    for metric in metrics:
+        print(f'{metric}: {metrics[metric]}')
+
+
 def train(
     model: MLMEmbedder,
     dl: DataLoader,
@@ -63,6 +68,7 @@ def train(
     model.train()
 
     total_loss = 0
+    total_lr = 0
     divisor = 0
 
     for x, y in tqdm(dl):
@@ -78,9 +84,13 @@ def train(
         optimiser.step()
 
         total_loss += loss.item() * num_samples
+        total_lr += optimiser.lr * num_samples
         divisor += num_samples
 
-    return {'loss': total_loss / divisor}
+    return {
+        'loss': total_loss / divisor,
+        'lr': total_lr / divisor
+    }
 
 
 @torch.no_grad()
@@ -144,6 +154,8 @@ def mlm(device: Union[str, int], wd: Path, name: str, config: dict):
             data=config['valid_data_path'],
             tokeniser=tokeniser
         ),
+        p_mask_random=0,
+        p_mask_keep=0,
         **config['dataloader_config']
     )
 
@@ -172,8 +184,12 @@ def mlm(device: Union[str, int], wd: Path, name: str, config: dict):
         
         print('Training...')
         train_metrics = train(model, train_dl, loss_fn, optimiser, device)
+        metric_feedback(train_metrics)
+
         print('Validating...')
         valid_metrics = validate(model, valid_dl, loss_fn, device)
+        metric_feedback(valid_metrics)
+
         metric_log[epoch] = {**train_metrics, **valid_metrics}
     
     # Save results
@@ -227,7 +243,7 @@ if __name__ == '__main__':
         wd = Path(args.working_directory).resolve()
 
     if args.name is None:
-        name = datetime.now().strftime(r'%Y%m%d_%H%M%S')
+        name = datetime.now().strftime(r'%Y%m%d-%H%M%S')
 
     assert wd.is_dir()
 
