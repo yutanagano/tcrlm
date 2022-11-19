@@ -5,13 +5,13 @@ Because of how this codebase modularises tokenisation, the vocabulary can
 change depending on the setting. To keep some consistency, there is one index
 that is reserved in all cases for padding values:
 
-0: reserved for padding
+0: reserved for <pad>
 
 In addition, in the case of token indices (as opposed to indices that may
-describe chain, position, etc.), there is one more reserved index for the mask
-token (in MLM):
+describe chain, position, etc.), there are two more reserved indices:
 
-1: reserved for <mask> (only in token indices)
+1: reserved for <mask>
+2: reserved for <cls>
 '''
 
 
@@ -58,7 +58,7 @@ class CDR3Tokeniser(Tokeniser):
         self._aa_to_index = dict()
 
         for i, aa in enumerate(amino_acids):
-            self._aa_to_index[aa] = 2+i
+            self._aa_to_index[aa] = 3+i # offset for reserved tokens
 
 
     @property
@@ -71,14 +71,16 @@ class CDR3Tokeniser(Tokeniser):
         Tokenise a TCR in terms of its alpha and beta chain CDR3 amino acid
         sequences.
 
-        Amino acids get mapped as in the following: 'A' -> 2, 'C' -> 3, ...
-        'Y' -> 21.
+        Amino acids get mapped as in the following: 'A' -> 3, 'C' -> 4, ...
+        'Y' -> 22.
 
         :return: Tensor where every column represents an amino acid residue
-            from either the alpha or beta CDR3s. Each column is a 2-dimensional
+            from either the alpha or beta CDR3s. Each column is a 3-dimensional
             vector where the first element is the amino acid index (as
-            described above) and the second element is an integer indicating
-            whether the residue came from the alpha (1) or beta (2) CDR3.
+            described above), the second element is an integer indicating
+            whether the residue came from the alpha (1) or beta (2) CDR3, and
+            the third element is an integer indicating the residue position
+            within its chain (1-indexed)
         '''
 
         cdr3a = tcr.loc['CDR3A']
@@ -87,11 +89,11 @@ class CDR3Tokeniser(Tokeniser):
         tokenised = []
 
         if notna(cdr3a):
-            for aa in cdr3a:
-                tokenised.append([self._aa_to_index[aa], 1])
+            for i, aa in enumerate(cdr3a):
+                tokenised.append([self._aa_to_index[aa], 1, i+1])
 
         if notna(cdr3b):
-            for aa in cdr3b:
-                tokenised.append([self._aa_to_index[aa], 2])
+            for i, aa in enumerate(cdr3b):
+                tokenised.append([self._aa_to_index[aa], 2, i+1])
 
         return torch.tensor(tokenised, dtype=torch.long)

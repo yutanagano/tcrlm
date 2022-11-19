@@ -102,7 +102,7 @@ class AdjustedCELoss(CrossEntropyLoss):
     '''
 
     def __init__( self, label_smoothing: float = 0 ) -> None:
-        super().__init__(label_smoothing=label_smoothing, ignore_index=-2)
+        super().__init__(label_smoothing=label_smoothing, ignore_index=-3)
         # ignore_index is set to -2 here because the padding token, indexed at
         # 0 in the target vocabulary space, will be mapped to -2 when
         # moving all indices two places down.
@@ -111,7 +111,7 @@ class AdjustedCELoss(CrossEntropyLoss):
     def forward(self, input: Tensor, target: Tensor) -> Tensor:
         return F.cross_entropy(
             input,
-            target-2,
+            target-3,
             weight=self.weight,
             ignore_index=self.ignore_index,
             reduction=self.reduction,

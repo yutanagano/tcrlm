@@ -9,6 +9,7 @@ from src.utils import masked_average_pool
 import torch
 from torch import Tensor
 from torch.nn import Embedding, Module
+from torch.nn.functional import normalize
 from typing import Tuple
 
 
@@ -22,7 +23,7 @@ class AAEmbedding_c(Module):
         super().__init__()
 
         self.token_embedding = Embedding(
-            num_embeddings=22, # <pad> + <mask> + 20 amino acids
+            num_embeddings=23, # <pad> + <mask> + <cls> + 20 amino acids
             embedding_dim=embedding_dim,
             padding_idx=0
         )
@@ -58,10 +59,11 @@ class CDR3BERT_c(MLMEmbedder):
     ):
         super().__init__()
 
-        self.num_layers = num_encoder_layers
-        self.d_model = d_model
-        self.nhead = nhead
-        self.dim_feedforward = dim_feedforward
+        self._num_layers = num_encoder_layers
+        self._d_model = d_model
+        self._nhead = nhead
+        self._dim_feedforward = dim_feedforward
+        self._embed_layer = num_encoder_layers - 1
 
         # Create an instance of the encoder layer that we want
         encoder_layer = torch.nn.TransformerEncoderLayer(
@@ -96,7 +98,8 @@ class CDR3BERT_c(MLMEmbedder):
 
     @property
     def name(self) -> str:
-        return f'CDR3BERT_c_{self.num_layers}_{self.d_model}_{self.nhead}_{self.dim_feedforward}'
+        return f'CDR3BERT_c_{self._num_layers}_{self._d_model}_'\
+            f'{self._nhead}_{self._dim_feedforward}-embed_{self._embed_layer}'
 
 
     def forward(self, x: Tensor) -> Tuple[Tensor, Tensor]:
@@ -108,7 +111,6 @@ class CDR3BERT_c(MLMEmbedder):
         # Run the embedded input through the bert stack
         out = self.encoder_stack(
             src=x_emb,
-            mask=None,
             src_key_padding_mask=padding_mask
         )
 
@@ -116,12 +118,17 @@ class CDR3BERT_c(MLMEmbedder):
 
 
     def embed(self, x: Tensor) -> Tensor:
-        # Run the input through the BERT stack
-        out, padding_mask = self.forward(x)
+        # Run the input partially through the BERT stack
+        padding_mask = (x[:,:,0] == 0)
+        x_emb = self.embedder(x)
+        for layer in self.encoder_stack.layers[:self._embed_layer]:
+            x_emb = layer(src=x_emb, src_key_padding_mask=padding_mask)
 
-        # Compute the masked average pool of the token embeddings to produce
-        # cdr3 embeddings, and return those
-        return masked_average_pool(out, padding_mask)
+        # Compute the masked average pool
+        x_emb = masked_average_pool(x_emb, padding_mask)
+
+        # l2 norm and return
+        return normalize(x_emb, p=2, dim=1)
 
 
     def mlm(self, x: Tensor) -> Tensor:
