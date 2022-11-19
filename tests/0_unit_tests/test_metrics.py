@@ -90,7 +90,7 @@ class TestMLMAccuracy:
                      [[0,0,0,0,1],[0,0,0,0,1],[0,0,1,0,0]]],
                     dtype=torch.float
                 ),
-                torch.tensor([[2,3,4],[6,5,4]], dtype=torch.long),
+                torch.tensor([[3,4,5],[7,6,5]], dtype=torch.long),
                 4/6
             ),
             (
@@ -99,7 +99,7 @@ class TestMLMAccuracy:
                      [[0,0,0,0,1],[0,0,0,0,1],[0,0,1,0,0]]],
                     dtype=torch.float
                 ),
-                torch.tensor([[2,3,4],[6,0,0]], dtype=torch.long),
+                torch.tensor([[3,4,5],[7,0,0]], dtype=torch.long),
                 3/4
             )
         )
@@ -119,7 +119,7 @@ class TestMLMTopkAccuracy:
                      [[0.2,0,0.3,0,0.5],[0,0.3,0,0.2,0.5],[0,0,0.5,0.3,0.2]]],
                     dtype=torch.float
                 ),
-                torch.tensor([[2,3,4],[6,5,4]], dtype=torch.long),
+                torch.tensor([[3,4,5],[7,6,5]], dtype=torch.long),
                 2,
                 4/6
             ),
@@ -129,7 +129,7 @@ class TestMLMTopkAccuracy:
                      [[0.2,0,0.3,0,0.5],[0,0.3,0,0.2,0.5],[0,0,0.5,0.3,0.2]]],
                     dtype=torch.float
                 ),
-                torch.tensor([[2,3,4],[6,0,0]], dtype=torch.long),
+                torch.tensor([[3,4,5],[7,0,0]], dtype=torch.long),
                 2,
                 3/4
             )
