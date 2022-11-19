@@ -143,7 +143,7 @@ class MLMDataLoader(TCRDataLoader):
             rank
         )
 
-        self._vocabulary = set(range(2, dataset._tokeniser.vocab_size+2))
+        self._vocabulary = set(range(3, dataset._tokeniser.vocab_size+3))
         self._p_mask = p_mask
         self._p_mask_random = p_mask_random
         self._p_mask_keep = p_mask_keep

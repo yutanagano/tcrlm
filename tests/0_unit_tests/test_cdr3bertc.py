@@ -36,7 +36,7 @@ class TestAAEmbedding_c:
 
 
     @pytest.mark.parametrize(
-        'token_index', ([-1, 1], [22, 1], [1, -1], [1, 3])
+        'token_index', ([-1, 1], [23, 1], [1, -1], [1, 3])
     )
     def test_error_out_of_bounds_token_index(self, token_index):
         embedder = cdr3bert.AAEmbedding_c(embedding_dim=2)
@@ -47,10 +47,11 @@ class TestAAEmbedding_c:
 
 class TestCDR3BERT_c:
     def test_init_attributes(self, cdr3bert_c):
-        assert cdr3bert_c.num_layers == 6
-        assert cdr3bert_c.d_model == 64
-        assert cdr3bert_c.nhead == 8
-        assert cdr3bert_c.dim_feedforward == 256
+        assert cdr3bert_c._num_layers == 6
+        assert cdr3bert_c._d_model == 64
+        assert cdr3bert_c._nhead == 8
+        assert cdr3bert_c._dim_feedforward == 256
+        assert cdr3bert_c._embed_layer == 5
 
 
     def test_forward(self, cdr3bert_c):
@@ -77,4 +78,4 @@ class TestCDR3BERT_c:
 
 
     def test_name(self, cdr3bert_c):
-        assert cdr3bert_c.name == 'CDR3BERT_c_6_64_8_256'
+        assert cdr3bert_c.name == 'CDR3BERT_c_6_64_8_256-embed_5'

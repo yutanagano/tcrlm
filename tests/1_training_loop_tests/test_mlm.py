@@ -120,6 +120,7 @@ class TestMLM:
         assert log_saved(
             save_path=expected_save_dir/'log.csv',
             expected_cols=[
+                'epoch',
                 'loss',
                 'lr',
                 'valid_loss',
