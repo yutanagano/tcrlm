@@ -63,7 +63,6 @@ def save(
         new_save_name = f'{save_name}_{suffix_int}'
         done = False
         while not done:
-            print(save_name)
             try:
                 (model_saves_dir/new_save_name).mkdir()
                 save_name = new_save_name
@@ -78,8 +77,8 @@ def save(
 
     # Save log
     pd.DataFrame.from_dict(log, orient='index')\
-        .to_csv(save_dir/'log.csv', index=False)
+        .to_csv(save_dir/'log.csv', index_label='epoch')
 
     # Save config
     with open(save_dir/'config.json', 'w') as f:
-        json.dump(config, f)
+        json.dump(config, f, indent=4)

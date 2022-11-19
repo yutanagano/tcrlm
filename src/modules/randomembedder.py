@@ -21,7 +21,7 @@ class RandomEmbedder(Embedder):
         super().__init__()
 
         self.embedding = Embedding(
-            num_embeddings=22, # <pad> + <mask> + 20 amino acids
+            num_embeddings=23, # <pad> + <mask> + <cls> + 20 amino acids
             embedding_dim=dim,
             padding_idx=0
         )
