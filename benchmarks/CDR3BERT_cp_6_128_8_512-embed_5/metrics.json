@@ -1,0 +1,6 @@
+{
+    "model_name": "CDR3BERT_cp_6_128_8_512-embed_5",
+    "alignment": 0.4511978030204773,
+    "uniformity": -0.9493853449821472,
+    "5nn_accuracy": 0.5560859441757202
+}
