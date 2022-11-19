@@ -34,8 +34,8 @@ class SinPositionEmbedding(Module):
         self.register_buffer('position_embedding', position_embedding)
 
 
-    def forward(self, x: int) -> Tensor:
-        return self.position_embedding[x-1]
+    def forward(self, x: Tensor) -> Tensor:
+        return self.position_embedding[x]
 
 
 class AAEmbedding_c(Module):
