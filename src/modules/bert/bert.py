@@ -64,6 +64,8 @@ class BERT_base(MLMEmbedder):
             x_emb = layer(src=x_emb, src_key_padding_mask=padding_mask)
 
         # Compute the masked average pool
+        emb_mask = padding_mask.clone()
+        emb_mask[:,0] = 0
         x_emb = masked_average_pool(x_emb, padding_mask)
 
         # l2 norm and return
