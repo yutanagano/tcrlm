@@ -11,9 +11,9 @@ from pathlib import Path
 from src import modules
 from src.modules.embedder import MLMEmbedder
 from src.datahandling import tokenisers
-from src.datahandling.dataloaders import TCRDataLoader
+from src.datahandling.dataloaders import SimCLDataLoader
 from src.datahandling.datasets import TCRDataset
-from src.metrics import SimCLoss, alignment_paired, uniformity
+from src.metrics import AdjustedCELoss, SimCLoss, alignment_paired, uniformity
 from src.utils import save
 import torch
 from torch import multiprocessing as mp
@@ -61,58 +61,87 @@ def metric_feedback(metrics: dict) -> None:
 def train(
     model: MLMEmbedder,
     dl: DataLoader,
-    loss_fn,
+    mlm_loss_fn,
+    simc_loss_fn,
     optimiser,
     device
 ) -> dict:
-    model.train()
-
     total_loss = 0
+    total_mlm_loss = 0
+    total_simc_loss = 0
     divisor = 0
 
-    for x in tqdm(dl):
+    for x, masked, target in tqdm(dl):
         num_samples = len(x)
 
         x = x.to(device)
+        masked = masked.to(device)
+        target = target.to(device)
+
+        mlm_logits = model.mlm(masked)
         z = model.embed(x)
         z_prime = model.embed(x)
 
         optimiser.zero_grad()
-        loss = loss_fn(z, z_prime)
+        mlm_loss = mlm_loss_fn(mlm_logits.flatten(0,1), target.view(-1))
+        simc_loss = simc_loss_fn(z, z_prime)
+        loss = mlm_loss + simc_loss
         loss.backward()
         optimiser.step()
 
         total_loss += loss.item() * num_samples
+        total_mlm_loss += mlm_loss.item() * num_samples
+        total_simc_loss += simc_loss.item() * num_samples
         divisor += num_samples
 
-    return {'loss': total_loss / divisor}
+    return {
+        'loss': total_loss / divisor,
+        'mlm_loss': total_mlm_loss / divisor,
+        'simc_loss': total_simc_loss / divisor
+    }
 
 
 @torch.no_grad()
-def validate(model: MLMEmbedder, dl: DataLoader, loss_fn, device) -> dict:
-    model.eval()
-
+def validate(
+    model: MLMEmbedder,
+    dl: DataLoader,
+    mlm_loss_fn,
+    simc_loss_fn,
+    device
+) -> dict:
     total_loss = 0
+    total_mlm_loss = 0
+    total_simc_loss = 0
     total_aln = 0
     total_unf = 0
     divisor = 0
 
-    for x in tqdm(dl):
+    for x, masked, target in tqdm(dl):
         num_samples = len(x)
 
         x = x.to(device)
+        masked = masked.to(device)
+        target = target.to(device)
+
+        mlm_logits = model.mlm(masked)
         z = model.embed(x)
         z_prime = model.embed(x)
 
-        loss = loss_fn(z, z_prime)
+        mlm_loss = mlm_loss_fn(mlm_logits.flatten(0,1), target.view(-1))
+        simc_loss = simc_loss_fn(z, z_prime)
+        loss = mlm_loss + simc_loss
 
         total_loss += loss.item() * num_samples
+        total_mlm_loss += mlm_loss.item() * num_samples
+        total_simc_loss += simc_loss.item() * num_samples
         total_aln += alignment_paired(z, z_prime, alpha=2).item() * num_samples
         total_unf += uniformity(z, t=2).item() * num_samples
         divisor += num_samples
 
     return {
         'valid_loss': total_loss / divisor,
+        'valid_mlm_loss': total_mlm_loss / divisor,
+        'valid_simc_loss': total_simc_loss / divisor,
         'valid_aln': total_aln / divisor,
         'valid_unf': total_unf / divisor
     }
@@ -133,7 +162,7 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
     # Load training data
     print('Loading data...')
     tokeniser = TOKENISERS[config['tokeniser']]()
-    train_dl = TCRDataLoader(
+    train_dl = SimCLDataLoader(
         dataset=TCRDataset(
             data=config['train_data_path'],
             tokeniser=tokeniser
@@ -143,11 +172,13 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
         rank=device.index,
         **config['dataloader_config']
     )
-    valid_dl = TCRDataLoader(
+    valid_dl = SimCLDataLoader(
         dataset=TCRDataset(
             data=config['valid_data_path'],
             tokeniser=tokeniser
         ),
+        p_mask_random=0,
+        p_mask_keep=0,
         **config['dataloader_config']
     )
 
@@ -157,15 +188,27 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
     model.load_state_dict(torch.load(config['pretrain_state_dict_path']))
     if distributed:
         model = DistributedDataParallel(model, device_ids=[device])
+    model.train()
 
     # Instantiate loss function and optimiser
-    loss_fn = SimCLoss(**config['loss_config'])
+    mlm_loss_fn = AdjustedCELoss(label_smoothing=0.1)
+    simc_loss_fn = SimCLoss(**config['simc_loss_config'])
     optimiser = Adam(params=model.parameters(), **config['optimiser_config'])
 
     # Evaluate model at pre-SimC learning state
-    valid_metrics = validate(model, valid_dl, loss_fn, device)
+    print('Evaluating pre-trained model state...')
+    valid_metrics = validate(
+        model=model,
+        dl=valid_dl,
+        mlm_loss_fn=mlm_loss_fn,
+        simc_loss_fn=simc_loss_fn,
+        device=device
+    )
+    metric_feedback(valid_metrics)
 
-    metric_log = {0: {'loss': None, **valid_metrics}}
+    metric_log = {
+        0: {'loss': None, 'mlm_loss': None, 'simc_loss': None, **valid_metrics}
+    }
 
     # Go through epochs of training
     for epoch in range(1, config['n_epochs']+1):
@@ -175,11 +218,24 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
             train_dl.sampler.set_epoch(epoch)
         
         print('Training...')
-        train_metrics = train(model, train_dl, loss_fn, optimiser, device)
+        train_metrics = train(
+            model=model,
+            dl=train_dl,
+            mlm_loss_fn=mlm_loss_fn,
+            simc_loss_fn=simc_loss_fn,
+            optimiser=optimiser,
+            device=device
+        )
         metric_feedback(train_metrics)
 
         print('Validating...')
-        valid_metrics = validate(model, valid_dl, loss_fn, device)
+        valid_metrics = validate(
+            model=model,
+            dl=valid_dl,
+            mlm_loss_fn=mlm_loss_fn,
+            simc_loss_fn=simc_loss_fn,
+            device=device
+        )
         metric_feedback(valid_metrics)
 
         metric_log[epoch] = {**train_metrics, **valid_metrics}

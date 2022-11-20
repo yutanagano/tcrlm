@@ -203,3 +203,13 @@ class MLMDataLoader(TCRDataLoader):
         batch = [self._make_mlm_pair(x) for x in batch]
 
         return super().collate_fn(batch)
+
+
+class SimCLDataLoader(MLMDataLoader):
+    '''
+    Dataloader for concurrent MLM and contrastive learning.
+    '''
+    def collate_fn(self, batch) -> Union[Tuple[Tensor], Tensor]:
+        batch = [(x, *self._make_mlm_pair(x)) for x in batch]
+
+        return super(MLMDataLoader, self).collate_fn(batch)

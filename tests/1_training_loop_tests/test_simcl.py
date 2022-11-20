@@ -38,7 +38,7 @@ def get_config(tmp_path: Path, n_gpus: int) -> dict:
         'valid_data_path': 'tests/resources/mock_data.csv',
         'tokeniser': 'CDR3Tokeniser',
         'dataloader_config': {},
-        'loss_config': {'temp': 0.05},
+        'simc_loss_config': {'temp': 0.05},
         'optimiser_config': {'lr': 5e-5},
         'n_epochs': 3,
         'n_gpus': n_gpus
@@ -130,7 +130,11 @@ class TestSimCL:
             expected_cols=[
                 'epoch',
                 'loss',
+                'mlm_loss',
+                'simc_loss',
                 'valid_loss',
+                'valid_mlm_loss',
+                'valid_simc_loss',
                 'valid_aln',
                 'valid_unf'
             ],
