@@ -45,8 +45,9 @@ class TCRDataLoader(DataLoader):
 
 
     def collate_fn(self, batch) -> Union[Tuple[Tensor], Tensor]:
-        'Pad and batch tokenised TCRs.'
-
+        '''
+        Pad and batch tokenised TCRs.
+        '''
         elem = batch[0]
 
         if isinstance(elem, list) or isinstance(elem, tuple):
@@ -100,7 +101,7 @@ class TCRDataLoader(DataLoader):
 
 class MLMDataLoader(TCRDataLoader):
     '''
-    MLM dataloader class
+    Masked-language modelling dataloader class.
     '''
     def __init__(
         self,

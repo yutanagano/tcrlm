@@ -1,3 +1,3 @@
 from .atchleyembedder import AtchleyEmbedder
 from .randomembedder import RandomEmbedder
-from .bert.cdr3bert import CDR3BERT_c, CDR3BERT_cp
+from .bert.cdr3bert import CDR3BERT_c, CDR3BERT_cp, SimCTE_CDR3BERT_cp

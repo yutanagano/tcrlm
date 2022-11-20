@@ -1,10 +1,10 @@
 import torch
 from torch import Tensor
-from torch.nn import CrossEntropyLoss
+from torch.nn import CrossEntropyLoss, Module
 from torch.nn import functional as F
 
 
-def alignment(x: Tensor, labels: Tensor, alpha: int = 2):
+def alignment(z: Tensor, labels: Tensor, alpha: int = 2) -> Tensor:
     '''
     Computes alignment between embeddings of instances belonging to the same
     class label, as specified by the labels tensor.
@@ -12,7 +12,7 @@ def alignment(x: Tensor, labels: Tensor, alpha: int = 2):
     num_cls = len(labels.unique())
 
     cls_views = [
-        x[(labels == cls_code).nonzero().squeeze(dim=-1)]
+        z[(labels == cls_code).nonzero().squeeze(dim=-1)]
         for cls_code in range(num_cls)
     ]
 
@@ -23,11 +23,18 @@ def alignment(x: Tensor, labels: Tensor, alpha: int = 2):
     return cls_pdists.mean()
 
 
-def uniformity(x: Tensor, t: int = 2):
+def alignment_paired(z: Tensor, z_prime: Tensor, alpha: int = 2) -> Tensor:
+    '''
+    Computes alignment between pairs of known positive-pair embeddings.
+    '''
+    return (z - z_prime).norm(dim=1).pow(alpha).mean()
+
+
+def uniformity(z: Tensor, t: int = 2) -> Tensor:
     '''
     Computes an empirical estimate of uniformity given background data x.
     '''
-    sq_pdist = torch.pdist(x, p=2).pow(2)
+    sq_pdist = torch.pdist(z, p=2).pow(2)
     return sq_pdist.mul(-t).exp().mean().log()
 
 
@@ -112,3 +119,26 @@ class AdjustedCELoss(CrossEntropyLoss):
             reduction=self.reduction,
             label_smoothing=self.label_smoothing
         )
+
+
+class SimCLoss(Module):
+    '''
+    Simple contrastive loss based on SimCSE.
+    '''
+    def __init__(self, temp: float = 0.05) -> None:
+        super().__init__()
+        self._temp = temp
+
+    
+    def forward(self, z: Tensor, z_prime: Tensor) -> Tensor:
+        '''
+        Implements the simple contrastive function as seen in SimCSE. Assumes
+        that embeddings (z, z_prime) are all already l2-normalised.
+        '''
+        # z.size: (N,E), z.T.size: (E,N)
+        z_sim = torch.exp(torch.matmul(z, z_prime.T)/self._temp) # (N,N)
+        pos_sim = torch.diag(z_sim) # (N,)
+        neg_sim = torch.sum(z_sim, dim=1) # (N,)
+        closs = -torch.log(pos_sim/neg_sim)
+
+        return closs.mean()
