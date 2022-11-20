@@ -150,11 +150,16 @@ class MLMDataLoader(TCRDataLoader):
 
 
     def _pick_masking_indices(self, seq_len: int) -> list:
+        '''
+        Decide on a set of token indices to mask. Never mask the first token,
+        as it is reserved for the <cls> token, which will not be used during
+        MLM.
+        '''
         if self._p_mask == 0:
             return []
         
         num_to_be_masked = max(1, round(seq_len * self._p_mask))
-        return random.sample(range(seq_len), num_to_be_masked)
+        return random.sample(range(1, seq_len), num_to_be_masked)
 
 
     def _generate_masked(self, x: Tensor, indices: list) -> Tensor:

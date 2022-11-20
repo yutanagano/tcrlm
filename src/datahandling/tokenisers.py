@@ -75,18 +75,19 @@ class CDR3Tokeniser(Tokeniser):
         'Y' -> 22.
 
         :return: Tensor where every column represents an amino acid residue
-            from either the alpha or beta CDR3s. Each column is a 3-dimensional
-            vector where the first element is the amino acid index (as
-            described above), the second element is an integer indicating
-            whether the residue came from the alpha (1) or beta (2) CDR3, and
-            the third element is an integer indicating the residue position
-            within its chain (1-indexed)
+            from either the alpha or beta CDR3s, except the first column is
+            always a <cls> token. Each column is a 3-dimensional vector where
+            the first element is the amino acid / token index (as described
+            above), the second element is an integer indicating whether the
+            residue came from the alpha (1) or beta (2) CDR3, and the third
+            element is an integer indicating the residue position within its
+            chain (1-indexed).
         '''
 
         cdr3a = tcr.loc['CDR3A']
         cdr3b = tcr.loc['CDR3B']
 
-        tokenised = []
+        tokenised = [[2,0,0]]
 
         if notna(cdr3a):
             for i, aa in enumerate(cdr3a):

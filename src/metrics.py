@@ -9,7 +9,6 @@ def alignment(x: Tensor, labels: Tensor, alpha: int = 2):
     Computes alignment between embeddings of instances belonging to the same
     class label, as specified by the labels tensor.
     '''
-
     num_cls = len(labels.unique())
 
     cls_views = [
@@ -28,7 +27,6 @@ def uniformity(x: Tensor, t: int = 2):
     '''
     Computes an empirical estimate of uniformity given background data x.
     '''
-
     sq_pdist = torch.pdist(x, p=2).pow(2)
     return sq_pdist.mul(-t).exp().mean().log()
 
@@ -40,7 +38,6 @@ def mlm_acc(logits: Tensor, y: Tensor, mask: Tensor = None) -> float:
     tokens. If a mask is supplied, then only those residues that fall within
     the area where the mask evaluates to True will be considered.
     '''
-
     final_mask = (y != 0) # ignore any padding tokens
     if mask is not None:
         # combine with supplied mask if exists
@@ -71,7 +68,6 @@ def mlm_topk_acc(
     those residues that fall within the area where the mask evaluates to True
     will be considered.
     '''
-
     final_mask = (y != 0) # ignore any padding tokens
     if mask is not None:
         # combine with supplied mask if exists
@@ -100,7 +96,6 @@ class AdjustedCELoss(CrossEntropyLoss):
     is indexed from 2...X+2 (index 0 and 1 are reserved for the padding and
     masked tokens respectively).
     '''
-
     def __init__( self, label_smoothing: float = 0 ) -> None:
         super().__init__(label_smoothing=label_smoothing, ignore_index=-3)
         # ignore_index is set to -2 here because the padding token, indexed at
