@@ -20,7 +20,7 @@ class BERT_base(MLMEmbedder):
         nhead: int,
         dim_feedforward: int,
         dropout: float = 0.1,
-    ):
+    ) -> None:
         super().__init__()
 
         self.embed_layer = num_encoder_layers - 1
@@ -57,6 +57,10 @@ class BERT_base(MLMEmbedder):
 
 
     def embed(self, x: Tensor) -> Tensor:
+        '''
+        Get the average-pooled, l2-normalised embedding vectors of a given
+        layer.
+        '''
         # Run the input partially through the BERT stack
         padding_mask = (x[:,:,0] == 0)
         x_emb = self.embedder(x)
@@ -65,7 +69,7 @@ class BERT_base(MLMEmbedder):
 
         # Compute the masked average pool
         emb_mask = padding_mask.clone()
-        emb_mask[:,0] = 0
+        emb_mask[:,0] = 1
         x_emb = masked_average_pool(x_emb, padding_mask)
 
         # l2 norm and return

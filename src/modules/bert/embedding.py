@@ -18,7 +18,7 @@ class SinPositionEmbedding(Module):
         num_embeddings: int,
         embedding_dim: int,
         sin_scale_factor: int = 30
-    ):
+    ) -> None:
         assert embedding_dim % 2 == 0
         self._embedding_dim = embedding_dim
 
@@ -58,7 +58,7 @@ class AAEmbedding_c(Module):
         self.embedding_dim = embedding_dim
     
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         return \
             (self.token_embedding(x[:,:,0]) + self.chain_embedding(x[:,:,1])) \
                 * math.sqrt(self.embedding_dim)
@@ -89,7 +89,7 @@ class AAEmbedding_cp(Module):
         self.embedding_dim = embedding_dim
     
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         return \
             (
                 self.token_embedding(x[:,:,0]) +

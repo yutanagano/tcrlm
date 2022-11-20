@@ -6,6 +6,8 @@ CDR3BERT classes
 from src.modules.bert.bert import BERT_base
 from src.modules.bert.embedding import AAEmbedding_c, AAEmbedding_cp
 import torch
+from torch import Tensor
+from torch.nn.functional import normalize
 
 
 class CDR3BERT_c(BERT_base):
@@ -21,7 +23,7 @@ class CDR3BERT_c(BERT_base):
         nhead: int,
         dim_feedforward: int,
         dropout: float = 0.1
-    ):
+    ) -> None:
         super().__init__(
             num_encoder_layers,
             d_model,
@@ -54,7 +56,7 @@ class CDR3BERT_cp(BERT_base):
         nhead: int,
         dim_feedforward: int,
         dropout: float = 0.1
-    ):
+    ) -> None:
         super().__init__(
             num_encoder_layers,
             d_model,
@@ -71,3 +73,25 @@ class CDR3BERT_cp(BERT_base):
     def name(self) -> str:
         return f'CDR3BERT_cp_{self._num_layers}_{self._d_model}_'\
             f'{self._nhead}_{self._dim_feedforward}-embed_{self.embed_layer}'
+
+
+class SimCTE_CDR3BERT_cp(CDR3BERT_cp):
+    '''
+    CDR3SimCTE model that gets amino acid, chain, and residue position
+    information.
+
+    Compatible tokenisers: CDR3Tokeniser
+    '''
+    @property
+    def name(self) -> str:
+        return f'SimCTE_CDR3BERT_cp_{self._num_layers}_{self._d_model}_'\
+            f'{self._nhead}_{self._dim_feedforward}'
+
+
+    def embed(self, x: Tensor) -> Tensor:
+        '''
+        Get the l2-normalised <cls> embeddings of the final layer.
+        '''
+        x_emb = self.forward(x)[0]
+        x_emb = x_emb[:,0,:]
+        return normalize(x_emb, p=2, dim=1)
