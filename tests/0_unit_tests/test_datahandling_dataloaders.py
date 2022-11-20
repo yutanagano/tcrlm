@@ -93,3 +93,20 @@ class TestMLMDataLoader:
         assert masked.size(0) == target.size(0) == 3
         assert masked.size(1) == target.size(1) == 12
         assert masked.size(2) == 3
+
+
+class TestSimCLDataLoader:
+    def test_shapes(self, cdr3t_dataset):
+        dataloader = dataloaders.SimCLDataLoader(
+            dataset=cdr3t_dataset,
+            batch_size=3
+        )
+
+        x, masked, target = next(iter(dataloader))
+
+        assert type(x) == type(masked) == type(target) == torch.Tensor
+        assert x.dim() ==  masked.dim() == 3
+        assert target.dim() == 2
+        assert x.size(0) == masked.size(0) == target.size(0) == 3
+        assert x.size(1) == masked.size(1) == target.size(1) == 12
+        assert x.size(2) == masked.size(2) == 3
