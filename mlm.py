@@ -139,30 +139,31 @@ def mlm(device: Union[str, int], wd: Path, name: str, config: dict):
 
     # Load training data
     print('Loading data...')
-    tokeniser = TOKENISERS[config['tokeniser']]()
+    tokeniser = TOKENISERS[config['data']['tokeniser']]()
     train_dl = MLMDataLoader(
         dataset=TCRDataset(
-            data=config['train_data_path'],
+            data=config['data']['train_path'],
             tokeniser=tokeniser
         ),
         distributed=distributed,
         num_replicas=config['n_gpus'],
         rank=device.index,
-        **config['dataloader_config']
+        **config['data']['dataloader_config']
     )
     valid_dl = MLMDataLoader(
         dataset=TCRDataset(
-            data=config['valid_data_path'],
+            data=config['data']['valid_path'],
             tokeniser=tokeniser
         ),
         p_mask_random=0,
         p_mask_keep=0,
-        **config['dataloader_config']
+        **config['data']['dataloader_config']
     )
 
     # Instantiate model
     print('Instantiating model...')
-    model = MODELS[config['model']](**config['model_config']).to(device)
+    model = MODELS[config['model']['name']](**config['model']['config'])
+    model.to(device)
     if distributed:
         model = DistributedDataParallel(model, device_ids=[device])
 
@@ -170,8 +171,8 @@ def mlm(device: Union[str, int], wd: Path, name: str, config: dict):
     loss_fn = AdjustedCELoss(label_smoothing=0.1)
     optimiser = AdamWithScheduling(
         params=model.parameters(),
-        d_model=config['model_config']['d_model'],
-        **config['optimiser_config']
+        d_model=config['model']['config']['d_model'],
+        **config['optim']['optimiser_config']
     )
 
     metric_log = dict()

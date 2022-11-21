@@ -161,39 +161,45 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
 
     # Load training data
     print('Loading data...')
-    tokeniser = TOKENISERS[config['tokeniser']]()
+    tokeniser = TOKENISERS[config['data']['tokeniser']]()
     train_dl = SimCLDataLoader(
         dataset=TCRDataset(
-            data=config['train_data_path'],
+            data=config['data']['train_path'],
             tokeniser=tokeniser
         ),
         distributed=distributed,
         num_replicas=config['n_gpus'],
         rank=device.index,
-        **config['dataloader_config']
+        **config['data']['dataloader_config']
     )
     valid_dl = SimCLDataLoader(
         dataset=TCRDataset(
-            data=config['valid_data_path'],
+            data=config['data']['valid_path'],
             tokeniser=tokeniser
         ),
         p_mask_random=0,
         p_mask_keep=0,
-        **config['dataloader_config']
+        **config['data']['dataloader_config']
     )
 
     # Instantiate model
     print('Instantiating model...')
-    model = MODELS[config['model']](**config['model_config']).to(device)
-    model.load_state_dict(torch.load(config['pretrain_state_dict_path']))
+    model = MODELS[config['model']['name']](**config['model']['config'])
+    model.to(device)
+    model.load_state_dict(
+        torch.load(config['model']['pretrain_state_dict_path'])
+    )
     if distributed:
         model = DistributedDataParallel(model, device_ids=[device])
     model.train()
 
     # Instantiate loss function and optimiser
     mlm_loss_fn = AdjustedCELoss(label_smoothing=0.1)
-    simc_loss_fn = SimCLoss(**config['simc_loss_config'])
-    optimiser = Adam(params=model.parameters(), **config['optimiser_config'])
+    simc_loss_fn = SimCLoss(**config['optim']['simc_loss_config'])
+    optimiser = Adam(
+        params=model.parameters(),
+        **config['optim']['optimiser_config']
+    )
 
     # Evaluate model at pre-SimC learning state
     print('Evaluating pre-trained model state...')
