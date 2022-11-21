@@ -26,20 +26,26 @@ def simcte_cdr3bert_cp_template():
 
 def get_config(tmp_path: Path, n_gpus: int) -> dict:
     config = {
-        'model': 'SimCTE_CDR3BERT_cp',
-        'model_config': {
-            'num_encoder_layers': 2,
-            'd_model': 4,
-            'nhead': 2,
-            'dim_feedforward': 16
+        'model': {
+            'name': 'SimCTE_CDR3BERT_cp',
+            'config': {
+                'num_encoder_layers': 2,
+                'd_model': 4,
+                'nhead': 2,
+                'dim_feedforward': 16
+            },
+            'pretrain_state_dict_path': str(tmp_path/'state_dict.pt')
         },
-        'pretrain_state_dict_path': str(tmp_path/'state_dict.pt'),
-        'train_data_path': 'tests/resources/mock_data.csv',
-        'valid_data_path': 'tests/resources/mock_data.csv',
-        'tokeniser': 'CDR3Tokeniser',
-        'dataloader_config': {},
-        'simc_loss_config': {'temp': 0.05},
-        'optimiser_config': {'lr': 5e-5},
+        'data': {
+            'train_path': 'tests/resources/mock_data.csv',
+            'valid_path': 'tests/resources/mock_data.csv',
+            'tokeniser': 'CDR3Tokeniser',
+            'dataloader_config': {}
+        },
+        'optim': {
+            'simc_loss_config': {'temp': 0.05},
+            'optimiser_config': {'lr': 5e-5}
+        },
         'n_epochs': 3,
         'n_gpus': n_gpus
     }

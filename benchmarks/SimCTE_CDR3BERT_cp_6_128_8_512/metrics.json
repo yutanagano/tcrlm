@@ -1,6 +1,6 @@
 {
     "model_name": "SimCTE_CDR3BERT_cp_6_128_8_512",
-    "alignment": 1.696187138557434,
-    "uniformity": -3.4342849254608154,
+    "alignment": 1.7611688375473022,
+    "uniformity": -3.4398343563079834,
     "5nn_accuracy": 0.5751789808273315
 }

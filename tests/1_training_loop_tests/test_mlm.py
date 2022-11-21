@@ -26,18 +26,24 @@ def cdr3bert_c_template():
 
 def get_config(n_gpus: int) -> dict:
     config = {
-        'model': 'CDR3BERT_c',
-        'model_config': {
-            'num_encoder_layers': 2,
-            'd_model': 4,
-            'nhead': 2,
-            'dim_feedforward': 16
+        'model': {
+            'name': 'CDR3BERT_c',
+            'config': {
+                'num_encoder_layers': 2,
+                'd_model': 4,
+                'nhead': 2,
+                'dim_feedforward': 16
+            }
         },
-        'train_data_path': 'tests/resources/mock_data.csv',
-        'valid_data_path': 'tests/resources/mock_data.csv',
-        'tokeniser': 'CDR3Tokeniser',
-        'dataloader_config': {},
-        'optimiser_config': {'n_warmup_steps': 10000},
+        'data': {
+            'train_path': 'tests/resources/mock_data.csv',
+            'valid_path': 'tests/resources/mock_data.csv',
+            'tokeniser': 'CDR3Tokeniser',
+            'dataloader_config': {}
+        },
+        'optim': {
+            'optimiser_config': {'n_warmup_steps': 10000},
+        },
         'n_epochs': 3,
         'n_gpus': n_gpus
     }
