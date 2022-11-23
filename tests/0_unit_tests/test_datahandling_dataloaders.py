@@ -1,6 +1,6 @@
 from src.datahandling import dataloaders
 import torch
-from torch.utils.data import BatchSampler, RandomSampler
+from torch.utils.data import BatchSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
 
@@ -14,7 +14,7 @@ class TestTCRDataLoader:
 
         assert dataloader.dataset == cdr3t_dataset
         assert dataloader.batch_size == 3
-        assert type(dataloader.sampler) == RandomSampler
+        assert type(dataloader.sampler) == SequentialSampler
         assert dataloader.sampler.data_source == cdr3t_dataset
         assert type(dataloader.batch_sampler) == BatchSampler
         assert dataloader.batch_sampler.sampler == dataloader.sampler
@@ -38,7 +38,7 @@ class TestTCRDataLoader:
         assert dataloader.sampler.dataset == cdr3t_dataset
         assert dataloader.sampler.num_replicas == 2
         assert dataloader.sampler.rank == 0
-        assert dataloader.sampler.shuffle == True
+        assert dataloader.sampler.shuffle == False
         assert dataloader.sampler.seed == 0
         assert type(dataloader.batch_sampler) == BatchSampler
         assert dataloader.batch_sampler.sampler == dataloader.sampler
@@ -96,17 +96,20 @@ class TestMLMDataLoader:
 
 
 class TestSimCLDataLoader:
-    def test_shapes(self, cdr3t_dataset):
+    def test_shapes(self, cdr3t_simcl_dataset):
         dataloader = dataloaders.SimCLDataLoader(
-            dataset=cdr3t_dataset,
+            dataset=cdr3t_simcl_dataset,
             batch_size=3
         )
 
-        x, masked, target = next(iter(dataloader))
+        x, x_prime, masked, target = next(iter(dataloader))
 
-        assert type(x) == type(masked) == type(target) == torch.Tensor
-        assert x.dim() ==  masked.dim() == 3
+        assert type(x) == type(x_prime) == type(masked) == type(target)\
+            == torch.Tensor
+        assert x.dim() ==  x_prime.dim() == masked.dim() == 3
         assert target.dim() == 2
-        assert x.size(0) == masked.size(0) == target.size(0) == 3
-        assert x.size(1) == masked.size(1) == target.size(1) == 12
-        assert x.size(2) == masked.size(2) == 3
+        assert x.size(0) == x_prime.size(0)\
+            == masked.size(0) == target.size(0) == 3
+        assert x.size(1) == x_prime.size(1)\
+            == masked.size(1) == target.size(1) == 12
+        assert x.size(2) == x_prime.size(2) == masked.size(2) == 3

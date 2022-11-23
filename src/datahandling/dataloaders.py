@@ -21,7 +21,7 @@ class TCRDataLoader(DataLoader):
         self,
         dataset: TCRDataset,
         batch_size: Optional[int] = 1,
-        shuffle: bool = True,
+        shuffle: bool = False,
         num_workers: int = 0,
         distributed: bool = False,
         num_replicas: Optional[int] = None,
@@ -107,7 +107,7 @@ class MLMDataLoader(TCRDataLoader):
         self,
         dataset: TCRDataset,
         batch_size: Optional[int] = 1,
-        shuffle: bool = True,
+        shuffle: bool = False,
         num_workers: int = 0,
         distributed: bool = False,
         num_replicas: Optional[int] = None,
@@ -207,9 +207,9 @@ class MLMDataLoader(TCRDataLoader):
 
 class SimCLDataLoader(MLMDataLoader):
     '''
-    Dataloader for concurrent MLM and contrastive learning.
+    Dataloader for unsupervised contrastive loss training.
     '''
     def collate_fn(self, batch) -> Union[Tuple[Tensor], Tensor]:
-        batch = [(x, *self._make_mlm_pair(x)) for x in batch]
+        batch = [(x, x_prime, *self._make_mlm_pair(x)) for x, x_prime in batch]
 
         return super(MLMDataLoader, self).collate_fn(batch)
