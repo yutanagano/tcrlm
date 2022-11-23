@@ -12,7 +12,7 @@ from src import modules
 from src.modules.embedder import MLMEmbedder
 from src.datahandling import tokenisers
 from src.datahandling.dataloaders import SimCLDataLoader
-from src.datahandling.datasets import TCRDataset
+from src.datahandling import datasets
 from src.metrics import AdjustedCELoss, SimCLoss, alignment_paired, uniformity
 from src.utils import save
 import torch
@@ -31,6 +31,10 @@ MODELS = {
 
 TOKENISERS = {
     'CDR3Tokeniser': tokenisers.CDR3Tokeniser
+}
+DATASETS = {
+    'UnsupervisedSimCLDataset': datasets.UnsupervisedSimCLDataset,
+    'SupervisedSimCLDataset': datasets.SupervisedSimCLDataset
 }
 
 
@@ -71,16 +75,17 @@ def train(
     total_simc_loss = 0
     divisor = 0
 
-    for x, masked, target in tqdm(dl):
+    for x, x_prime, masked, target in tqdm(dl):
         num_samples = len(x)
 
         x = x.to(device)
+        x_prime = x_prime.to(device)
         masked = masked.to(device)
         target = target.to(device)
 
         mlm_logits = model.mlm(masked)
         z = model.embed(x)
-        z_prime = model.embed(x)
+        z_prime = model.embed(x_prime)
 
         optimiser.zero_grad()
         mlm_loss = mlm_loss_fn(mlm_logits.flatten(0,1), target.view(-1))
@@ -116,16 +121,17 @@ def validate(
     total_unf = 0
     divisor = 0
 
-    for x, masked, target in tqdm(dl):
+    for x, x_prime, masked, target in tqdm(dl):
         num_samples = len(x)
 
         x = x.to(device)
+        x_prime = x_prime.to(device)
         masked = masked.to(device)
         target = target.to(device)
 
         mlm_logits = model.mlm(masked)
         z = model.embed(x)
-        z_prime = model.embed(x)
+        z_prime = model.embed(x_prime)
 
         mlm_loss = mlm_loss_fn(mlm_logits.flatten(0,1), target.view(-1))
         simc_loss = simc_loss_fn(z, z_prime)
@@ -163,7 +169,7 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
     print('Loading data...')
     tokeniser = TOKENISERS[config['data']['tokeniser']]()
     train_dl = SimCLDataLoader(
-        dataset=TCRDataset(
+        dataset=DATASETS[config['data']['dataset']](
             data=config['data']['train_path'],
             tokeniser=tokeniser
         ),
@@ -173,7 +179,7 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
         **config['data']['dataloader_config']
     )
     valid_dl = SimCLDataLoader(
-        dataset=TCRDataset(
+        dataset=DATASETS[config['data']['dataset']](
             data=config['data']['valid_path'],
             tokeniser=tokeniser
         ),
