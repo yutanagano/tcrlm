@@ -54,7 +54,51 @@ class TestTcrDataset:
         assert len(tcr_dataset) == len(mock_data_df)
 
 
-    def test_getitem(self, tcr_dataset, mock_data_df):
+    def test_getitem(self, tcr_dataset):
         random_index = random.randrange(0, len(tcr_dataset))
 
         assert tcr_dataset[random_index] == random_index
+
+
+class TestUnsupervisedSimCLDataset:
+    def test_getitem(self, mock_data_df, dummy_tokeniser):
+        dataset = datasets.UnsupervisedSimCLDataset(
+            data=mock_data_df,
+            tokeniser=dummy_tokeniser
+        )
+
+        random_index = random.randrange(0, len(dataset))
+
+        assert dataset[random_index] == (random_index, random_index)
+
+
+class TestSupervisedSimCLDataset:
+    def test_len(self, mock_data_df, dummy_tokeniser):
+        dataset = datasets.SupervisedSimCLDataset(
+            data=mock_data_df,
+            tokeniser=dummy_tokeniser
+        )
+        assert len(dataset) == 4
+
+
+    def test_getitem(self, mock_data_df, dummy_tokeniser):
+        dataset = datasets.SupervisedSimCLDataset(
+            data=mock_data_df,
+            tokeniser=dummy_tokeniser
+        )
+
+        x, x_prime = dataset[0]
+        assert x == 0
+        assert x_prime in (0, 1)
+
+        x, x_prime = dataset[1]
+        assert x == 2
+        assert x_prime == 2
+
+        x, x_prime = dataset[2]
+        assert x == 1
+        assert x_prime in (0, 1)
+
+        x, x_prime = dataset[3]
+        assert x == 2
+        assert x_prime == 2

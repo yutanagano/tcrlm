@@ -40,6 +40,7 @@ def get_config(tmp_path: Path, n_gpus: int) -> dict:
             'train_path': 'tests/resources/mock_data.csv',
             'valid_path': 'tests/resources/mock_data.csv',
             'tokeniser': 'CDR3Tokeniser',
+            'dataset': 'UnsupervisedSimCLDataset',
             'dataloader_config': {}
         },
         'optim': {
