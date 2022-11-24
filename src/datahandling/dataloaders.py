@@ -4,7 +4,7 @@ Custom dataloader classes.
 
 
 import random
-from src.datahandling.datasets import TCRDataset
+from src.datahandling import datasets
 import torch
 from torch import Tensor
 from torch.nn.utils.rnn import pad_sequence
@@ -19,7 +19,7 @@ class TCRDataLoader(DataLoader):
     '''
     def __init__(
         self,
-        dataset: TCRDataset,
+        dataset: datasets.TCRDataset,
         batch_size: Optional[int] = 1,
         shuffle: bool = False,
         num_workers: int = 0,
@@ -71,7 +71,7 @@ class TCRDataLoader(DataLoader):
 
     def _define_sampling(
         self,
-        dataset: TCRDataset,
+        dataset: datasets.TCRDataset,
         batch_size: int,
         shuffle: bool,
         distributed: bool,
@@ -105,7 +105,7 @@ class MLMDataLoader(TCRDataLoader):
     '''
     def __init__(
         self,
-        dataset: TCRDataset,
+        dataset: datasets.TCRDataset,
         batch_size: Optional[int] = 1,
         shuffle: bool = False,
         num_workers: int = 0,
@@ -205,7 +205,7 @@ class MLMDataLoader(TCRDataLoader):
         return super().collate_fn(batch)
 
 
-class SimCLDataLoader(MLMDataLoader):
+class UnsupervisedSimCLDataLoader(MLMDataLoader):
     '''
     Dataloader for unsupervised contrastive loss training.
     '''
@@ -213,3 +213,31 @@ class SimCLDataLoader(MLMDataLoader):
         batch = [(x, x_prime, *self._make_mlm_pair(x)) for x, x_prime in batch]
 
         return super(MLMDataLoader, self).collate_fn(batch)
+
+
+class SupervisedSimCLDataLoader(UnsupervisedSimCLDataLoader):
+    def __init__(
+        self,
+        dataset: datasets.SupervisedSimCLDataset,
+        shuffle: bool = False,
+        num_workers: int = 0,
+        distributed: bool = False,
+        num_replicas: Optional[int] = None,
+        rank: Optional[int] = None,
+        p_mask: float = 0.15,
+        p_mask_random: float = 0.1,
+        p_mask_keep: float = 0.1
+    ):
+        batch_size = dataset._num_epitopes
+        super().__init__(
+            dataset,
+            batch_size,
+            shuffle,
+            num_workers,
+            distributed,
+            num_replicas,
+            rank,
+            p_mask,
+            p_mask_random,
+            p_mask_keep
+        )
