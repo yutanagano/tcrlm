@@ -1,7 +1,7 @@
 import pandas as pd
 from pathlib import Path
 import pytest
-from src.datahandling.datasets import TCRDataset, UnsupervisedSimCLDataset
+from src.datahandling import datasets
 from src.datahandling.tokenisers import CDR3Tokeniser
 
 
@@ -32,7 +32,7 @@ def mock_data_df(mock_data_path):
 
 @pytest.fixture
 def cdr3t_dataset(mock_data_path):
-    dataset = TCRDataset(
+    dataset = datasets.TCRDataset(
         data=mock_data_path,
         tokeniser=CDR3Tokeniser()
     )
@@ -41,8 +41,18 @@ def cdr3t_dataset(mock_data_path):
 
 
 @pytest.fixture
-def cdr3t_simcl_dataset(mock_data_path):
-    dataset = UnsupervisedSimCLDataset(
+def cdr3t_unsupsimcl_dataset(mock_data_path):
+    dataset = datasets.UnsupervisedSimCLDataset(
+        data=mock_data_path,
+        tokeniser=CDR3Tokeniser()
+    )
+
+    return dataset
+
+
+@pytest.fixture
+def cdr3t_supsimcl_dataset(mock_data_path):
+    dataset = datasets.SupervisedSimCLDataset(
         data=mock_data_path,
         tokeniser=CDR3Tokeniser()
     )

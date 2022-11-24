@@ -11,8 +11,14 @@ from pathlib import Path
 from src import modules
 from src.modules.embedder import MLMEmbedder
 from src.datahandling import tokenisers
-from src.datahandling.dataloaders import SimCLDataLoader
-from src.datahandling import datasets
+from src.datahandling.dataloaders import (
+    UnsupervisedSimCLDataLoader,
+    SupervisedSimCLDataLoader
+)
+from src.datahandling.datasets import (
+    UnsupervisedSimCLDataset,
+    SupervisedSimCLDataset
+)
 from src.metrics import AdjustedCELoss, SimCLoss, alignment_paired, uniformity
 from src.utils import save
 import torch
@@ -33,8 +39,12 @@ TOKENISERS = {
     'CDR3Tokeniser': tokenisers.CDR3Tokeniser
 }
 DATASETS = {
-    'UnsupervisedSimCLDataset': datasets.UnsupervisedSimCLDataset,
-    'SupervisedSimCLDataset': datasets.SupervisedSimCLDataset
+    'UnsupervisedSimCLDataset': UnsupervisedSimCLDataset,
+    'SupervisedSimCLDataset': SupervisedSimCLDataset
+}
+DATALOADERS = {
+    'UnsupervisedSimCLDataLoader': UnsupervisedSimCLDataLoader,
+    'SupervisedSimCLDataLoader': SupervisedSimCLDataLoader
 }
 
 
@@ -65,44 +75,34 @@ def metric_feedback(metrics: dict) -> None:
 def train(
     model: MLMEmbedder,
     dl: DataLoader,
-    mlm_loss_fn,
     simc_loss_fn,
     optimiser,
     device
 ) -> dict:
+    model.train()
+
     total_loss = 0
-    total_mlm_loss = 0
-    total_simc_loss = 0
     divisor = 0
 
-    for x, x_prime, masked, target in tqdm(dl):
+    for x, x_prime, _, _ in tqdm(dl):
         num_samples = len(x)
 
         x = x.to(device)
         x_prime = x_prime.to(device)
-        masked = masked.to(device)
-        target = target.to(device)
 
-        mlm_logits = model.mlm(masked)
         z = model.embed(x)
         z_prime = model.embed(x_prime)
 
         optimiser.zero_grad()
-        mlm_loss = mlm_loss_fn(mlm_logits.flatten(0,1), target.view(-1))
-        simc_loss = simc_loss_fn(z, z_prime)
-        loss = mlm_loss + simc_loss
+        loss = simc_loss_fn(z, z_prime)
         loss.backward()
         optimiser.step()
 
         total_loss += loss.item() * num_samples
-        total_mlm_loss += mlm_loss.item() * num_samples
-        total_simc_loss += simc_loss.item() * num_samples
         divisor += num_samples
 
     return {
-        'loss': total_loss / divisor,
-        'mlm_loss': total_mlm_loss / divisor,
-        'simc_loss': total_simc_loss / divisor
+        'loss': total_loss / divisor
     }
 
 
@@ -114,9 +114,11 @@ def validate(
     simc_loss_fn,
     device
 ) -> dict:
+    if isinstance(dl, SupervisedSimCLDataLoader):
+        model.eval()
+
     total_loss = 0
     total_mlm_loss = 0
-    total_simc_loss = 0
     total_aln = 0
     total_unf = 0
     divisor = 0
@@ -133,13 +135,11 @@ def validate(
         z = model.embed(x)
         z_prime = model.embed(x_prime)
 
+        loss = simc_loss_fn(z, z_prime)
         mlm_loss = mlm_loss_fn(mlm_logits.flatten(0,1), target.view(-1))
-        simc_loss = simc_loss_fn(z, z_prime)
-        loss = mlm_loss + simc_loss
 
         total_loss += loss.item() * num_samples
         total_mlm_loss += mlm_loss.item() * num_samples
-        total_simc_loss += simc_loss.item() * num_samples
         total_aln += alignment_paired(z, z_prime, alpha=2).item() * num_samples
         total_unf += uniformity(z, t=2).item() * num_samples
         divisor += num_samples
@@ -147,7 +147,6 @@ def validate(
     return {
         'valid_loss': total_loss / divisor,
         'valid_mlm_loss': total_mlm_loss / divisor,
-        'valid_simc_loss': total_simc_loss / divisor,
         'valid_aln': total_aln / divisor,
         'valid_unf': total_unf / divisor
     }
@@ -168,7 +167,7 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
     # Load training data
     print('Loading data...')
     tokeniser = TOKENISERS[config['data']['tokeniser']]()
-    train_dl = SimCLDataLoader(
+    train_dl = DATALOADERS[config['data']['dataloader']['name']](
         dataset=DATASETS[config['data']['dataset']](
             data=config['data']['train_path'],
             tokeniser=tokeniser
@@ -176,16 +175,16 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
         distributed=distributed,
         num_replicas=config['n_gpus'],
         rank=device.index,
-        **config['data']['dataloader_config']
+        **config['data']['dataloader']['config']
     )
-    valid_dl = SimCLDataLoader(
+    valid_dl = DATALOADERS[config['data']['dataloader']['name']](
         dataset=DATASETS[config['data']['dataset']](
             data=config['data']['valid_path'],
             tokeniser=tokeniser
         ),
         p_mask_random=0,
         p_mask_keep=0,
-        **config['data']['dataloader_config']
+        **config['data']['dataloader']['config']
     )
 
     # Instantiate model
@@ -197,11 +196,10 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
     )
     if distributed:
         model = DistributedDataParallel(model, device_ids=[device])
-    model.train()
 
     # Instantiate loss function and optimiser
     mlm_loss_fn = AdjustedCELoss(label_smoothing=0.1)
-    simc_loss_fn = SimCLoss(**config['optim']['simc_loss_config'])
+    simc_loss_fn = SimCLoss(**config['optim']['loss_config'])
     optimiser = Adam(
         params=model.parameters(),
         **config['optim']['optimiser_config']
@@ -219,7 +217,7 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
     metric_feedback(valid_metrics)
 
     metric_log = {
-        0: {'loss': None, 'mlm_loss': None, 'simc_loss': None, **valid_metrics}
+        0: {'loss': None, **valid_metrics}
     }
 
     # Go through epochs of training
@@ -233,7 +231,6 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
         train_metrics = train(
             model=model,
             dl=train_dl,
-            mlm_loss_fn=mlm_loss_fn,
             simc_loss_fn=simc_loss_fn,
             optimiser=optimiser,
             device=device
