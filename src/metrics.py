@@ -7,7 +7,8 @@ from torch.nn import functional as F
 def alignment(z: Tensor, labels: Tensor, alpha: int = 2) -> Tensor:
     '''
     Computes alignment between embeddings of instances belonging to the same
-    class label, as specified by the labels tensor.
+    class label, as specified by the labels tensor. It is assumed that the
+    probability of getting TCRs against any epitope is equal.
     '''
     num_cls = len(labels.unique())
 
