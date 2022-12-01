@@ -1,0 +1,7 @@
+{
+    "model_name": "SupSimCTE_CDR3BERT_cp_6_128_8_512",
+    "alignment": 0.4349822402000427,
+    "uniformity": -0.4029633700847626,
+    "alignment + uniformity": 0.03201887011528015,
+    "5nn_accuracy": 0.5760869383811951
+}
