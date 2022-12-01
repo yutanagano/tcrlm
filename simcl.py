@@ -140,8 +140,8 @@ def validate(
 
         total_loss += loss.item() * num_samples
         total_mlm_loss += mlm_loss.item() * num_samples
-        total_aln += alignment_paired(z, z_prime, alpha=2).item() * num_samples
-        total_unf += uniformity(z, t=2).item() * num_samples
+        total_aln += alignment_paired(z, z_prime).item() * num_samples
+        total_unf += uniformity(z).item() * num_samples
         divisor += num_samples
 
     return {
