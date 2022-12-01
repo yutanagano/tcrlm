@@ -272,7 +272,6 @@ def main(wd: Path, name: str, config: dict):
             f'Commencing distributed training on {config["n_gpus"]} CUDA '
             'devices...'
         )
-        assert torch.cuda.device_count() > config["n_gpus"]
         os.environ['MASTER_ADDR'] = 'localhost'
         os.environ['MASTER_PORT'] = '77777'
         mp.spawn(simcl, args=(wd, name, config), nprocs=config['n_gpus'])
