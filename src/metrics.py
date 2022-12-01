@@ -4,7 +4,7 @@ from torch.nn import CrossEntropyLoss, Module
 from torch.nn import functional as F
 
 
-def alignment(z: Tensor, labels: Tensor, alpha: int = 2) -> Tensor:
+def alignment(z: Tensor, labels: Tensor) -> Tensor:
     '''
     Computes alignment between embeddings of instances belonging to the same
     class label, as specified by the labels tensor. It is assumed that the
@@ -17,26 +17,26 @@ def alignment(z: Tensor, labels: Tensor, alpha: int = 2) -> Tensor:
         for cls_code in range(num_cls)
     ]
 
-    cls_pdists = torch.concat(
-        [torch.pdist(cls_view, p=2).pow(alpha) for cls_view in cls_views]
+    cls_pdists = torch.stack(
+        [torch.pdist(cls_view, p=2).mean() for cls_view in cls_views]
     )
 
     return cls_pdists.mean()
 
 
-def alignment_paired(z: Tensor, z_prime: Tensor, alpha: int = 2) -> Tensor:
+def alignment_paired(z: Tensor, z_prime: Tensor) -> Tensor:
     '''
     Computes alignment between pairs of known positive-pair embeddings.
     '''
-    return (z - z_prime).norm(dim=1).pow(alpha).mean()
+    return (z - z_prime).norm(dim=1).mean()
 
 
-def uniformity(z: Tensor, t: int = 2) -> Tensor:
+def uniformity(z: Tensor) -> Tensor:
     '''
     Computes an empirical estimate of uniformity given background data x.
     '''
-    sq_pdist = torch.pdist(z, p=2).pow(2)
-    return sq_pdist.mul(-t).exp().mean().log()
+    sq_pdist = -torch.pdist(z, p=2)
+    return sq_pdist.exp().mean().log()
 
 
 @torch.no_grad()
