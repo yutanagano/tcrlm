@@ -9,6 +9,7 @@ from pathlib import Path
 import torch
 from torch import Tensor
 from torch.nn import Module
+from torch.nn.parallel import DistributedDataParallel
 
 
 def masked_average_pool(
@@ -73,6 +74,8 @@ def save(
     save_dir = model_saves_dir/save_name
 
     # Save model
+    if isinstance(model, DistributedDataParallel):
+        model = model.module
     torch.save(model.state_dict(), save_dir/'state_dict.pt')
 
     # Save log
