@@ -273,7 +273,7 @@ def main(wd: Path, name: str, config: dict):
             'devices...'
         )
         os.environ['MASTER_ADDR'] = 'localhost'
-        os.environ['MASTER_PORT'] = '77777'
+        os.environ['MASTER_PORT'] = '51777'
         mp.spawn(simcl, args=(wd, name, config), nprocs=config['n_gpus'])
         return
 
