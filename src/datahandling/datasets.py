@@ -62,7 +62,13 @@ class UnsupervisedSimCLDataset(TCRDataset):
     Dataset for producing unsupervised contrastive loss pairs (x = x_prime).
     '''
     def __getitem__(self, index) -> any:
-        return (super().__getitem__(index), super().__getitem__(index))
+        x = self._tokeniser.tokenise(self._data.iloc[index])
+        x_prime = self._tokeniser.tokenise(
+            self._data.iloc[index],
+            chain=random.choice(('both', 'alpha', 'beta'))
+        )
+
+        return (x, x_prime)
 
 
 class SupervisedSimCLDataset(TCRDataset):

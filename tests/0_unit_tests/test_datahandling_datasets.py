@@ -15,8 +15,8 @@ def dummy_tokeniser():
         def vocab_size(self) -> int:
             return 0
 
-        def tokenise(self, x):
-            return x.name
+        def tokenise(self, tcr, chain: str = 'both'):
+            return (tcr.name, chain)
     
     return DummyTokeniser()
 
@@ -57,7 +57,7 @@ class TestTcrDataset:
     def test_getitem(self, tcr_dataset):
         random_index = random.randrange(0, len(tcr_dataset))
 
-        assert tcr_dataset[random_index] == random_index
+        assert tcr_dataset[random_index] == (random_index, 'both')
 
 
 class TestUnsupervisedSimCLDataset:
@@ -69,8 +69,10 @@ class TestUnsupervisedSimCLDataset:
 
         random_index = random.randrange(0, len(dataset))
 
-        assert dataset[random_index] == (random_index, random_index)
-
+        x, x_prime = dataset[random_index]
+        assert x == (random_index, 'both')
+        assert x_prime[0] == random_index
+        assert x_prime[1] in ('both', 'alpha', 'beta')
 
 class TestSupervisedSimCLDataset:
     def test_len(self, mock_data_df, dummy_tokeniser):
@@ -88,17 +90,21 @@ class TestSupervisedSimCLDataset:
         )
 
         x, x_prime = dataset[0]
-        assert x == 0
-        assert x_prime in (0, 1)
+        assert x == (0, 'both')
+        assert x_prime[0] in (0, 1)
+        assert x_prime[1] == 'both'
 
         x, x_prime = dataset[1]
-        assert x == 2
-        assert x_prime == 2
+        assert x == (2, 'both')
+        assert x_prime[0] == 2
+        assert x_prime[1] == 'both'
 
         x, x_prime = dataset[2]
-        assert x == 1
-        assert x_prime in (0, 1)
+        assert x == (1, 'both')
+        assert x_prime[0] in (0, 1)
+        assert x_prime[1] == 'both'
 
         x, x_prime = dataset[3]
-        assert x == 2
-        assert x_prime == 2
+        assert x == (2, 'both')
+        assert x_prime[0] == 2
+        assert x_prime[1] == 'both'
