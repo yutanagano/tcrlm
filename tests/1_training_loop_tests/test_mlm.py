@@ -36,7 +36,9 @@ def get_config(gpu: bool) -> dict:
             'train_path': 'tests/resources/mock_data.csv',
             'valid_path': 'tests/resources/mock_data.csv',
             'tokeniser': 'CDR3Tokeniser',
-            'dataloader_config': {}
+            'dataloader': {
+                'config': {}
+            }
         },
         'optim': {
             'optimiser_config': {'n_warmup_steps': 10000},
