@@ -10,9 +10,6 @@ from torch.nn import Module
 from warnings import warn
 
 
-mp.set_start_method('spawn')
-
-
 @pytest.fixture
 def cdr3bert_c_template():
     model = CDR3BERT_c(
@@ -24,7 +21,7 @@ def cdr3bert_c_template():
     return model
 
 
-def get_config(n_gpus: int) -> dict:
+def get_config(gpu: bool) -> dict:
     config = {
         'model': {
             'name': 'CDR3BERT_c',
@@ -45,7 +42,7 @@ def get_config(n_gpus: int) -> dict:
             'optimiser_config': {'n_warmup_steps': 10000},
         },
         'n_epochs': 3,
-        'n_gpus': n_gpus
+        'gpu': gpu
     }
     return config
 
@@ -87,19 +84,15 @@ def config_saved(save_path: Path, config_template: dict) -> bool:
 
 class TestMLM:
     @pytest.mark.parametrize(
-        'n_gpus', (0, 1, 2)
+        'gpu', (False, True)
     )
-    def test_mlm(self, cdr3bert_c_template, tmp_path, n_gpus):
-        if n_gpus == 1 and not torch.cuda.is_available():
+    def test_mlm(self, cdr3bert_c_template, tmp_path, gpu):
+        if gpu and not torch.cuda.is_available():
             warn('MLM GPU test skipped due to hardware limitations.')
-            return
-        
-        if n_gpus == 2 and torch.cuda.device_count() < 2:
-            warn('MLM distributed test skipped due to hardware limitations.')
             return
 
         # Set up config
-        config = get_config(n_gpus)
+        config = get_config(gpu)
 
         # Run MLM training loop in separate process
         p = mp.Process(

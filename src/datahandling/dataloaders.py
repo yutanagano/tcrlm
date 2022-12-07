@@ -9,7 +9,6 @@ import torch
 from torch import Tensor
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
 from typing import Optional, Tuple, Union
 
 
@@ -21,26 +20,15 @@ class TCRDataLoader(DataLoader):
         self,
         dataset: datasets.TCRDataset,
         batch_size: Optional[int] = 1,
-        shuffle: bool = False,
-        num_workers: int = 0,
-        distributed: bool = False,
-        num_replicas: Optional[int] = None,
-        rank: Optional[int] = None
+        shuffle: bool = True,
+        num_workers: int = 0
     ):
-        sampling_settings = self._define_sampling(
+        super().__init__(
             dataset=dataset,
             batch_size=batch_size,
             shuffle=shuffle,
-            distributed=distributed,
-            num_replicas=num_replicas,
-            rank=rank
-        )
-
-        super().__init__(
-            dataset=dataset,
             num_workers=num_workers,
-            collate_fn=self.collate_fn,
-            **sampling_settings
+            collate_fn=self.collate_fn
         )
 
 
@@ -69,36 +57,6 @@ class TCRDataLoader(DataLoader):
         )
 
 
-    def _define_sampling(
-        self,
-        dataset: datasets.TCRDataset,
-        batch_size: int,
-        shuffle: bool,
-        distributed: bool,
-        num_replicas: Optional[int],
-        rank: Optional[int]
-    ) -> dict:
-        if distributed:
-            assert not (num_replicas is None or rank is None)
-            return {
-                'batch_size': batch_size,
-                'shuffle': None,
-                'sampler': DistributedSampler(
-                    dataset=dataset,
-                    num_replicas=num_replicas,
-                    rank=rank,
-                    shuffle=shuffle,
-                    seed=0
-                )
-            }
-        
-        return {
-            'batch_size': batch_size,
-            'shuffle': shuffle,
-            'sampler': None
-        }
-
-
 class MLMDataLoader(TCRDataLoader):
     '''
     Masked-language modelling dataloader class.
@@ -107,11 +65,8 @@ class MLMDataLoader(TCRDataLoader):
         self,
         dataset: datasets.TCRDataset,
         batch_size: Optional[int] = 1,
-        shuffle: bool = False,
+        shuffle: bool = True,
         num_workers: int = 0,
-        distributed: bool = False,
-        num_replicas: Optional[int] = None,
-        rank: Optional[int] = None,
         p_mask: float = 0.15,
         p_mask_random: float = 0.1,
         p_mask_keep: float = 0.1
@@ -138,10 +93,7 @@ class MLMDataLoader(TCRDataLoader):
             dataset,
             batch_size,
             shuffle,
-            num_workers,
-            distributed,
-            num_replicas,
-            rank
+            num_workers
         )
 
         self._vocabulary = set(range(3, dataset._tokeniser.vocab_size+3))
@@ -219,11 +171,7 @@ class SupervisedSimCLDataLoader(UnsupervisedSimCLDataLoader):
     def __init__(
         self,
         dataset: datasets.SupervisedSimCLDataset,
-        shuffle: bool = False,
         num_workers: int = 0,
-        distributed: bool = False,
-        num_replicas: Optional[int] = None,
-        rank: Optional[int] = None,
         p_mask: float = 0.15,
         p_mask_random: float = 0.1,
         p_mask_keep: float = 0.1
@@ -232,11 +180,8 @@ class SupervisedSimCLDataLoader(UnsupervisedSimCLDataLoader):
         super().__init__(
             dataset,
             batch_size,
-            shuffle,
+            False,
             num_workers,
-            distributed,
-            num_replicas,
-            rank,
             p_mask,
             p_mask_random,
             p_mask_keep
