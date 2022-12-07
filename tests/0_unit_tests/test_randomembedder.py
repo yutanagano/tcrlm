@@ -1,7 +1,6 @@
 import pytest
 from src.datahandling.dataloaders import TCRDataLoader
 from src.modules import RandomEmbedder
-import torch
 
 
 @pytest.fixture
@@ -10,7 +9,7 @@ def cdr3t_dataloader(cdr3t_dataset):
     return dl
 
 
-class TestAtchleyEmbedder:
+class TestRandomEmbedder:
     def test_embed(self, cdr3t_dataloader):
         embedder = RandomEmbedder(dim=5)
 

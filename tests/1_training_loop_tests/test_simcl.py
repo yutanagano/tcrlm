@@ -10,9 +10,6 @@ from torch.nn import Module
 from warnings import warn
 
 
-mp.set_start_method('spawn')
-
-
 @pytest.fixture
 def simcte_cdr3bert_cp_template():
     model = SimCTE_CDR3BERT_cp(
@@ -24,7 +21,7 @@ def simcte_cdr3bert_cp_template():
     return model
 
 
-def get_config(tmp_path: Path, n_gpus: int) -> dict:
+def get_config(tmp_path: Path, gpu: bool) -> dict:
     config = {
         'model': {
             'name': 'SimCTE_CDR3BERT_cp',
@@ -51,7 +48,7 @@ def get_config(tmp_path: Path, n_gpus: int) -> dict:
             'optimiser_config': {'lr': 5e-5}
         },
         'n_epochs': 3,
-        'n_gpus': n_gpus
+        'gpu': gpu
     }
     return config
 
@@ -93,19 +90,15 @@ def config_saved(save_path: Path, config_template: dict) -> bool:
 
 class TestSimCL:
     @pytest.mark.parametrize(
-        'n_gpus', (0, 1, 2)
+        'gpu', (False, True)
     )
-    def test_simcl(self, simcte_cdr3bert_cp_template, tmp_path, n_gpus):
-        if n_gpus == 1 and not torch.cuda.is_available():
+    def test_simcl(self, simcte_cdr3bert_cp_template, tmp_path, gpu):
+        if gpu and not torch.cuda.is_available():
             warn('MLM GPU test skipped due to hardware limitations.')
-            return
-        
-        if n_gpus == 2 and torch.cuda.device_count() < 2:
-            warn('MLM distributed test skipped due to hardware limitations.')
             return
 
         # Set up config
-        config = get_config(tmp_path, n_gpus)
+        config = get_config(tmp_path, gpu)
 
         # Copy toy state_dict into tmp_path
         torch.save(
