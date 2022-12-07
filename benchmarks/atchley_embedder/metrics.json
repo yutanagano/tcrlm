@@ -1,7 +1,7 @@
 {
     "model_name": "atchley_embedder",
-    "alignment": 0.9553401470184326,
-    "uniformity": -0.9898841381072998,
-    "alignment + uniformity": -0.03454399108886719,
-    "5nn_accuracy": 0.385869562625885
+    "alignment": 0.9728701114654541,
+    "uniformity": -0.9898840188980103,
+    "alignment + uniformity": -0.017013907432556152,
+    "5nn_accuracy": 0.12208333611488342
 }

@@ -1,7 +1,7 @@
 {
     "model_name": "random_embedder_2",
-    "alignment": 0.2585636377334595,
-    "uniformity": -0.443316251039505,
-    "alignment + uniformity": -0.18475261330604553,
-    "5nn_accuracy": 0.45652174949645996
+    "alignment": 0.11779222637414932,
+    "uniformity": -0.21987345814704895,
+    "alignment + uniformity": -0.10208123177289963,
+    "5nn_accuracy": 0.07124999910593033
 }
