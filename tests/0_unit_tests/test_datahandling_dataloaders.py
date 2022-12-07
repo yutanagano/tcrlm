@@ -85,8 +85,8 @@ class TestUnsupervisedSimCLDataLoader:
         assert target.dim() == 2
         assert x.size(0) == x_prime.size(0)\
             == masked.size(0) == target.size(0) == 3
-        assert x.size(1) == x_prime.size(1)\
-            == masked.size(1) == target.size(1) == 12
+        assert x.size(1) == masked.size(1) == target.size(1) == 12
+        assert x_prime.size(1) in (6, 7, 12)
         assert x.size(2) == x_prime.size(2) == masked.size(2) == 3
 
 
