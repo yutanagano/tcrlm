@@ -6,7 +6,6 @@ An executable script to conduct simple contrastive learning on TCR models.
 import argparse
 from datetime import datetime
 import json
-import os
 from pathlib import Path
 from src import modules
 from src.modules.embedder import MLMEmbedder
@@ -22,9 +21,6 @@ from src.datahandling.datasets import (
 from src.metrics import AdjustedCELoss, SimCLoss, alignment_paired, uniformity
 from src.utils import save
 import torch
-from torch import multiprocessing as mp
-from torch import distributed as dist
-from torch.nn.parallel import DistributedDataParallel
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -153,16 +149,7 @@ def validate(
 
 
 def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
-    distributed = config['n_gpus'] > 1
     device = torch.device(device)
-
-    # If distributed training, initialise process group
-    if distributed:
-        dist.init_process_group(
-            backend='nccl',
-            rank=device.index,
-            world_size=config['n_gpus']
-        )
 
     # Load training data
     print('Loading data...')
@@ -172,9 +159,6 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
             data=config['data']['train_path'],
             tokeniser=tokeniser
         ),
-        distributed=distributed,
-        num_replicas=config['n_gpus'],
-        rank=device.index,
         **config['data']['dataloader']['config']
     )
     valid_dl = DATALOADERS[config['data']['dataloader']['name']](
@@ -194,8 +178,6 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
     model.load_state_dict(
         torch.load(config['model']['pretrain_state_dict_path'])
     )
-    if distributed:
-        model = DistributedDataParallel(model, device_ids=[device])
 
     # Instantiate loss function and optimiser
     mlm_loss_fn = AdjustedCELoss(label_smoothing=0.1)
@@ -223,9 +205,6 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
     # Go through epochs of training
     for epoch in range(1, config['n_epochs']+1):
         print(f'Starting epoch {epoch}...')
-
-        if distributed:
-            train_dl.sampler.set_epoch(epoch)
         
         print('Training...')
         train_metrics = train(
@@ -249,10 +228,7 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
 
         metric_log[epoch] = {**train_metrics, **valid_metrics}
     
-    # Save results
-    if distributed and device.index != 0:
-        return
-    
+    # Save results    
     print('Saving results...')
     save(
         wd=wd,
@@ -266,28 +242,15 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
 
 
 def main(wd: Path, name: str, config: dict):
-    # Distributed training
-    if config['n_gpus'] > 1:
-        print(
-            f'Commencing distributed training on {config["n_gpus"]} CUDA '
-            'devices...'
-        )
-        os.environ['MASTER_ADDR'] = 'localhost'
-        os.environ['MASTER_PORT'] = '7777'
-        mp.spawn(simcl, args=(wd, name, config), nprocs=config['n_gpus'])
-        return
-
     # Single GPU traiing
-    if config['n_gpus'] == 1:
+    if config['gpu']:
         print('Commencing training on 1 CUDA device...')
         simcl(device=0, wd=wd, name=name, config=config)
         return
 
     # CPU training
-    if config['n_gpus'] == 0:
-        print('Commencing training on CPU...')
-        simcl(device='cpu', wd=wd, name=name, config=config)
-        return
+    print('Commencing training on CPU...')
+    simcl(device='cpu', wd=wd, name=name, config=config)
 
 
 if __name__ == '__main__':
