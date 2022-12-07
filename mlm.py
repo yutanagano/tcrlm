@@ -132,7 +132,7 @@ def mlm(device: Union[str, int], wd: Path, name: str, config: dict):
             data=config['data']['train_path'],
             tokeniser=tokeniser
         ),
-        **config['data']['dataloader_config']
+        **config['data']['dataloader']['config']
     )
     valid_dl = MLMDataLoader(
         dataset=TCRDataset(
@@ -141,7 +141,7 @@ def mlm(device: Union[str, int], wd: Path, name: str, config: dict):
         ),
         p_mask_random=0,
         p_mask_keep=0,
-        **config['data']['dataloader_config']
+        **config['data']['dataloader']['config']
     )
 
     # Instantiate model
