@@ -121,7 +121,7 @@ class MLMDataLoader(TCRDataLoader):
         for idx in indices:
             r = random.random()
             if r < self._p_mask_random:
-                x[idx,0] = random.sample(self._vocabulary-{x[idx,0]}, 1)[0]
+                x[idx,0] = random.choice(tuple(self._vocabulary-{x[idx,0]}))
                 continue
             
             if r < 1-self._p_mask_keep:
