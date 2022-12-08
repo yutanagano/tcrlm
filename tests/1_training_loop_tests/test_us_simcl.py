@@ -37,11 +37,7 @@ def get_config(tmp_path: Path, gpu: bool) -> dict:
             'train_path': 'tests/resources/mock_data.csv',
             'valid_path': 'tests/resources/mock_data.csv',
             'tokeniser': 'CDR3Tokeniser',
-            'dataset': 'UnsupervisedSimCLDataset',
-            'dataloader': {
-                'name': 'UnsupervisedSimCLDataLoader',
-                'config': {}
-            }
+            'dataloader_config': {}
         },
         'optim': {
             'simc_loss_config': {'temp': 0.05},
