@@ -1,7 +1,4 @@
 {
     "model_name": "cdr3_levenshtein",
-    "alignment": 8.164297126338003,
-    "uniformity": -6.755687565532256,
-    "alignment + uniformity": 1.408609560805747,
     "5nn_accuracy": 0.17000000178813934
 }
