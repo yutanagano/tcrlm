@@ -1,5 +1,5 @@
 import json
-from simcl import main
+from us_simcl import main
 import multiprocessing as mp
 import pandas as pd
 from pathlib import Path
@@ -44,8 +44,8 @@ def get_config(tmp_path: Path, gpu: bool) -> dict:
             }
         },
         'optim': {
-            'loss_config': {'temp': 0.05},
-            'optimiser_config': {'lr': 5e-5}
+            'simc_loss_config': {'temp': 0.05},
+            'optimiser_config': {'n_warmup_steps': 10000}
         },
         'n_epochs': 3,
         'gpu': gpu
@@ -133,10 +133,12 @@ class TestSimCL:
             expected_cols=[
                 'epoch',
                 'loss',
-                'valid_loss',
+                'lr',
+                'valid_simc_loss',
                 'valid_mlm_loss',
                 'valid_aln',
-                'valid_unf'
+                'valid_unf',
+                'valid_mlm_acc'
             ],
             expected_len=4
         )
