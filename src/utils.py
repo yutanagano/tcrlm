@@ -74,6 +74,7 @@ def save(
     save_dir = model_saves_dir/save_name
 
     # Save model
+    model.cpu()
     if isinstance(model, DistributedDataParallel):
         model = model.module
     torch.save(model.state_dict(), save_dir/'state_dict.pt')

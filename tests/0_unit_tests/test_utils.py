@@ -48,6 +48,14 @@ def state_dicts_equivalent(
     return True
 
 
+def is_on_cpu(state_dict: dict) -> bool:
+    for key in state_dict:
+        if state_dict[key].device.type != 'cpu':
+            return False
+    
+    return True
+
+
 class TestMaskedAveragePool:
     @pytest.mark.parametrize(
         ('x','padding_mask','expected'),
@@ -91,10 +99,13 @@ class TestSave:
             config=toy_config
         )
 
+        saved_sd = torch.load(test_dir/'state_dict.pt')
+
         assert model_saves_dir.is_dir()
         assert test_dir.is_dir()
+        assert is_on_cpu(saved_sd)
         assert state_dicts_equivalent(
-            torch.load(test_dir/'state_dict.pt'),
+            saved_sd,
             toy_model.state_dict()
         )
         assert pd.read_csv(test_dir/'log.csv').equals(toy_log_df)
@@ -122,10 +133,13 @@ class TestSave:
             config=toy_config
         )
 
+        saved_sd = torch.load(test_dir/'state_dict.pt')
+
         assert model_saves_dir.is_dir()
         assert test_dir.is_dir()
+        assert is_on_cpu(saved_sd)
         assert state_dicts_equivalent(
-            torch.load(test_dir/'state_dict.pt'),
+            saved_sd,
             toy_model.state_dict()
         )
         assert pd.read_csv(test_dir/'log.csv').equals(toy_log_df)
@@ -155,10 +169,13 @@ class TestSave:
             config=toy_config
         )
 
+        saved_sd = torch.load(test_dir/'state_dict.pt')
+
         assert model_saves_dir.is_dir()
         assert test_dir.is_dir()
+        assert is_on_cpu(saved_sd)
         assert state_dicts_equivalent(
-            torch.load(test_dir/'state_dict.pt'),
+            saved_sd,
             toy_model.state_dict()
         )
         assert pd.read_csv(test_dir/'log.csv').equals(toy_log_df)
