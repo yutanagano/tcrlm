@@ -10,8 +10,8 @@ from pathlib import Path
 from src import modules
 from src.modules.embedder import MLMEmbedder
 from src.datahandling import tokenisers
-from src.datahandling.dataloaders import UnsupervisedSimCLDataLoader
-from src.datahandling.datasets import UnsupervisedSimCLDataset
+from src.datahandling.dataloaders import AutoContrastiveDataLoader
+from src.datahandling.datasets import AutoContrastiveDataset
 from src.metrics import (
     AdjustedCELoss,
     SimCLoss,
@@ -28,11 +28,15 @@ from typing import Union
 
 
 MODELS = {
-    'SimCTE_CDR3BERT_cp': modules.SimCTE_CDR3BERT_cp
+    'AutoContrastive_CDR3BERT_cp': modules.AutoContrastive_CDR3BERT_cp
 }
 
 TOKENISERS = {
     'CDR3Tokeniser': tokenisers.CDR3Tokeniser
+}
+
+CONTRASTIVE_LOSSES = {
+    'SimCLoss': SimCLoss
 }
 
 
@@ -63,7 +67,7 @@ def metric_feedback(metrics: dict) -> None:
 def train(
     model: MLMEmbedder,
     dl: DataLoader,
-    simc_loss_fn,
+    cont_loss_fn,
     mlm_loss_fn,
     optimiser,
     device
@@ -87,7 +91,7 @@ def train(
         mlm_logits = model.mlm(masked)
 
         optimiser.zero_grad()
-        loss = simc_loss_fn(z, z_prime) +\
+        loss = cont_loss_fn(z, z_prime) +\
             mlm_loss_fn(mlm_logits.flatten(0,1), target.view(-1))
         loss.backward()
         optimiser.step()
@@ -106,11 +110,11 @@ def train(
 def validate(
     model: MLMEmbedder,
     dl: DataLoader,
-    simc_loss_fn,
+    cont_loss_fn,
     mlm_loss_fn,
     device
 ) -> dict:
-    total_simc_loss = 0
+    total_cont_loss = 0
     total_mlm_loss = 0
     total_aln = 0
     total_unf = 0
@@ -132,10 +136,10 @@ def validate(
         model.eval()
         mlm_logits = model.mlm(masked)
 
-        simc_loss = simc_loss_fn(z, z_prime)
+        cont_loss = cont_loss_fn(z, z_prime)
         mlm_loss = mlm_loss_fn(mlm_logits.flatten(0,1), target.view(-1))
 
-        total_simc_loss += simc_loss.item() * num_samples
+        total_cont_loss += cont_loss.item() * num_samples
         total_mlm_loss += mlm_loss.item() * num_samples
         total_aln += alignment_paired(z, z_prime).item() * num_samples
         total_unf += uniformity(z).item() * num_samples
@@ -143,7 +147,7 @@ def validate(
         divisor += num_samples
 
     return {
-        'valid_simc_loss': total_simc_loss / divisor,
+        'valid_cont_loss': total_cont_loss / divisor,
         'valid_mlm_loss': total_mlm_loss / divisor,
         'valid_aln': total_aln / divisor,
         'valid_unf': total_unf / divisor,
@@ -157,15 +161,15 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
     # Load training data
     print('Loading data...')
     tokeniser = TOKENISERS[config['data']['tokeniser']]()
-    train_dl = UnsupervisedSimCLDataLoader(
-        dataset=UnsupervisedSimCLDataset(
+    train_dl = AutoContrastiveDataLoader(
+        dataset=AutoContrastiveDataset(
             data=config['data']['train_path'],
             tokeniser=tokeniser
         ),
         **config['data']['dataloader_config']
     )
-    valid_dl = UnsupervisedSimCLDataLoader(
-        dataset=UnsupervisedSimCLDataset(
+    valid_dl = AutoContrastiveDataLoader(
+        dataset=AutoContrastiveDataset(
             data=config['data']['valid_path'],
             tokeniser=tokeniser
         ),
@@ -176,7 +180,10 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
 
     # Instantiate model
     print('Instantiating model...')
-    model = MODELS[config['model']['name']](**config['model']['config'])
+    model = MODELS[config['model']['name']](
+        contrastive_loss_type=config['optim']['contrastive_loss']['name'],
+        **config['model']['config']
+    )
     model.to(device)
     model.load_state_dict(
         torch.load(config['model']['pretrain_state_dict_path'])
@@ -184,7 +191,10 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
 
     # Instantiate loss function and optimiser
     mlm_loss_fn = AdjustedCELoss(label_smoothing=0.1)
-    simc_loss_fn = SimCLoss(**config['optim']['simc_loss_config'])
+    cont_loss_fn =\
+        CONTRASTIVE_LOSSES[config['optim']['contrastive_loss']['name']](
+            **config['optim']['contrastive_loss']['config']
+        )
     optimiser = AdamWithScheduling(
         params=model.parameters(),
         d_model=config['model']['config']['d_model'],
@@ -196,7 +206,7 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
     valid_metrics = validate(
         model=model,
         dl=valid_dl,
-        simc_loss_fn=simc_loss_fn,
+        cont_loss_fn=cont_loss_fn,
         mlm_loss_fn=mlm_loss_fn,
         device=device
     )
@@ -214,7 +224,7 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
         train_metrics = train(
             model=model,
             dl=train_dl,
-            simc_loss_fn=simc_loss_fn,
+            cont_loss_fn=cont_loss_fn,
             mlm_loss_fn=mlm_loss_fn,
             optimiser=optimiser,
             device=device
@@ -225,7 +235,7 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
         valid_metrics = validate(
             model=model,
             dl=valid_dl,
-            simc_loss_fn=simc_loss_fn,
+            cont_loss_fn=cont_loss_fn,
             mlm_loss_fn=mlm_loss_fn,
             device=device
         )

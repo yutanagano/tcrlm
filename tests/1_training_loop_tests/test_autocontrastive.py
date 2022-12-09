@@ -1,18 +1,19 @@
 import json
-from us_simcl import main
+from autocontrastive import main
 import multiprocessing as mp
 import pandas as pd
 from pathlib import Path
 import pytest
-from src.modules import SimCTE_CDR3BERT_cp
+from src.modules import AutoContrastive_CDR3BERT_cp
 import torch
 from torch.nn import Module
 from warnings import warn
 
 
 @pytest.fixture
-def simcte_cdr3bert_cp_template():
-    model = SimCTE_CDR3BERT_cp(
+def autocontrastive_cdr3bert_cp_template():
+    model = AutoContrastive_CDR3BERT_cp(
+        contrastive_loss_type='SimCLoss',
         num_encoder_layers=2,
         d_model=4,
         nhead=2,
@@ -24,7 +25,7 @@ def simcte_cdr3bert_cp_template():
 def get_config(tmp_path: Path, gpu: bool) -> dict:
     config = {
         'model': {
-            'name': 'SimCTE_CDR3BERT_cp',
+            'name': 'AutoContrastive_CDR3BERT_cp',
             'config': {
                 'num_encoder_layers': 2,
                 'd_model': 4,
@@ -40,7 +41,10 @@ def get_config(tmp_path: Path, gpu: bool) -> dict:
             'dataloader_config': {}
         },
         'optim': {
-            'simc_loss_config': {'temp': 0.05},
+            'contrastive_loss': {
+                'name': 'SimCLoss',
+                'config': {'temp': 0.05}
+            },
             'optimiser_config': {'n_warmup_steps': 10000}
         },
         'n_epochs': 3,
@@ -84,11 +88,16 @@ def config_saved(save_path: Path, config_template: dict) -> bool:
     return result == config_template
 
 
-class TestSimCL:
+class TestAutoContrastive:
     @pytest.mark.parametrize(
         'gpu', (False, True)
     )
-    def test_simcl(self, simcte_cdr3bert_cp_template, tmp_path, gpu):
+    def test_auto_contrastive(
+        self,
+        autocontrastive_cdr3bert_cp_template,
+        tmp_path,
+        gpu
+    ):
         if gpu and not torch.cuda.is_available():
             warn('MLM GPU test skipped due to hardware limitations.')
             return
@@ -98,7 +107,7 @@ class TestSimCL:
 
         # Copy toy state_dict into tmp_path
         torch.save(
-            simcte_cdr3bert_cp_template.state_dict(),
+            autocontrastive_cdr3bert_cp_template.state_dict(),
             tmp_path/'state_dict.pt'
         )
 
@@ -120,7 +129,7 @@ class TestSimCL:
         # Check that model is saved correctly
         assert model_saved(
             save_path=expected_save_dir/'state_dict.pt',
-            model_template=simcte_cdr3bert_cp_template
+            model_template=autocontrastive_cdr3bert_cp_template
         )
 
         # Check that log is saved correctly
@@ -130,7 +139,7 @@ class TestSimCL:
                 'epoch',
                 'loss',
                 'lr',
-                'valid_simc_loss',
+                'valid_cont_loss',
                 'valid_mlm_loss',
                 'valid_aln',
                 'valid_unf',

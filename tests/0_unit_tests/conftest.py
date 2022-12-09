@@ -41,8 +41,8 @@ def cdr3t_dataset(mock_data_path):
 
 
 @pytest.fixture
-def cdr3t_unsupsimcl_dataset(mock_data_path):
-    dataset = datasets.UnsupervisedSimCLDataset(
+def cdr3t_auto_contrastive_dataset(mock_data_path):
+    dataset = datasets.AutoContrastiveDataset(
         data=mock_data_path,
         tokeniser=CDR3Tokeniser()
     )
@@ -51,8 +51,8 @@ def cdr3t_unsupsimcl_dataset(mock_data_path):
 
 
 @pytest.fixture
-def cdr3t_supsimcl_dataset(mock_data_path):
-    dataset = datasets.SupervisedSimCLDataset(
+def cdr3t_epitope_contrastive_dataset(mock_data_path):
+    dataset = datasets.EpitopeContrastiveDataset(
         data=mock_data_path,
         tokeniser=CDR3Tokeniser()
     )
