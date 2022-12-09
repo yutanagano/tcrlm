@@ -75,19 +75,12 @@ class CDR3BERT_cp(BERT_base):
             f'{self._nhead}_{self._dim_feedforward}-embed_{self.embed_layer}'
 
 
-class SimCTE_CDR3BERT_cp(CDR3BERT_cp):
+class _CLS_CDR3BERT_cp(CDR3BERT_cp):
     '''
-    CDR3SimCTE model that gets amino acid, chain, and residue position
-    information.
+    CDR3BERT_cp model that embeds using the <cls> token.
 
     Compatible tokenisers: CDR3Tokeniser
     '''
-    @property
-    def name(self) -> str:
-        return f'SimCTE_CDR3BERT_cp_{self._num_layers}_{self._d_model}_'\
-            f'{self._nhead}_{self._dim_feedforward}'
-
-
     def embed(self, x: Tensor) -> Tensor:
         '''
         Get the l2-normalised <cls> embeddings of the final layer.
@@ -95,3 +88,36 @@ class SimCTE_CDR3BERT_cp(CDR3BERT_cp):
         x_emb = self.forward(x)[0]
         x_emb = x_emb[:,0,:]
         return normalize(x_emb, p=2, dim=1)
+
+
+class AutoContrastive_CDR3BERT_cp(_CLS_CDR3BERT_cp):
+    '''
+    CLS_CDR3BERT_cp model with name 'AutoContrastive...'
+
+    Compatible tokenisers: CDR3Tokeniser
+    '''
+    def __init__(
+        self,
+        contrastive_loss_type: str,
+        num_encoder_layers: int,
+        d_model: int,
+        nhead: int,
+        dim_feedforward: int,
+        dropout: float = 0.1
+    ) -> None:
+        super().__init__(
+            num_encoder_layers,
+            d_model,
+            nhead,
+            dim_feedforward,
+            dropout
+        )
+
+        self._loss_type = contrastive_loss_type
+
+    
+    @property
+    def name(self) -> str:
+        return f'AutoContrastive_{self._loss_type}_CDR3BERT_cp_'\
+            f'{self._num_layers}_{self._d_model}_'\
+            f'{self._nhead}_{self._dim_feedforward}'
