@@ -15,6 +15,7 @@ from src.datahandling.datasets import AutoContrastiveDataset
 from src.metrics import (
     AdjustedCELoss,
     SimCLoss,
+    AULoss,
     alignment_paired,
     uniformity,
     mlm_acc
@@ -36,6 +37,7 @@ TOKENISERS = {
 }
 
 CONTRASTIVE_LOSSES = {
+    'AULoss': AULoss,
     'SimCLoss': SimCLoss
 }
 
