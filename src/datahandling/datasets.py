@@ -57,7 +57,7 @@ class TCRDataset(Dataset):
         return self._tokeniser.tokenise(self._data.iloc[index])
 
 
-class UnsupervisedSimCLDataset(TCRDataset):
+class AutoContrastiveDataset(TCRDataset):
     '''
     Dataset for producing unsupervised contrastive loss pairs (x = x_prime).
     '''
@@ -71,7 +71,7 @@ class UnsupervisedSimCLDataset(TCRDataset):
         return (x, x_prime)
 
 
-class SupervisedSimCLDataset(TCRDataset):
+class EpitopeContrastiveDataset(TCRDataset):
     '''
     Dataset for fetching epitope-matched TCR pairs from labelled data.
     '''

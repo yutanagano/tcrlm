@@ -60,9 +60,9 @@ class TestTcrDataset:
         assert tcr_dataset[random_index] == (random_index, 'both')
 
 
-class TestUnsupervisedSimCLDataset:
+class TestAutoContrastiveDataset:
     def test_getitem(self, mock_data_df, dummy_tokeniser):
-        dataset = datasets.UnsupervisedSimCLDataset(
+        dataset = datasets.AutoContrastiveDataset(
             data=mock_data_df,
             tokeniser=dummy_tokeniser
         )
@@ -74,9 +74,10 @@ class TestUnsupervisedSimCLDataset:
         assert x_prime[0] == random_index
         assert x_prime[1] in ('both', 'alpha', 'beta')
 
-class TestSupervisedSimCLDataset:
+
+class TestEpitopeContrastiveDataset:
     def test_len(self, mock_data_df, dummy_tokeniser):
-        dataset = datasets.SupervisedSimCLDataset(
+        dataset = datasets.EpitopeContrastiveDataset(
             data=mock_data_df,
             tokeniser=dummy_tokeniser
         )
@@ -84,7 +85,7 @@ class TestSupervisedSimCLDataset:
 
 
     def test_getitem(self, mock_data_df, dummy_tokeniser):
-        dataset = datasets.SupervisedSimCLDataset(
+        dataset = datasets.EpitopeContrastiveDataset(
             data=mock_data_df,
             tokeniser=dummy_tokeniser
         )

@@ -70,10 +70,10 @@ class TestMLMDataLoader:
         assert masked.size(2) == 3
 
 
-class TestUnsupervisedSimCLDataLoader:
-    def test_shapes(self, cdr3t_unsupsimcl_dataset):
-        dataloader = dataloaders.UnsupervisedSimCLDataLoader(
-            dataset=cdr3t_unsupsimcl_dataset,
+class TestAutoContrastiveDataLoader:
+    def test_shapes(self, cdr3t_auto_contrastive_dataset):
+        dataloader = dataloaders.AutoContrastiveDataLoader(
+            dataset=cdr3t_auto_contrastive_dataset,
             batch_size=3
         )
 
@@ -90,17 +90,17 @@ class TestUnsupervisedSimCLDataLoader:
         assert x.size(2) == x_prime.size(2) == masked.size(2) == 3
 
 
-class TestSupervisedSimCLDataLoader:
-    def test_init(self, cdr3t_supsimcl_dataset):
-        dataloader = dataloaders.SupervisedSimCLDataLoader(
-            dataset=cdr3t_supsimcl_dataset,
+class TestEpitopeContrastiveDataLoader:
+    def test_init(self, cdr3t_epitope_contrastive_dataset):
+        dataloader = dataloaders.EpitopeContrastiveDataLoader(
+            dataset=cdr3t_epitope_contrastive_dataset,
             num_workers=3
         )
 
-        assert dataloader.dataset == cdr3t_supsimcl_dataset
+        assert dataloader.dataset == cdr3t_epitope_contrastive_dataset
         assert dataloader.batch_size == 2
         assert type(dataloader.sampler) == SequentialSampler
-        assert dataloader.sampler.data_source == cdr3t_supsimcl_dataset
+        assert dataloader.sampler.data_source == cdr3t_epitope_contrastive_dataset
         assert type(dataloader.batch_sampler) == BatchSampler
         assert dataloader.batch_sampler.sampler == dataloader.sampler
         assert dataloader.batch_sampler.batch_size == 2

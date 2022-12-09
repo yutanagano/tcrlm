@@ -157,7 +157,7 @@ class MLMDataLoader(TCRDataLoader):
         return super().collate_fn(batch)
 
 
-class UnsupervisedSimCLDataLoader(MLMDataLoader):
+class AutoContrastiveDataLoader(MLMDataLoader):
     '''
     Dataloader for unsupervised contrastive loss training.
     '''
@@ -167,10 +167,10 @@ class UnsupervisedSimCLDataLoader(MLMDataLoader):
         return super(MLMDataLoader, self).collate_fn(batch)
 
 
-class SupervisedSimCLDataLoader(UnsupervisedSimCLDataLoader):
+class EpitopeContrastiveDataLoader(AutoContrastiveDataLoader):
     def __init__(
         self,
-        dataset: datasets.SupervisedSimCLDataset,
+        dataset: datasets.EpitopeContrastiveDataset,
         num_workers: int = 0,
         p_mask: float = 0.15,
         p_mask_random: float = 0.1,
