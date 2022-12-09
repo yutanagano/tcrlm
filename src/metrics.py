@@ -143,3 +143,11 @@ class SimCLoss(Module):
         closs = -torch.log(pos_sim/neg_sim)
 
         return closs.mean()
+
+
+class AULoss(Module):
+    '''
+    A loss calculated as alignment + uniformity over a matched-pair batch.
+    '''
+    def forward(self, z: Tensor, z_prime: Tensor) -> Tensor:
+        return alignment_paired(z, z_prime) + uniformity(z_prime)
