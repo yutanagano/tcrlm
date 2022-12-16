@@ -1,0 +1,7 @@
+{
+    "model_name": "AutoContrastive_AULoss_CDR3BERT_cp_6_128_8_512",
+    "alignment": 1.3471571207046509,
+    "uniformity": -1.3841966390609741,
+    "alignment + uniformity": -0.03703951835632324,
+    "5nn_accuracy": 0.2356249988079071
+}
