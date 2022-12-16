@@ -171,6 +171,6 @@ class TestAULoss:
         )
 
         result = loss_fn(z, z_prime)
-        expected = torch.tensor(0.1582)
+        expected = torch.tensor(-0.2573)
 
         torch.testing.assert_close(result, expected, rtol=0, atol=5e-5)
