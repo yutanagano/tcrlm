@@ -4,7 +4,7 @@ from torch.nn import CrossEntropyLoss, Module
 from torch.nn import functional as F
 
 
-def alignment(z: Tensor, labels: Tensor) -> Tensor:
+def alignment(z: Tensor, labels: Tensor, alpha: int = 1) -> Tensor:
     '''
     Computes alignment between embeddings of instances belonging to the same
     class label, as specified by the labels tensor. It is assumed that the
@@ -18,25 +18,28 @@ def alignment(z: Tensor, labels: Tensor) -> Tensor:
     ]
 
     cls_pdists = torch.stack(
-        [torch.pdist(cls_view, p=2).mean() for cls_view in cls_views]
+        [
+            torch.pdist(cls_view, p=2).pow(alpha).mean()
+            for cls_view in cls_views
+        ]
     )
 
     return cls_pdists.mean()
 
 
-def alignment_paired(z: Tensor, z_prime: Tensor) -> Tensor:
+def alignment_paired(z: Tensor, z_prime: Tensor, alpha: int = 1) -> Tensor:
     '''
     Computes alignment between pairs of known positive-pair embeddings.
     '''
-    return (z - z_prime).norm(dim=1).mean()
+    return (z - z_prime).norm(dim=1).pow(alpha).mean()
 
 
-def uniformity(z: Tensor) -> Tensor:
+def uniformity(z: Tensor, alpha: int = 1, t: float = 1) -> Tensor:
     '''
     Computes an empirical estimate of uniformity given background data x.
     '''
-    sq_pdist = -torch.pdist(z, p=2)
-    return sq_pdist.exp().mean().log()
+    sq_pdist = torch.pdist(z, p=2).pow(alpha)
+    return sq_pdist.mul(-t).exp().mean().log()
 
 
 @torch.no_grad()
@@ -149,6 +152,15 @@ class AULoss(Module):
     '''
     A loss calculated as alignment + uniformity over a matched-pair batch.
     '''
+    def __init__(self, alpha: int = 1, t: float = 1) -> None:
+        super().__init__()
+        self._alpha = alpha
+        self._t = t
+
+
     def forward(self, z: Tensor, z_prime: Tensor) -> Tensor:
-        return alignment_paired(z, z_prime) +\
-            0.5 * (uniformity(z) + uniformity(z_prime))
+        return alignment_paired(z, z_prime, alpha=self._alpha) +\
+            0.5 * (
+                uniformity(z, alpha=self._alpha, t=self._t) +\
+                uniformity(z_prime, alpha=self._alpha, t=self._t)
+            )
