@@ -14,6 +14,19 @@ class TestAlignment:
             torch.tensor(2, dtype=torch.float32).sqrt()
         )
 
+    
+    @pytest.mark.parametrize(
+        'alpha', (1, 2, 3)
+    )
+    def test_alpha(self, alpha):
+        x = torch.tensor([[0,1],[1,0],[0,-1],[-1,0]], dtype=torch.float32)
+        labels = torch.tensor([0,0,1,1])
+
+        torch.testing.assert_close(
+            metrics.alignment(x, labels, alpha=alpha),
+            torch.tensor(2, dtype=torch.float32).sqrt().pow(alpha)
+        )
+
 
 class TestAlignmentPaired:
     def test_alignment_paired(self):
@@ -26,6 +39,19 @@ class TestAlignmentPaired:
         )
 
 
+    @pytest.mark.parametrize(
+        'alpha', (1, 2, 3)
+    )
+    def test_alpha(self, alpha):
+        z = torch.tensor([[0,1],[0,-1]], dtype=torch.float32)
+        z_prime = torch.tensor([[1,0],[-1,0]], dtype=torch.float32)
+
+        torch.testing.assert_close(
+            metrics.alignment_paired(z, z_prime, alpha=alpha),
+            torch.tensor(2, dtype=torch.float32).sqrt().pow(alpha)
+        )
+
+
 class TestUniformity:
     def test_uniformity(self):
         x = torch.tensor([[0,1],[1,0],[0,-1],[-1,0]], dtype=torch.float32)
@@ -35,6 +61,38 @@ class TestUniformity:
             torch.log(
                 2*torch.tensor(2).sqrt().neg().exp() + torch.tensor(-2).exp()
             ) - torch.tensor(3).log()
+        )
+
+
+    @pytest.mark.parametrize(
+        'alpha', (1, 2, 3)
+    )
+    def test_alpha(self, alpha):
+        x = torch.tensor([[0,1],[1,0],[0,-1],[-1,0]], dtype=torch.float32)
+
+        r2a = torch.tensor(2).sqrt().pow(alpha)
+        expected = torch.log(2*r2a.mul(-1).exp() + r2a.pow(2).mul(-1).exp()) -\
+            torch.tensor(3).log()
+
+        torch.testing.assert_close(
+            metrics.uniformity(x, alpha=alpha),
+            expected
+        )
+
+
+    @pytest.mark.parametrize(
+        't', (1, 2, 3)
+    )
+    def test_t(self, t):
+        x = torch.tensor([[0,1],[1,0],[0,-1],[-1,0]], dtype=torch.float32)
+
+        r2a = torch.tensor(2).sqrt()
+        expected = torch.log(2*r2a.mul(-t).exp() + r2a.pow(2).mul(-t).exp()) -\
+            torch.tensor(3).log()
+
+        torch.testing.assert_close(
+            metrics.uniformity(x, t=t),
+            expected
         )
 
 
@@ -162,8 +220,8 @@ class TestAULoss:
         z_prime = normalize(
             torch.tensor(
                 [[3,2,1],
-                    [1,2,3],
-                    [2,1,3]],
+                 [1,2,3],
+                 [2,1,3]],
                 dtype=torch.float32
             ),
             p=2,
@@ -172,5 +230,25 @@ class TestAULoss:
 
         result = loss_fn(z, z_prime)
         expected = torch.tensor(-0.2573)
+
+        torch.testing.assert_close(result, expected, rtol=0, atol=5e-5)
+
+
+    def test_alpha_t(self):
+        loss_fn = metrics.AULoss(alpha=2, t=2)
+        z = torch.eye(3)
+        z_prime = normalize(
+            torch.tensor(
+                [[3,2,1],
+                 [1,2,3],
+                 [2,1,3]],
+                dtype=torch.float32
+            ),
+            p=2,
+            dim=1
+        )
+
+        result = loss_fn(z, z_prime)
+        expected = torch.tensor(-1.7737)
 
         torch.testing.assert_close(result, expected, rtol=0, atol=5e-5)
