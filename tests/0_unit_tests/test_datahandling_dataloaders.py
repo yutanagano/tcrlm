@@ -105,3 +105,76 @@ class TestEpitopeContrastiveDataLoader:
         assert dataloader.batch_sampler.sampler == dataloader.sampler
         assert dataloader.batch_sampler.batch_size == 2
         assert dataloader.num_workers == 3
+
+
+class TestEpitopeAutoContrastiveSuperDataLoader:
+    def test_shapes(
+        self,
+        cdr3t_auto_contrastive_dataset,
+        cdr3t_epitope_contrastive_dataset
+    ):
+        dataloader = dataloaders.EpitopeAutoContrastiveSuperDataLoader(
+            dataset_ac=cdr3t_auto_contrastive_dataset,
+            dataset_ec=cdr3t_epitope_contrastive_dataset,
+            batch_size_ac=3,
+            num_workers_ac=3,
+            num_workers_ec=3
+        )
+
+        ac, ac_prime, ac_masked, ac_target, ec, ec_prime =\
+            next(iter(dataloader))
+
+        assert type(ac) == type(ac_prime) == type(ac_masked) ==\
+            type(ac_target) == type(ec) == type(ec_prime) == torch.Tensor
+
+        assert ac.dim() == ac_prime.dim() == ac_masked.dim() ==\
+            ec.dim() == ec_prime.dim() == 3
+        assert ac_target.dim() == 2
+
+        assert ac.size(0) == ac_prime.size(0) == ac_masked.size(0) ==\
+            ac_target.size(0) == 3
+        assert ac.size(1) == ac_masked.size(1) == ac_target.size(1) == 12
+        assert ac_prime.size(1) in (6, 7, 12)
+        assert ac.size(2) == ac_prime.size(2) == ac_masked.size(2) == 3
+
+        assert ec.size(0) == ec_prime.size(0) == 2
+        assert ec.size(1) == 12
+        assert ec_prime.size(1) in (7, 12)
+        assert ec.size(2) == ec_prime.size(2) == 3
+
+
+    def test_len(
+        self,
+        cdr3t_auto_contrastive_dataset,
+        cdr3t_epitope_contrastive_dataset
+    ):
+        dataloader = dataloaders.EpitopeAutoContrastiveSuperDataLoader(
+            dataset_ac=cdr3t_auto_contrastive_dataset,
+            dataset_ec=cdr3t_epitope_contrastive_dataset,
+            batch_size_ac=3,
+            num_workers_ac=3,
+            num_workers_ec=3
+        )
+
+        assert len(dataloader) == 2
+
+
+    def test_iter(
+        self,
+        cdr3t_auto_contrastive_dataset,
+        cdr3t_epitope_contrastive_dataset
+    ):
+        dataloader = dataloaders.EpitopeAutoContrastiveSuperDataLoader(
+            dataset_ac=cdr3t_auto_contrastive_dataset,
+            dataset_ec=cdr3t_epitope_contrastive_dataset,
+            batch_size_ac=3,
+            num_workers_ac=3,
+            num_workers_ec=3
+        )
+
+        iterations = 0
+
+        for _ in dataloader:
+            iterations += 1
+
+        assert iterations == 2
