@@ -139,11 +139,11 @@ class SimCLoss(Module):
         Implements the simple contrastive function as seen in SimCSE. Assumes
         that embeddings (z, z_prime) are all already l2-normalised.
         '''
-        # z.size: (N,E), z.T.size: (E,N)
+        # z.size: (N,E), z_prime.T.size: (E,N)
         z_sim = torch.exp(torch.matmul(z, z_prime.T)/self._temp) # (N,N)
         pos_sim = torch.diag(z_sim) # (N,)
-        neg_sim = torch.sum(z_sim, dim=1) # (N,)
-        closs = -torch.log(pos_sim/neg_sim)
+        back_sim = torch.sum(z_sim, dim=1) # (N,)
+        closs = -torch.log(pos_sim/back_sim)
 
         return closs.mean()
 
@@ -164,3 +164,26 @@ class AULoss(Module):
                 uniformity(z, alpha=self._alpha, t=self._t) +\
                 uniformity(z_prime, alpha=self._alpha, t=self._t)
             )
+
+
+class PosBackSimCLoss(Module):
+    '''
+    Simple contrastive loss, but where the positive pairs can be sampled
+    independently of the background pairs.
+    '''
+    def __init__(self, temp: float = 0.05) -> None:
+        super().__init__()
+        self._temp = temp
+
+
+    def forward(self, z: Tensor, z_pos: Tensor, z_back: Tensor) -> Tensor:
+        '''
+        NOTE: assumes that embeddings are all already l2-normalised.
+        '''
+        # z.size: (N,E), z_pos.size: (N,E), z_back.T.size: (E,M)
+        pos_sim = torch.exp((z * z_pos).sum(dim=1)/self._temp) # (N,)
+        back_sim = torch.exp(torch.matmul(z, z_back.T)/self._temp) # (N,M)
+        back_sim = torch.sum(back_sim, dim=1) + pos_sim # (N,)
+        closs = -torch.log(pos_sim/back_sim)
+
+        return closs.mean()

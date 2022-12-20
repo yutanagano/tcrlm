@@ -252,3 +252,23 @@ class TestAULoss:
         expected = torch.tensor(-1.7737)
 
         torch.testing.assert_close(result, expected, rtol=0, atol=5e-5)
+
+
+class TestPosBackSimCLoss:
+    def test_simcloss(self):
+        loss_fn = metrics.PosBackSimCLoss(temp=0.05)
+        z = torch.tensor([[1,0,0],[-1,0,0]], dtype=torch.float32)
+        z_pos = normalize(
+            torch.tensor([[2,1,1],[-1,1,1]], dtype=torch.float32),
+            p=2,
+            dim=1
+        )
+        z_back = torch.tensor(
+            [[0,1,0],[0,0,1],[0,-1,0],[0,0,-1]],
+            dtype=torch.float32
+        )
+
+        result = loss_fn(z, z_pos, z_back)
+        expected = torch.tensor(1.9491e-5)
+
+        torch.testing.assert_close(result, expected, rtol=0, atol=5e-10)
