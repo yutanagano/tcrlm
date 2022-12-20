@@ -84,24 +84,13 @@ class EpitopeContrastiveDataset(TCRDataset):
 
         self._ep_groupby = self._data.groupby('Epitope')
 
-        self._epitopes = self._data['Epitope'].unique().tolist()
-        self._num_epitopes = len(self._epitopes)
-        self._largest_epgroup_size = self._ep_groupby.size().max()
-    
-
-    def __len__(self) -> int:
-        return self._num_epitopes * self._largest_epgroup_size
-
     
     def __getitem__(self, index) -> any:
-        epitope = self._epitopes[index % self._num_epitopes]
+        x_row = self._data.iloc[index]
+        x_prime_row = self._ep_groupby.get_group(x_row['Epitope'])\
+            .sample().iloc[0]
 
-        subdataframe = self._ep_groupby.get_group(epitope)
-
-        x_i = (index//self._num_epitopes) % len(subdataframe)
-        x_prime_i = random.randrange(len(subdataframe))
-
-        x = self._tokeniser.tokenise(subdataframe.iloc[x_i])
-        x_prime = self._tokeniser.tokenise(subdataframe.iloc[x_prime_i])
+        x = self._tokeniser.tokenise(x_row)
+        x_prime = self._tokeniser.tokenise(x_prime_row)
 
         return (x, x_prime)

@@ -167,30 +167,12 @@ class AutoContrastiveDataLoader(MLMDataLoader):
         return super(MLMDataLoader, self).collate_fn(batch)
 
 
-class EpitopeContrastiveDataLoader(TCRDataLoader):
-    '''
-    Dataloader for epitope-labelled contrastive loss training.
-    '''
-    def __init__(
-        self,
-        dataset: datasets.EpitopeContrastiveDataset,
-        num_workers: int = 0
-    ):
-        batch_size = dataset._num_epitopes
-        super().__init__(
-            dataset,
-            batch_size,
-            False,
-            num_workers
-        )
-
-
 class EpitopeAutoContrastiveSuperDataLoader:
     def __init__(
         self,
         dataset_ac: datasets.AutoContrastiveDataset,
         dataset_ec: datasets.EpitopeContrastiveDataset,
-        batch_size_ac: int,
+        batch_size: Optional[int] = 1,
         shuffle: bool = True,
         num_workers_ac: int = 0,
         num_workers_ec: int = 0,
@@ -200,15 +182,17 @@ class EpitopeAutoContrastiveSuperDataLoader:
     ) -> None:
         self._dataloader_ac = AutoContrastiveDataLoader(
             dataset=dataset_ac,
-            batch_size=batch_size_ac,
+            batch_size=batch_size,
             shuffle=shuffle,
             num_workers=num_workers_ac,
             p_mask=p_mask_ac,
             p_mask_random=p_mask_random_ac,
             p_mask_keep=p_mask_keep_ac
         )
-        self._dataloader_ec = EpitopeContrastiveDataLoader(
+        self._dataloader_ec = TCRDataLoader(
             dataset=dataset_ec,
+            batch_size=batch_size,
+            shuffle=shuffle,
             num_workers=num_workers_ec
         )
 
