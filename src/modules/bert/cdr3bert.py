@@ -90,12 +90,16 @@ class _CLS_CDR3BERT_cp(CDR3BERT_cp):
         return normalize(x_emb, p=2, dim=1)
 
 
-class AutoContrastive_CDR3BERT_cp(_CLS_CDR3BERT_cp):
+class _Contrastive_CDR3BERT_cp(_CLS_CDR3BERT_cp):
     '''
-    CLS_CDR3BERT_cp model with name 'AutoContrastive...'
+    CLS_CDR3BERT_cp model with code to generate model name based on contrastive
+    loss type.
 
     Compatible tokenisers: CDR3Tokeniser
     '''
+    _model_base_name = None
+
+
     def __init__(
         self,
         contrastive_loss_type: str,
@@ -118,6 +122,24 @@ class AutoContrastive_CDR3BERT_cp(_CLS_CDR3BERT_cp):
     
     @property
     def name(self) -> str:
-        return f'AutoContrastive_{self._loss_type}_CDR3BERT_cp_'\
+        return f'{self._model_base_name}_{self._loss_type}_CDR3BERT_cp_'\
             f'{self._num_layers}_{self._d_model}_'\
             f'{self._nhead}_{self._dim_feedforward}'
+
+
+class AutoContrastive_CDR3BERT_cp(_Contrastive_CDR3BERT_cp):
+    '''
+    Contrastive_CDR3BERT_cp model with name 'AutoContrastive...'
+
+    Compatible tokenisers: CDR3Tokeniser
+    '''
+    _model_base_name = 'AutoContrastive'
+
+
+class EpitopeContrastive_CDR3BERT_cp(_Contrastive_CDR3BERT_cp):
+    '''
+    Contrastive_CDR3BERT_cp model with name 'EpitopeContrastive...'
+
+    Compatible tokenisers: CDR3TOkeniser
+    '''
+    _model_base_name = 'EpitopeContrastive'
