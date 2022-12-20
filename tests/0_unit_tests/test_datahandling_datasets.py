@@ -81,7 +81,7 @@ class TestEpitopeContrastiveDataset:
             data=mock_data_df,
             tokeniser=dummy_tokeniser
         )
-        assert len(dataset) == 4
+        assert len(dataset) == 3
 
 
     def test_getitem(self, mock_data_df, dummy_tokeniser):
@@ -96,16 +96,11 @@ class TestEpitopeContrastiveDataset:
         assert x_prime[1] == 'both'
 
         x, x_prime = dataset[1]
-        assert x == (2, 'both')
-        assert x_prime[0] == 2
-        assert x_prime[1] == 'both'
-
-        x, x_prime = dataset[2]
         assert x == (1, 'both')
         assert x_prime[0] in (0, 1)
         assert x_prime[1] == 'both'
 
-        x, x_prime = dataset[3]
+        x, x_prime = dataset[2]
         assert x == (2, 'both')
         assert x_prime[0] == 2
         assert x_prime[1] == 'both'
