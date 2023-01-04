@@ -88,18 +88,20 @@ def config_saved(save_path: Path, config_template: dict) -> bool:
     return result == config_template
 
 
-class TestAutoContrastive:
+class TestTrainingLoop:
     @pytest.mark.parametrize(
         'gpu', (False, True)
     )
-    def test_auto_contrastive(
+    def test_training_loop(
         self,
         autocontrastive_cdr3bert_cp_template,
         tmp_path,
         gpu
     ):
         if gpu and not torch.cuda.is_available():
-            warn('MLM GPU test skipped due to hardware limitations.')
+            warn(
+                'Autocontrastive GPU test skipped due to hardware limitations.'
+            )
             return
 
         # Set up config

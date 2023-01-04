@@ -1,6 +1,6 @@
 '''
 An executable script to conduct simple contrastive learning on TCR models using
-unlabelled TCR data.
+a combination of unlabelled and epitope-labelled TCR data.
 '''
 
 
@@ -11,12 +11,15 @@ from pathlib import Path
 from src import modules
 from src.modules.embedder import MLMEmbedder
 from src.datahandling import tokenisers
-from src.datahandling.dataloaders import AutoContrastiveDataLoader
-from src.datahandling.datasets import AutoContrastiveDataset
+from src.datahandling.dataloaders import EpitopeAutoContrastiveSuperDataLoader
+from src.datahandling.datasets import (
+    AutoContrastiveDataset,
+    EpitopeContrastiveDataset
+)
 from src.metrics import (
     AdjustedCELoss,
     SimCLoss,
-    AULoss,
+    PosBackSimCLoss,
     alignment_paired,
     uniformity,
     mlm_acc
@@ -30,16 +33,19 @@ from typing import Union
 
 
 MODELS = {
-    'AutoContrastive_CDR3BERT_cp': modules.AutoContrastive_CDR3BERT_cp
+    'EpitopeContrastive_CDR3BERT_cp': modules.EpitopeContrastive_CDR3BERT_cp
 }
 
 TOKENISERS = {
     'CDR3Tokeniser': tokenisers.CDR3Tokeniser
 }
 
-CONTRASTIVE_LOSSES = {
-    'AULoss': AULoss,
+AC_LOSSES = {
     'SimCLoss': SimCLoss
+}
+
+EC_LOSSES = {
+    'PosBackSimCLoss': PosBackSimCLoss
 }
 
 
@@ -70,7 +76,8 @@ def metric_feedback(metrics: dict) -> None:
 def train(
     model: MLMEmbedder,
     dl: DataLoader,
-    cont_loss_fn,
+    ec_loss_fn,
+    ac_loss_fn,
     mlm_loss_fn,
     optimiser,
     device
@@ -81,21 +88,26 @@ def train(
     total_lr = 0
     divisor = 0
 
-    for x, x_prime, masked, target in tqdm(dl):
-        num_samples = len(x)
+    for ac, ac_prime, ac_masked, ac_target, ec, ec_prime in tqdm(dl):
+        num_samples = len(ac) + len(ec)
 
-        x = x.to(device)
-        x_prime = x_prime.to(device)
-        masked = masked.to(device)
-        target = target.to(device)
+        ac = ac.to(device)
+        ac_prime = ac_prime.to(device)
+        ac_masked = ac_masked.to(device)
+        ac_target = ac_target.to(device)
+        ec = ec.to(device)
+        ec_prime = ec_prime.to(device)
 
-        z = model.embed(x)
-        z_prime = model.embed(x_prime)
-        mlm_logits = model.mlm(masked)
+        z_ac = model.embed(ac)
+        z_ac_prime = model.embed(ac_prime)
+        mlm_logits = model.mlm(ac_masked)
+        z_ec = model.embed(ec)
+        z_ec_prime = model.embed(ec_prime)
 
         optimiser.zero_grad()
-        loss = cont_loss_fn(z, z_prime) +\
-            mlm_loss_fn(mlm_logits.flatten(0,1), target.view(-1))
+        loss = ec_loss_fn(z_ec, z_ec_prime, z_ac_prime) +\
+            ac_loss_fn(z_ac, z_ac_prime) +\
+            mlm_loss_fn(mlm_logits.flatten(0,1), ac_target.view(-1))
         loss.backward()
         optimiser.step()
 
@@ -113,48 +125,65 @@ def train(
 def validate(
     model: MLMEmbedder,
     dl: DataLoader,
-    cont_loss_fn,
+    ec_loss_fn,
+    ac_loss_fn,
     mlm_loss_fn,
     device
 ) -> dict:
-    total_cont_loss = 0
+    total_ec_loss = 0
+    total_ac_loss = 0
     total_mlm_loss = 0
-    total_aln = 0
+    total_epitope_aln = 0
+    total_auto_aln = 0
     total_unf = 0
     total_mlm_acc = 0
-    divisor = 0
+    ac_divisor = 0
+    ec_divisor = 0
 
-    for x, x_prime, masked, target in tqdm(dl):
-        num_samples = len(x)
+    for ac, ac_prime, ac_masked, ac_target, ec, ec_prime in tqdm(dl):
+        num_ac_samples = len(ac)
+        num_ec_samples = len(ec)
 
-        x = x.to(device)
-        x_prime = x_prime.to(device)
-        masked = masked.to(device)
-        target = target.to(device)
+        ac = ac.to(device)
+        ac_prime = ac_prime.to(device)
+        ac_masked = ac_masked.to(device)
+        ac_target = ac_target.to(device)
+        ec = ec.to(device)
+        ec_prime = ec_prime.to(device)
 
-        model.train() # turn dropout on for contrastive eval, as it adds noise
-        z = model.embed(x)
-        z_prime = model.embed(x_prime)
+        model.train() # turn dropout on for autocontrastive eval
+        z_ac = model.embed(ac)
+        z_ac_prime = model.embed(ac_prime)
 
         model.eval()
-        mlm_logits = model.mlm(masked)
+        mlm_logits = model.mlm(ac_masked)
+        z_ec = model.embed(ec)
+        z_ec_prime = model.embed(ec_prime)
 
-        cont_loss = cont_loss_fn(z, z_prime)
-        mlm_loss = mlm_loss_fn(mlm_logits.flatten(0,1), target.view(-1))
+        ec_loss = ec_loss_fn(z_ec, z_ec_prime, z_ac_prime)
+        ac_loss = ac_loss_fn(z_ac, z_ac_prime)
+        mlm_loss = mlm_loss_fn(mlm_logits.flatten(0,1), ac_target.view(-1))
 
-        total_cont_loss += cont_loss.item() * num_samples
-        total_mlm_loss += mlm_loss.item() * num_samples
-        total_aln += alignment_paired(z, z_prime).item() * num_samples
-        total_unf += uniformity(z).item() * num_samples
-        total_mlm_acc += mlm_acc(mlm_logits, target) * num_samples
-        divisor += num_samples
+        total_ec_loss += ec_loss.item() * num_ec_samples
+        total_ac_loss += ac_loss.item() * num_ac_samples
+        total_mlm_loss += mlm_loss.item() * num_ac_samples
+        total_epitope_aln +=\
+            alignment_paired(z_ec, z_ec_prime).item() * num_ec_samples
+        total_auto_aln +=\
+            alignment_paired(z_ac, z_ac_prime).item() * num_ac_samples
+        total_unf += uniformity(z_ac).item() * num_ac_samples
+        total_mlm_acc += mlm_acc(mlm_logits, ac_target) * num_ac_samples
+        ac_divisor += num_ac_samples
+        ec_divisor += num_ec_samples
 
     return {
-        'valid_cont_loss': total_cont_loss / divisor,
-        'valid_mlm_loss': total_mlm_loss / divisor,
-        'valid_aln': total_aln / divisor,
-        'valid_unf': total_unf / divisor,
-        'valid_mlm_acc': total_mlm_acc / divisor
+        'valid_ec_loss': total_ec_loss / ec_divisor,
+        'valid_ac_loss': total_ac_loss / ac_divisor,
+        'valid_mlm_loss': total_mlm_loss / ac_divisor,
+        'valid_epitope_aln': total_epitope_aln / ec_divisor,
+        'valid_auto_aln': total_auto_aln / ac_divisor,
+        'valid_unf': total_unf / ac_divisor,
+        'valid_mlm_acc': total_mlm_acc / ac_divisor
     }
 
 
@@ -164,27 +193,35 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
     # Load training data
     print('Loading data...')
     tokeniser = TOKENISERS[config['data']['tokeniser']]()
-    train_dl = AutoContrastiveDataLoader(
-        dataset=AutoContrastiveDataset(
-            data=config['data']['train_path'],
+    train_dl = EpitopeAutoContrastiveSuperDataLoader(
+        dataset_ac=AutoContrastiveDataset(
+            data=config['data']['train_path']['autocontrastive'],
+            tokeniser=tokeniser
+        ),
+        dataset_ec=EpitopeContrastiveDataset(
+            data=config['data']['train_path']['epitope_contrastive'],
             tokeniser=tokeniser
         ),
         **config['data']['dataloader_config']
     )
-    valid_dl = AutoContrastiveDataLoader(
-        dataset=AutoContrastiveDataset(
-            data=config['data']['valid_path'],
+    valid_dl = EpitopeAutoContrastiveSuperDataLoader(
+        dataset_ac=AutoContrastiveDataset(
+            data=config['data']['valid_path']['autocontrastive'],
             tokeniser=tokeniser
         ),
-        p_mask_random=0,
-        p_mask_keep=0,
+        dataset_ec=EpitopeContrastiveDataset(
+            data=config['data']['valid_path']['epitope_contrastive'],
+            tokeniser=tokeniser
+        ),
+        p_mask_random_ac=0,
+        p_mask_keep_ac=0,
         **config['data']['dataloader_config']
     )
 
     # Instantiate model
     print('Instantiating model...')
     model = MODELS[config['model']['name']](
-        contrastive_loss_type=config['optim']['contrastive_loss']['name'],
+        contrastive_loss_type=config['optim']['autocontrastive_loss']['name'],
         **config['model']['config']
     )
     model.to(device)
@@ -194,9 +231,13 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
 
     # Instantiate loss function and optimiser
     mlm_loss_fn = AdjustedCELoss(label_smoothing=0.1)
-    cont_loss_fn =\
-        CONTRASTIVE_LOSSES[config['optim']['contrastive_loss']['name']](
-            **config['optim']['contrastive_loss']['config']
+    ac_loss_fn =\
+        AC_LOSSES[config['optim']['autocontrastive_loss']['name']](
+            **config['optim']['autocontrastive_loss']['config']
+        )
+    ec_loss_fn =\
+        EC_LOSSES[config['optim']['epitope_contrastive_loss']['name']](
+            **config['optim']['epitope_contrastive_loss']['config']
         )
     optimiser = AdamWithScheduling(
         params=model.parameters(),
@@ -209,7 +250,8 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
     valid_metrics = validate(
         model=model,
         dl=valid_dl,
-        cont_loss_fn=cont_loss_fn,
+        ec_loss_fn=ec_loss_fn,
+        ac_loss_fn=ac_loss_fn,
         mlm_loss_fn=mlm_loss_fn,
         device=device
     )
@@ -227,7 +269,8 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
         train_metrics = train(
             model=model,
             dl=train_dl,
-            cont_loss_fn=cont_loss_fn,
+            ec_loss_fn=ec_loss_fn,
+            ac_loss_fn=ac_loss_fn,
             mlm_loss_fn=mlm_loss_fn,
             optimiser=optimiser,
             device=device
@@ -238,7 +281,8 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
         valid_metrics = validate(
             model=model,
             dl=valid_dl,
-            cont_loss_fn=cont_loss_fn,
+            ec_loss_fn=ec_loss_fn,
+            ac_loss_fn=ac_loss_fn,
             mlm_loss_fn=mlm_loss_fn,
             device=device
         )
