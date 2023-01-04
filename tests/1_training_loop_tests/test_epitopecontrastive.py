@@ -1,18 +1,19 @@
 import json
-from mlm import main
+from epitopecontrastive import main
 import multiprocessing as mp
 import pandas as pd
 from pathlib import Path
 import pytest
-from src.modules import CDR3BERT_c
+from src.modules import EpitopeContrastive_CDR3BERT_cp
 import torch
 from torch.nn import Module
 from warnings import warn
 
 
 @pytest.fixture
-def cdr3bert_c_template():
-    model = CDR3BERT_c(
+def epitope_contrastive_cdr3bert_cp_template():
+    model = EpitopeContrastive_CDR3BERT_cp(
+        contrastive_loss_type='SimCLoss',
         num_encoder_layers=2,
         d_model=4,
         nhead=2,
@@ -21,27 +22,40 @@ def cdr3bert_c_template():
     return model
 
 
-def get_config(gpu: bool) -> dict:
+def get_config(tmp_path: Path, gpu: bool) -> dict:
     config = {
         'model': {
-            'name': 'CDR3BERT_c',
+            'name': 'EpitopeContrastive_CDR3BERT_cp',
             'config': {
                 'num_encoder_layers': 2,
                 'd_model': 4,
                 'nhead': 2,
                 'dim_feedforward': 16
-            }
+            },
+            'pretrain_state_dict_path': str(tmp_path/'state_dict.pt')
         },
         'data': {
-            'train_path': 'tests/resources/mock_data.csv',
-            'valid_path': 'tests/resources/mock_data.csv',
+            'train_path': {
+                'autocontrastive': 'tests/resources/mock_data.csv',
+                'epitope_contrastive': 'tests/resources/mock_data.csv'
+            },
+            'valid_path': {
+                'autocontrastive': 'tests/resources/mock_data.csv',
+                'epitope_contrastive': 'tests/resources/mock_data.csv'
+            },
             'tokeniser': 'CDR3Tokeniser',
-            'dataloader': {
-                'config': {}
-            }
+            'dataloader_config': {}
         },
         'optim': {
-            'optimiser_config': {'n_warmup_steps': 10000},
+            'autocontrastive_loss': {
+                'name': 'SimCLoss',
+                'config': {'temp': 0.05}
+            },
+            'epitope_contrastive_loss': {
+                'name': 'PosBackSimCLoss',
+                'config': {'temp': 0.05}
+            },
+            'optimiser_config': {'n_warmup_steps': 10000}
         },
         'n_epochs': 3,
         'gpu': gpu
@@ -88,13 +102,27 @@ class TestTrainingLoop:
     @pytest.mark.parametrize(
         'gpu', (False, True)
     )
-    def test_training_loop(self, cdr3bert_c_template, tmp_path, gpu):
+    def test_training_loop(
+        self,
+        epitope_contrastive_cdr3bert_cp_template,
+        tmp_path,
+        gpu
+    ):
         if gpu and not torch.cuda.is_available():
-            warn('MLM GPU test skipped due to hardware limitations.')
+            warn(
+                'Epitope contrastive GPU test '
+                'skipped due to hardware limitations.'
+            )
             return
 
         # Set up config
-        config = get_config(gpu)
+        config = get_config(tmp_path, gpu)
+
+        # Copy toy state_dict into tmp_path
+        torch.save(
+            epitope_contrastive_cdr3bert_cp_template.state_dict(),
+            tmp_path/'state_dict.pt'
+        )
 
         # Run MLM training loop in separate process
         p = mp.Process(
@@ -114,7 +142,7 @@ class TestTrainingLoop:
         # Check that model is saved correctly
         assert model_saved(
             save_path=expected_save_dir/'state_dict.pt',
-            model_template=cdr3bert_c_template
+            model_template=epitope_contrastive_cdr3bert_cp_template
         )
 
         # Check that log is saved correctly
@@ -124,11 +152,15 @@ class TestTrainingLoop:
                 'epoch',
                 'loss',
                 'lr',
-                'valid_loss',
-                'valid_acc',
-                'valid_top5_acc'
+                'valid_ec_loss',
+                'valid_ac_loss',
+                'valid_mlm_loss',
+                'valid_epitope_aln',
+                'valid_auto_aln',
+                'valid_unf',
+                'valid_mlm_acc'
             ],
-            expected_len=3
+            expected_len=4
         )
 
         # Check that config json is saved correctly
