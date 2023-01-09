@@ -4,7 +4,7 @@ import multiprocessing as mp
 import pandas as pd
 from pathlib import Path
 import pytest
-from src.modules import CDR3BERT_c
+from src.modules import CDR3BERT_ac
 import torch
 from torch.nn import Module
 from warnings import warn
@@ -12,7 +12,7 @@ from warnings import warn
 
 @pytest.fixture
 def cdr3bert_c_template():
-    model = CDR3BERT_c(
+    model = CDR3BERT_ac(
         num_encoder_layers=2,
         d_model=4,
         nhead=2,
@@ -24,7 +24,7 @@ def cdr3bert_c_template():
 def get_config(gpu: bool) -> dict:
     config = {
         'model': {
-            'name': 'CDR3BERT_c',
+            'name': 'CDR3BERT_ac',
             'config': {
                 'num_encoder_layers': 2,
                 'd_model': 4,

@@ -30,7 +30,7 @@ from typing import Union
 
 
 MODELS = {
-    'AutoContrastive_CDR3BERT_cp': modules.AutoContrastive_CDR3BERT_cp
+    'AutoContrastive_CDR3BERT_acp': modules.AutoContrastive_CDR3BERT_acp
 }
 
 TOKENISERS = {
