@@ -60,6 +60,29 @@ class AAEmbedding_a(Module):
             self.token_embedding(x[:,:,0]) * math.sqrt(self.embedding_dim)
 
 
+class AAEmbedding_ap(AAEmbedding_a):
+    '''
+    CDR3 embedder which encodes amino acid and residue position information.
+
+    Compatible tokenisers: CDR3Tokeniser
+    '''
+    def __init__(self, embedding_dim: int) -> None:
+        super().__init__(embedding_dim)
+
+        self.position_embedding = SinPositionEmbedding(
+            num_embeddings=100,
+            embedding_dim=embedding_dim
+        )
+    
+
+    def forward(self, x: Tensor) -> Tensor:
+        return \
+            (
+                self.token_embedding(x[:,:,0]) +
+                self.position_embedding(x[:,:,2])
+            ) * math.sqrt(self.embedding_dim)
+
+
 class AAEmbedding_ac(AAEmbedding_a):
     '''
     CDR3 embedder which encodes amino acid and chain information.
