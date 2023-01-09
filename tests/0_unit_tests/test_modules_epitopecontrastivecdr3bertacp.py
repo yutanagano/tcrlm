@@ -3,7 +3,7 @@ from src.modules import EpitopeContrastive_CDR3BERT_acp
 
 
 @pytest.fixture
-def autocontrastive_cdr3bert_cp():
+def autocontrastive_cdr3bert_acp():
     model = EpitopeContrastive_CDR3BERT_acp(
         contrastive_loss_type='Test',
         num_encoder_layers=6,
@@ -16,6 +16,6 @@ def autocontrastive_cdr3bert_cp():
 
 
 class TestAutoContrastive_CDR3BERT_cp:
-    def test_name(self, autocontrastive_cdr3bert_cp):
-        assert autocontrastive_cdr3bert_cp.name ==\
+    def test_name(self, autocontrastive_cdr3bert_acp):
+        assert autocontrastive_cdr3bert_acp.name ==\
             'EpitopeContrastive_Test_CDR3BERT_acp_6_64_8_256'
