@@ -6,6 +6,7 @@ CDR3BERT classes
 from src.modules.bert.bert import BERT_base
 from src.modules.bert.embedding import (
     AAEmbedding_a,
+    AAEmbedding_ap,
     AAEmbedding_ac,
     AAEmbedding_acp
 )
@@ -43,6 +44,38 @@ class CDR3BERT_a(BERT_base):
     @property
     def name(self) -> str:
         return f'CDR3BERT_a_{self._num_layers}_{self._d_model}_'\
+            f'{self._nhead}_{self._dim_feedforward}-embed_{self.embed_layer}'
+
+
+class CDR3BERT_ap(BERT_base):
+    '''
+    CDR3BERT model that gets amino acid and residue position information.
+
+    Compatible tokenisers: CDR3Tokeniser
+    '''
+    def __init__(
+        self,
+        num_encoder_layers: int,
+        d_model: int,
+        nhead: int,
+        dim_feedforward: int,
+        dropout: float = 0.1
+    ) -> None:
+        super().__init__(
+            num_encoder_layers,
+            d_model,
+            nhead,
+            dim_feedforward,
+            dropout
+        )
+
+        self.embedder = AAEmbedding_ap(embedding_dim=d_model)
+        self.generator = torch.nn.Linear(d_model, 20)
+
+
+    @property
+    def name(self) -> str:
+        return f'CDR3BERT_ap_{self._num_layers}_{self._d_model}_'\
             f'{self._nhead}_{self._dim_feedforward}-embed_{self.embed_layer}'
 
 
