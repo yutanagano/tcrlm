@@ -4,7 +4,7 @@ import torch
 
 
 @pytest.fixture
-def cls_cdr3bert_cp():
+def cls_cdr3bert_acp():
     model = _CLS_CDR3BERT_acp(
         num_encoder_layers=6,
         d_model=64,
@@ -16,23 +16,23 @@ def cls_cdr3bert_cp():
 
 
 class TestCLS_CDR3BERT_cp:
-    def test_init_attributes(self, cls_cdr3bert_cp):
-        assert cls_cdr3bert_cp._num_layers == 6
-        assert cls_cdr3bert_cp._d_model == 64
-        assert cls_cdr3bert_cp._nhead == 8
-        assert cls_cdr3bert_cp._dim_feedforward == 256
+    def test_init_attributes(self, cls_cdr3bert_acp):
+        assert cls_cdr3bert_acp._num_layers == 6
+        assert cls_cdr3bert_acp._d_model == 64
+        assert cls_cdr3bert_acp._nhead == 8
+        assert cls_cdr3bert_acp._dim_feedforward == 256
 
 
-    def test_forward(self, cls_cdr3bert_cp):
+    def test_forward(self, cls_cdr3bert_acp):
         batch = torch.zeros((3,10,3), dtype=torch.long)
-        out, padding_mask = cls_cdr3bert_cp(x=batch)
+        out, padding_mask = cls_cdr3bert_acp(x=batch)
 
         assert out.size() == (3,10,64)
         assert padding_mask.size() == (3,10)
         assert (padding_mask == 1).all()
 
 
-    def test_embed(self, cls_cdr3bert_cp):
+    def test_embed(self, cls_cdr3bert_acp):
         batch = torch.tensor(
             [
                 [[2,0,0],[3,1,1],[4,1,2],[5,1,3],[3,2,1],[4,2,2],[5,2,3]],
@@ -41,14 +41,14 @@ class TestCLS_CDR3BERT_cp:
             ],
             dtype=torch.long
         )
-        out = cls_cdr3bert_cp.embed(x=batch)
+        out = cls_cdr3bert_acp.embed(x=batch)
 
         assert out.size() == (3,64)
         torch.testing.assert_close(out.norm(dim=1), torch.ones(3))
 
 
-    def test_mlm(self, cls_cdr3bert_cp):
+    def test_mlm(self, cls_cdr3bert_acp):
         batch = torch.zeros((3,10,3), dtype=torch.long)
-        out = cls_cdr3bert_cp.mlm(x=batch)
+        out = cls_cdr3bert_acp.mlm(x=batch)
 
         assert out.size() == (3,10,20)
