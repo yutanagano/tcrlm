@@ -1,10 +1,10 @@
 import pytest
-from src.modules import AutoContrastive_CDR3BERT_cp
+from src.modules import AutoContrastive_CDR3BERT_acp
 
 
 @pytest.fixture
 def autocontrastive_cdr3bert_cp():
-    model = AutoContrastive_CDR3BERT_cp(
+    model = AutoContrastive_CDR3BERT_acp(
         contrastive_loss_type='Test',
         num_encoder_layers=6,
         d_model=64,
@@ -18,4 +18,4 @@ def autocontrastive_cdr3bert_cp():
 class TestAutoContrastive_CDR3BERT_cp:
     def test_name(self, autocontrastive_cdr3bert_cp):
         assert autocontrastive_cdr3bert_cp.name ==\
-            'AutoContrastive_Test_CDR3BERT_cp_6_64_8_256'
+            'AutoContrastive_Test_CDR3BERT_acp_6_64_8_256'

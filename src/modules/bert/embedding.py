@@ -38,24 +38,42 @@ class SinPositionEmbedding(Module):
         return self.position_embedding[x]
 
 
-class AAEmbedding_c(Module):
+class AAEmbedding_a(Module):
     '''
-    CDR3 embedder which encodes amino acid and chain information.
+    CDR3 embedder which encodes amino acid information information only.
+
+    Compatible tokenisers: CDR3Tokeniser
     '''
     def __init__(self, embedding_dim: int) -> None:
         super().__init__()
 
+        self.embedding_dim = embedding_dim
         self.token_embedding = Embedding(
             num_embeddings=23, # <pad> + <mask> + <cls> + 20 amino acids
             embedding_dim=embedding_dim,
             padding_idx=0
         )
+    
+
+    def forward(self, x: Tensor) -> Tensor:
+        return \
+            self.token_embedding(x[:,:,0]) * math.sqrt(self.embedding_dim)
+
+
+class AAEmbedding_ac(AAEmbedding_a):
+    '''
+    CDR3 embedder which encodes amino acid and chain information.
+
+    Compatible tokenisers: CDR3Tokeniser
+    '''
+    def __init__(self, embedding_dim: int) -> None:
+        super().__init__(embedding_dim)
+
         self.chain_embedding = Embedding(
             num_embeddings=3, # <pad>, alpha, beta
             embedding_dim=embedding_dim,
             padding_idx=0
         )
-        self.embedding_dim = embedding_dim
     
 
     def forward(self, x: Tensor) -> Tensor:
@@ -64,29 +82,20 @@ class AAEmbedding_c(Module):
                 * math.sqrt(self.embedding_dim)
 
 
-class AAEmbedding_cp(Module):
+class AAEmbedding_acp(AAEmbedding_ac):
     '''
     CDR3 embedder which encodes amino acid, chain, and residue position
     information.
+
+    Compatible tokenisers: CDR3Tokeniser
     '''
     def __init__(self, embedding_dim: int) -> None:
-        super().__init__()
+        super().__init__(embedding_dim)
 
-        self.token_embedding = Embedding(
-            num_embeddings=23, # <pad> + <mask> + <cls> + 20 amino acids
-            embedding_dim=embedding_dim,
-            padding_idx=0
-        )
-        self.chain_embedding = Embedding(
-            num_embeddings=3, # <pad>, alpha, beta
-            embedding_dim=embedding_dim,
-            padding_idx=0
-        )
         self.position_embedding = SinPositionEmbedding(
             num_embeddings=100,
             embedding_dim=embedding_dim
         )
-        self.embedding_dim = embedding_dim
     
 
     def forward(self, x: Tensor) -> Tensor:

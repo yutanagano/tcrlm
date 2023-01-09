@@ -1,11 +1,11 @@
 import pytest
-from src.modules.bert.cdr3bert import _CLS_CDR3BERT_cp
+from src.modules.bert.cdr3bert import _CLS_CDR3BERT_acp
 import torch
 
 
 @pytest.fixture
 def cls_cdr3bert_cp():
-    model = _CLS_CDR3BERT_cp(
+    model = _CLS_CDR3BERT_acp(
         num_encoder_layers=6,
         d_model=64,
         nhead=8,

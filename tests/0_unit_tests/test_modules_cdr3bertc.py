@@ -1,11 +1,11 @@
 import pytest
-from src.modules import CDR3BERT_c
+from src.modules import CDR3BERT_ac
 import torch
 
 
 @pytest.fixture
 def cdr3bert_c():
-    model = CDR3BERT_c(
+    model = CDR3BERT_ac(
         num_encoder_layers=6,
         d_model=64,
         nhead=8,
@@ -56,4 +56,4 @@ class TestCDR3BERT_c:
 
 
     def test_name(self, cdr3bert_c):
-        assert cdr3bert_c.name == 'CDR3BERT_c_6_64_8_256-embed_5'
+        assert cdr3bert_c.name == 'CDR3BERT_ac_6_64_8_256-embed_5'
