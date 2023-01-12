@@ -22,6 +22,7 @@ from typing import Union
 
 
 MODELS = {
+    'CDR3BERT_a': modules.CDR3BERT_a,
     'CDR3BERT_ac': modules.CDR3BERT_ac,
     'CDR3BERT_acp': modules.CDR3BERT_acp
 }
