@@ -4,7 +4,7 @@ import multiprocessing as mp
 import pandas as pd
 from pathlib import Path
 import pytest
-from src.modules import AutoContrastive_CDR3BERT_acp
+from src.modules import AutoContCDR3BERT_acp
 import torch
 from torch.nn import Module
 from warnings import warn
@@ -12,7 +12,7 @@ from warnings import warn
 
 @pytest.fixture
 def autocontrastive_cdr3bert_cp_template():
-    model = AutoContrastive_CDR3BERT_acp(
+    model = AutoContCDR3BERT_acp(
         contrastive_loss_type='SimCLoss',
         num_encoder_layers=2,
         d_model=4,
