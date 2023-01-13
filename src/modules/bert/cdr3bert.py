@@ -43,6 +43,31 @@ class _CDR3BERTBase(BERTBase):
         self.generator = torch.nn.Linear(d_model, 20)
 
 
+class _BetaCDR3BERTBase(_CDR3BERTBase):
+    '''
+    Base class variant for models specialising in beta chain.
+    '''
+
+
+    def __init__(
+        self,
+        num_encoder_layers: int,
+        d_model: int,
+        nhead: int,
+        dim_feedforward: int,
+        dropout: float = 0.1
+    ) -> None:
+        super().__init__(
+            num_encoder_layers,
+            d_model,
+            nhead,
+            dim_feedforward,
+            dropout
+        )
+
+        self._name_base = 'Beta' + self._name_base
+
+
 class CDR3BERT_a(_CDR3BERTBase):
     '''
     CDR3BERT model that only gets amino acid information.
@@ -71,6 +96,27 @@ class CDR3BERT_a(_CDR3BERTBase):
         self.embedder = AAEmbedding_a(embedding_dim=d_model)
 
 
+class BetaCDR3BERT_a(_BetaCDR3BERTBase, CDR3BERT_a):
+    '''Beta variant of CDR3BERT_a'''
+
+
+    def __init__(
+        self,
+        num_encoder_layers: int,
+        d_model: int,
+        nhead: int,
+        dim_feedforward: int,
+        dropout: float = 0.1
+    ) -> None:
+        super().__init__(
+            num_encoder_layers,
+            d_model,
+            nhead,
+            dim_feedforward,
+            dropout
+        )
+
+
 class CDR3BERT_ap(_CDR3BERTBase):
     '''
     CDR3BERT model that gets amino acid and positional information.
@@ -97,6 +143,27 @@ class CDR3BERT_ap(_CDR3BERTBase):
         )
 
         self.embedder = AAEmbedding_ap(embedding_dim=d_model)
+
+
+class BetaCDR3BERT_ap(_BetaCDR3BERTBase, CDR3BERT_ap):
+    '''Beta variant of CDR3BERT_ap'''
+
+
+    def __init__(
+        self,
+        num_encoder_layers: int,
+        d_model: int,
+        nhead: int,
+        dim_feedforward: int,
+        dropout: float = 0.1
+    ) -> None:
+        super().__init__(
+            num_encoder_layers,
+            d_model,
+            nhead,
+            dim_feedforward,
+            dropout
+        )
 
 
 class CDR3BERT_ac(_CDR3BERTBase):
