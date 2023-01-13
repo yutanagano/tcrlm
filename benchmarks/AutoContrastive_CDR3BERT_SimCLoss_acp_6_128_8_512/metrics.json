@@ -1,5 +1,5 @@
 {
-    "model_name": "AutoContrastive_SimCLoss_CDR3BERT_acp_6_128_8_512",
+    "model_name": "AutoContrastive_CDR3BERT_SimCLoss_acp_6_128_8_512",
     "alignment": 1.363106369972229,
     "uniformity": -1.4023538827896118,
     "alignment + uniformity": -0.03924751281738281,

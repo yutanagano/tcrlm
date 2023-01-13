@@ -9,7 +9,7 @@ from torch.nn.functional import normalize
 from typing import Tuple
 
 
-class BERT_base(MLMEmbedder):
+class BERTBase(MLMEmbedder):
     '''
     BERT base template.
     '''
@@ -19,7 +19,7 @@ class BERT_base(MLMEmbedder):
         d_model: int,
         nhead: int,
         dim_feedforward: int,
-        dropout: float = 0.1,
+        dropout: float = 0.1
     ) -> None:
         super().__init__()
 
@@ -41,6 +41,13 @@ class BERT_base(MLMEmbedder):
             encoder_layer=encoder_layer,
             num_layers=num_encoder_layers
         )
+
+    
+    @property
+    def name(self) -> str:
+        return f'{self._name_base}_{self._name_suffix}_'\
+            f'{self._num_layers}_{self._d_model}_'\
+            f'{self._nhead}_{self._dim_feedforward}-embed_{self.embed_layer}'
 
 
     def forward(self, x: Tensor) -> Tuple[Tensor, Tensor]:
@@ -78,3 +85,25 @@ class BERT_base(MLMEmbedder):
 
     def mlm(self, x: Tensor) -> Tensor:
         return self.generator(self.forward(x)[0])
+
+
+class BERTClsEmbedBase(BERTBase):
+    '''
+    Base class for BERT models that use the <cls> token to embed input
+    sequences instead of taking the average pool of a particular layer.
+    '''
+
+
+    def embed(self, x: Tensor) -> Tensor:
+        '''
+        Get the l2-normalised <cls> embeddings of the final layer.
+        '''
+        x_emb = self.forward(x)[0]
+        x_emb = x_emb[:,0,:]
+        return normalize(x_emb, p=2, dim=1)
+
+
+    @property
+    def name(self) -> str:
+        # The final '-embed' part of the name is no longer needed
+        return super().name.split('-embed_')[0]
