@@ -1,9 +1,11 @@
 '''
 CDR3BERT classes
+
+Compatible tokenisers: CDR3Tokeniser
 '''
 
 
-from src.modules.bert.bert import BERT_base
+from src.modules.bert.bert import BERTBase, BERTClsEmbedBase
 from src.modules.bert.embedding import (
     AAEmbedding_a,
     AAEmbedding_ap,
@@ -11,16 +13,45 @@ from src.modules.bert.embedding import (
     AAEmbedding_acp
 )
 import torch
-from torch import Tensor
-from torch.nn.functional import normalize
 
 
-class CDR3BERT_a(BERT_base):
+class _CDR3BERTBase(BERTBase):
+    '''
+    CDR3BERT base class.
+    '''
+
+
+    _name_base = 'CDR3BERT'
+
+
+    def __init__(
+        self,
+        num_encoder_layers: int,
+        d_model: int,
+        nhead: int,
+        dim_feedforward: int,
+        dropout: float = 0.1
+    ) -> None:
+        super().__init__(
+            num_encoder_layers,
+            d_model,
+            nhead,
+            dim_feedforward,
+            dropout
+        )
+
+        self.generator = torch.nn.Linear(d_model, 20)
+
+
+class CDR3BERT_a(_CDR3BERTBase):
     '''
     CDR3BERT model that only gets amino acid information.
-
-    Compatible tokenisers: CDR3Tokeniser
     '''
+
+
+    _name_suffix = 'a'
+
+
     def __init__(
         self,
         num_encoder_layers: int,
@@ -38,21 +69,17 @@ class CDR3BERT_a(BERT_base):
         )
 
         self.embedder = AAEmbedding_a(embedding_dim=d_model)
-        self.generator = torch.nn.Linear(d_model, 20)
 
 
-    @property
-    def name(self) -> str:
-        return f'CDR3BERT_a_{self._num_layers}_{self._d_model}_'\
-            f'{self._nhead}_{self._dim_feedforward}-embed_{self.embed_layer}'
-
-
-class CDR3BERT_ap(BERT_base):
+class CDR3BERT_ap(_CDR3BERTBase):
     '''
-    CDR3BERT model that gets amino acid and residue position information.
-
-    Compatible tokenisers: CDR3Tokeniser
+    CDR3BERT model that gets amino acid and positional information.
     '''
+
+
+    _name_suffix = 'ap'
+
+
     def __init__(
         self,
         num_encoder_layers: int,
@@ -70,21 +97,17 @@ class CDR3BERT_ap(BERT_base):
         )
 
         self.embedder = AAEmbedding_ap(embedding_dim=d_model)
-        self.generator = torch.nn.Linear(d_model, 20)
 
 
-    @property
-    def name(self) -> str:
-        return f'CDR3BERT_ap_{self._num_layers}_{self._d_model}_'\
-            f'{self._nhead}_{self._dim_feedforward}-embed_{self.embed_layer}'
-
-
-class CDR3BERT_ac(BERT_base):
+class CDR3BERT_ac(_CDR3BERTBase):
     '''
-    CDR3BERT model that only gets amino acid and chain information.
-
-    Compatible tokenisers: CDR3Tokeniser
+    CDR3BERT model that gets amino acid and chain information.
     '''
+
+
+    _name_suffix = 'ac'
+
+
     def __init__(
         self,
         num_encoder_layers: int,
@@ -102,22 +125,18 @@ class CDR3BERT_ac(BERT_base):
         )
 
         self.embedder = AAEmbedding_ac(embedding_dim=d_model)
-        self.generator = torch.nn.Linear(d_model, 20)
 
 
-    @property
-    def name(self) -> str:
-        return f'CDR3BERT_ac_{self._num_layers}_{self._d_model}_'\
-            f'{self._nhead}_{self._dim_feedforward}-embed_{self.embed_layer}'
-
-
-class CDR3BERT_acp(BERT_base):
+class CDR3BERT_acp(_CDR3BERTBase):
     '''
-    CDR3BERT model that get amino acid, chain, and residue position
+    CDR3BERT model that gets amino acid, chain, and residue position
     information.
-
-    Compatible tokenisers: CDR3Tokeniser
     '''
+
+
+    _name_suffix = 'acp'
+
+
     def __init__(
         self,
         num_encoder_layers: int,
@@ -135,38 +154,12 @@ class CDR3BERT_acp(BERT_base):
         )
 
         self.embedder = AAEmbedding_acp(embedding_dim=d_model)
-        self.generator = torch.nn.Linear(d_model, 20)
 
 
-    @property
-    def name(self) -> str:
-        return f'CDR3BERT_acp_{self._num_layers}_{self._d_model}_'\
-            f'{self._nhead}_{self._dim_feedforward}-embed_{self.embed_layer}'
-
-
-class _CLS_CDR3BERT_acp(CDR3BERT_acp):
+class _ConCDR3BERTBase_acp(BERTClsEmbedBase, CDR3BERT_acp):
     '''
-    CDR3BERT_acp model that embeds using the <cls> token.
-
-    Compatible tokenisers: CDR3Tokeniser
+    CDR3BERT_acp model which uses the <cls> token to embed.
     '''
-    def embed(self, x: Tensor) -> Tensor:
-        '''
-        Get the l2-normalised <cls> embeddings of the final layer.
-        '''
-        x_emb = self.forward(x)[0]
-        x_emb = x_emb[:,0,:]
-        return normalize(x_emb, p=2, dim=1)
-
-
-class _Contrastive_CDR3BERT_acp(_CLS_CDR3BERT_acp):
-    '''
-    CLS_CDR3BERT_acp model with code to generate model name based on
-    contrastive loss type.
-
-    Compatible tokenisers: CDR3Tokeniser
-    '''
-    _model_base_name = None
 
 
     def __init__(
@@ -186,29 +179,24 @@ class _Contrastive_CDR3BERT_acp(_CLS_CDR3BERT_acp):
             dropout
         )
 
-        self._loss_type = contrastive_loss_type
+        self._name_base = self._name_base + '_' + contrastive_loss_type
+
+
+class AutoContCDR3BERT_acp(_ConCDR3BERTBase_acp):
+    '''
+    CDR3BERT_acp model embedding using the <cls> token and with base name
+    'AutoContrastive...'
+    '''
 
     
-    @property
-    def name(self) -> str:
-        return f'{self._model_base_name}_{self._loss_type}_CDR3BERT_acp_'\
-            f'{self._num_layers}_{self._d_model}_'\
-            f'{self._nhead}_{self._dim_feedforward}'
+    _name_base = 'AutoContrastive_CDR3BERT'
 
 
-class AutoContrastive_CDR3BERT_acp(_Contrastive_CDR3BERT_acp):
+class EpContCDR3BERT_acp(_ConCDR3BERTBase_acp):
     '''
-    Contrastive_CDR3BERT_acp model with name 'AutoContrastive...'
-
-    Compatible tokenisers: CDR3Tokeniser
+    CDR3BERT_acp model embedding using the <cls> token and with base name
+    'EpitopeContrastive...'
     '''
-    _model_base_name = 'AutoContrastive'
 
 
-class EpitopeContrastive_CDR3BERT_acp(_Contrastive_CDR3BERT_acp):
-    '''
-    Contrastive_CDR3BERT_acp model with name 'EpitopeContrastive...'
-
-    Compatible tokenisers: CDR3TOkeniser
-    '''
-    _model_base_name = 'EpitopeContrastive'
+    _name_base = 'EpitopeContrastive_CDR3BERT'
