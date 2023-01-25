@@ -9,5 +9,6 @@ from .bert.cdr3bert import (
     EpContCDR3BERT_acp,
 
     BetaCDR3BERT_a,
-    BetaCDR3BERT_ap
+    BetaCDR3BERT_ap,
+    AutoContBetaCDR3BERT_ap
 )
