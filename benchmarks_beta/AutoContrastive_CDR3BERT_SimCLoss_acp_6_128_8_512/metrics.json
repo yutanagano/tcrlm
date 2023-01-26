@@ -1,0 +1,7 @@
+{
+    "model_name": "AutoContrastive_CDR3BERT_SimCLoss_acp_6_128_8_512",
+    "alignment": 1.3464851379394531,
+    "uniformity": -1.3951976299285889,
+    "alignment + uniformity": -0.04871249198913574,
+    "5nn_accuracy": 0.29652175307273865
+}
