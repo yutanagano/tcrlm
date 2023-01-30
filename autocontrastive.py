@@ -31,7 +31,8 @@ from typing import Union
 
 MODELS = {
     'AutoContrastive_CDR3BERT_acp': modules.AutoContCDR3BERT_acp,
-    'AutoContrastive_BetaCDR3BERT_ap': modules.AutoContBetaCDR3BERT_ap
+    'AutoContrastive_BetaCDR3BERT_ap': modules.AutoContBetaCDR3BERT_ap,
+    'BetaCDR3BERT_ap': modules.BetaCDR3BERT_ap
 }
 
 TOKENISERS = {
