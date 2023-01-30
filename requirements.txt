@@ -8,6 +8,7 @@ cycler==0.11.0
 debugpy==1.6.4
 decorator==5.1.1
 entrypoints==0.4
+et-xmlfile==1.1.0
 exceptiongroup==1.0.4
 executing==1.2.0
 fonttools==4.38.0
@@ -29,6 +30,7 @@ nvidia-cublas-cu11==11.10.3.66
 nvidia-cuda-nvrtc-cu11==11.7.99
 nvidia-cuda-runtime-cu11==11.7.99
 nvidia-cudnn-cu11==8.5.0.96
+openpyxl==3.0.10
 packaging==22.0
 pandas==1.5.2
 parso==0.8.3
