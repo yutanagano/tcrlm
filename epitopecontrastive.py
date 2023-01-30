@@ -33,7 +33,8 @@ from typing import Union
 
 
 MODELS = {
-    'EpitopeContrastive_CDR3BERT_acp': modules.EpContCDR3BERT_acp
+    'EpitopeContrastive_CDR3BERT_acp': modules.EpContCDR3BERT_acp,
+    'EpitopeContrastive_BetaCDR3BERT_ap': modules.EpContBetaCDR3BERT_ap
 }
 
 TOKENISERS = {
