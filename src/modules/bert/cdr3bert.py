@@ -304,3 +304,13 @@ class EpContCDR3BERT_acp(_ConCDR3BERTBase_acp):
 
 
     _name_base = 'EpitopeContrastive_CDR3BERT'
+
+
+class EpContBetaCDR3BERT_ap(_ConBetaCDR3BERTBase_ap):
+    '''
+    BetaCDR3BERT_ap model embedding using the <cls> token and with base name
+    'EpitopeContrastive...'
+    '''
+
+    
+    _name_base = 'EpitopeContrastive_BetaCDR3BERT'
