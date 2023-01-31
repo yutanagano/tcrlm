@@ -13,6 +13,7 @@ from src.modules.bert.embedding import (
     AAEmbedding_acp
 )
 import torch
+from typing import Optional
 
 
 class _CDR3BERTBase(BERTBase):
@@ -155,7 +156,8 @@ class BetaCDR3BERT_ap(_BetaCDR3BERTBase, CDR3BERT_ap):
         d_model: int,
         nhead: int,
         dim_feedforward: int,
-        dropout: float = 0.1
+        dropout: float = 0.1,
+        contrastive_loss_type: Optional[str] = None # dummy parameter for compatibility with autocontrastive pipeline
     ) -> None:
         super().__init__(
             num_encoder_layers,
