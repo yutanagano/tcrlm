@@ -22,7 +22,7 @@ def autocontrastive_cdr3bert_cp_template():
     return model
 
 
-def get_config(tmp_path: Path, gpu: bool) -> dict:
+def get_config(tmp_path: Path, model_name: str, gpu: bool) -> dict:
     config = {
         'model': {
             'name': 'AutoContrastive_CDR3BERT_acp',
@@ -90,12 +90,18 @@ def config_saved(save_path: Path, config_template: dict) -> bool:
 
 class TestTrainingLoop:
     @pytest.mark.parametrize(
-        'gpu', (False, True)
+        ('model_name', 'gpu'),
+        (
+            ('AutoContrastive_CDR3BERT_acp', False),
+            ('AutoContrastive_CDR3BERT_acp', True),
+            ('BetaCDR3BERT_ap', False)
+        )
     )
     def test_training_loop(
         self,
         autocontrastive_cdr3bert_cp_template,
         tmp_path,
+        model_name,
         gpu
     ):
         if gpu and not torch.cuda.is_available():
@@ -105,7 +111,7 @@ class TestTrainingLoop:
             return
 
         # Set up config
-        config = get_config(tmp_path, gpu)
+        config = get_config(tmp_path, model_name, gpu)
 
         # Copy toy state_dict into tmp_path
         torch.save(
