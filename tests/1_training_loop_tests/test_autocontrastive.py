@@ -37,7 +37,7 @@ def get_config(tmp_path: Path, model_name: str, gpu: bool) -> dict:
         'data': {
             'train_path': 'tests/resources/mock_data.csv',
             'valid_path': 'tests/resources/mock_data.csv',
-            'tokeniser': 'CDR3Tokeniser',
+            'tokeniser': 'CDR3ABTokeniser',
             'dataloader_config': {}
         },
         'optim': {
