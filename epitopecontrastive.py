@@ -38,7 +38,7 @@ MODELS = {
 }
 
 TOKENISERS = {
-    'CDR3Tokeniser': tokenisers.CDR3Tokeniser
+    'CDR3ABTokeniser': tokenisers.CDR3ABTokeniser
 }
 
 AC_LOSSES = {
