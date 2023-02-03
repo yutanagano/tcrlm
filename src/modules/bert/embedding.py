@@ -79,7 +79,7 @@ class AAEmbedding_ap(AAEmbedding_a):
         return \
             (
                 self.token_embedding(x[:,:,0]) +
-                self.position_embedding(x[:,:,2])
+                self.position_embedding(x[:,:,1])
             ) * math.sqrt(self.embedding_dim)
 
 
@@ -101,11 +101,11 @@ class AAEmbedding_ac(AAEmbedding_a):
 
     def forward(self, x: Tensor) -> Tensor:
         return \
-            (self.token_embedding(x[:,:,0]) + self.chain_embedding(x[:,:,1])) \
+            (self.token_embedding(x[:,:,0]) + self.chain_embedding(x[:,:,2])) \
                 * math.sqrt(self.embedding_dim)
 
 
-class AAEmbedding_acp(AAEmbedding_ac):
+class AAEmbedding_apc(AAEmbedding_ap):
     '''
     CDR3 embedder which encodes amino acid, chain, and residue position
     information.
@@ -115,9 +115,10 @@ class AAEmbedding_acp(AAEmbedding_ac):
     def __init__(self, embedding_dim: int) -> None:
         super().__init__(embedding_dim)
 
-        self.position_embedding = SinPositionEmbedding(
-            num_embeddings=100,
-            embedding_dim=embedding_dim
+        self.chain_embedding = Embedding(
+            num_embeddings=3, # <pad>, alpha, beta
+            embedding_dim=embedding_dim,
+            padding_idx=0
         )
     
 
@@ -125,6 +126,6 @@ class AAEmbedding_acp(AAEmbedding_ac):
         return \
             (
                 self.token_embedding(x[:,:,0]) +
-                self.chain_embedding(x[:,:,1]) +
-                self.position_embedding(x[:,:,2])
+                self.position_embedding(x[:,:,1]) +
+                self.chain_embedding(x[:,:,2])
             ) * math.sqrt(self.embedding_dim)

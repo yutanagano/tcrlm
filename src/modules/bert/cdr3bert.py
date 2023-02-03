@@ -1,7 +1,10 @@
 '''
 CDR3BERT classes
 
-Compatible tokenisers: CDR3Tokeniser
+Compatible tokenisers:
+
+Paired chain models: CDR3ABTokeniser
+Beta chain models: CDR3BTokeniser
 '''
 
 
@@ -10,7 +13,7 @@ from src.modules.bert.embedding import (
     AAEmbedding_a,
     AAEmbedding_ap,
     AAEmbedding_ac,
-    AAEmbedding_acp
+    AAEmbedding_apc
 )
 import torch
 from typing import Optional
@@ -98,7 +101,9 @@ class CDR3BERT_a(_CDR3BERTBase):
 
 
 class BetaCDR3BERT_a(_BetaCDR3BERTBase, CDR3BERT_a):
-    '''Beta variant of CDR3BERT_a'''
+    '''
+    Beta variant of CDR3BERT_a
+    '''
 
 
     def __init__(
@@ -222,7 +227,7 @@ class CDR3BERT_acp(_CDR3BERTBase):
             dropout
         )
 
-        self.embedder = AAEmbedding_acp(embedding_dim=d_model)
+        self.embedder = AAEmbedding_apc(embedding_dim=d_model)
 
 
 class _ConCDR3BERTBase_acp(BERTClsEmbedBase, CDR3BERT_acp):
