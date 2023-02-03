@@ -10,7 +10,7 @@ def cdr3t_dataloader(cdr3t_dataset):
     return dl
 
 
-class TestAtchleyEmbedder:
+class TestModel:
     def test_embed(self, cdr3t_dataloader):
         embedder = AtchleyEmbedder()
 
@@ -37,9 +37,3 @@ class TestAtchleyEmbedder:
             atol=0,
             rtol=0.001
         )
-
-
-    def test_name(self):
-        embedder = AtchleyEmbedder()
-
-        assert embedder.name == 'atchley_embedder'

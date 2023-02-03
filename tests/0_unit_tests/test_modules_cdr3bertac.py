@@ -53,7 +53,3 @@ class TestModel:
         out = model.mlm(x=batch)
 
         assert out.size() == (3,10,20)
-
-
-    def test_name(self, model):
-        assert model.name == 'CDR3BERT_ac_6_64_8_256-embed_5'

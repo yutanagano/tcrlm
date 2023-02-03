@@ -99,14 +99,20 @@ class PCDistModelWrapper:
     Pytorch embedder model wrapper to faciliate model sharing between different
     evaluation pipelines.
     '''
-    def __init__(self, model: Embedder, tokeniser: Tokeniser) -> None:
+    def __init__(
+        self,
+        model: Embedder,
+        model_name: str,
+        tokeniser: Tokeniser
+    ) -> None:
         self.module = model.eval()
+        self._name = model_name
         self._tokeniser = tokeniser
 
 
     @property
     def name(self) -> str:
-        return self.module.name
+        return self._name
 
     
     def pdist(self, sequence_elements: dict[str, ndarray]) -> ndarray:
