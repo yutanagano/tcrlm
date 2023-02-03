@@ -15,7 +15,7 @@ def model():
     return model
 
 
-class Testmodel:
+class TestModel:
     def test_init_attributes(self, model):
         assert model.embed_layer == 5
         assert model._num_layers == 6

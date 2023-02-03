@@ -313,7 +313,7 @@ class CDR3BTokeniser(_CDR3Tokeniser):
         tokenised = [[2,0]]
 
         if isna(cdr3b):
-            raise ValueError(f'CDR3 data missing from row {tcr.index}')
+            raise ValueError(f'CDR3B data missing from row {tcr.name}')
 
         for i, aa in enumerate(cdr3b):
             tokenised.append([self._aa_to_index[aa], i+1])

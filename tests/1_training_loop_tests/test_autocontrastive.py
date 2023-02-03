@@ -4,14 +4,14 @@ import multiprocessing as mp
 import pandas as pd
 from pathlib import Path
 import pytest
-from src.modules import AutoContCDR3BERT_acp
+from src.modules import AutoContCDR3BERT_acp, BetaCDR3BERT_ap
 import torch
 from torch.nn import Module
 from warnings import warn
 
 
 @pytest.fixture
-def autocontrastive_cdr3bert_cp_template():
+def autocontrastive_cdr3bert_acp_template():
     model = AutoContCDR3BERT_acp(
         contrastive_loss_type='SimCLoss',
         num_encoder_layers=2,
@@ -22,10 +22,27 @@ def autocontrastive_cdr3bert_cp_template():
     return model
 
 
-def get_config(tmp_path: Path, model_name: str, gpu: bool) -> dict:
+@pytest.fixture
+def betacdr3bert_ap_template():
+    model = BetaCDR3BERT_ap(
+        num_encoder_layers=2,
+        d_model=4,
+        nhead=2,
+        dim_feedforward=16
+    )
+    return model
+
+
+def get_config(
+    tmp_path: Path,
+    model_name: str,
+    tokeniser: str,
+    data_file: str,
+    gpu: bool
+) -> dict:
     config = {
         'model': {
-            'name': 'AutoContrastive_CDR3BERT_acp',
+            'name': model_name,
             'config': {
                 'num_encoder_layers': 2,
                 'd_model': 4,
@@ -35,9 +52,9 @@ def get_config(tmp_path: Path, model_name: str, gpu: bool) -> dict:
             'pretrain_state_dict_path': str(tmp_path/'state_dict.pt')
         },
         'data': {
-            'train_path': 'tests/resources/mock_data.csv',
-            'valid_path': 'tests/resources/mock_data.csv',
-            'tokeniser': 'CDR3ABTokeniser',
+            'train_path': f'tests/resources/{data_file}',
+            'valid_path': f'tests/resources/{data_file}',
+            'tokeniser': tokeniser,
             'dataloader_config': {}
         },
         'optim': {
@@ -90,18 +107,21 @@ def config_saved(save_path: Path, config_template: dict) -> bool:
 
 class TestTrainingLoop:
     @pytest.mark.parametrize(
-        ('model_name', 'gpu'),
+        ('model_name', 'tokeniser', 'data_file', 'gpu'),
         (
-            ('AutoContrastive_CDR3BERT_acp', False),
-            ('AutoContrastive_CDR3BERT_acp', True),
-            ('BetaCDR3BERT_ap', False)
+            ('AutoContrastive_CDR3BERT_acp', 'CDR3ABTokeniser', 'mock_data.csv', False),
+            ('AutoContrastive_CDR3BERT_acp', 'CDR3ABTokeniser', 'mock_data.csv', True),
+            ('BetaCDR3BERT_ap', 'CDR3BTokeniser', 'mock_data_beta.csv', False)
         )
     )
     def test_training_loop(
         self,
-        autocontrastive_cdr3bert_cp_template,
+        autocontrastive_cdr3bert_acp_template,
+        betacdr3bert_ap_template,
         tmp_path,
         model_name,
+        tokeniser,
+        data_file,
         gpu
     ):
         if gpu and not torch.cuda.is_available():
@@ -111,11 +131,17 @@ class TestTrainingLoop:
             return
 
         # Set up config
-        config = get_config(tmp_path, model_name, gpu)
+        config = get_config(tmp_path, model_name, tokeniser, data_file, gpu)
+
+        # Get the correct model template
+        if model_name == 'AutoContrastive_CDR3BERT_acp':
+            model_template = autocontrastive_cdr3bert_acp_template
+        elif model_name == 'BetaCDR3BERT_ap':
+            model_template = betacdr3bert_ap_template
 
         # Copy toy state_dict into tmp_path
         torch.save(
-            autocontrastive_cdr3bert_cp_template.state_dict(),
+            model_template.state_dict(),
             tmp_path/'state_dict.pt'
         )
 
@@ -134,10 +160,10 @@ class TestTrainingLoop:
         expected_save_dir = tmp_path/'model_saves'/'test'
         assert expected_save_dir.is_dir()
 
-        # Check that model is saved correctly
+        # Check that model is saved correctly    
         assert model_saved(
             save_path=expected_save_dir/'state_dict.pt',
-            model_template=autocontrastive_cdr3bert_cp_template
+            model_template=model_template
         )
 
         # Check that log is saved correctly

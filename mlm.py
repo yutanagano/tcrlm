@@ -31,7 +31,8 @@ MODELS = {
 }
 
 TOKENISERS = {
-    'CDR3ABTokeniser': tokenisers.CDR3ABTokeniser
+    'CDR3ABTokeniser': tokenisers.CDR3ABTokeniser,
+    'CDR3BTokeniser': tokenisers.CDR3BTokeniser
 }
 
 
