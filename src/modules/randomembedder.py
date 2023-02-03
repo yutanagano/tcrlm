@@ -29,11 +29,6 @@ class RandomEmbedder(Embedder):
         self._name_idx = name_idx
 
 
-    @property
-    def name(self) -> str:
-        return f'random_embedder_{self._name_idx}'
-
-
     def embed(self, x: Tensor) -> Tensor:
         '''
         :param x: Tensor representing a batch of tokenised TCRs. Expected

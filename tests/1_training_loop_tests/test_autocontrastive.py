@@ -4,16 +4,15 @@ import multiprocessing as mp
 import pandas as pd
 from pathlib import Path
 import pytest
-from src.modules import AutoContCDR3BERT_acp, BetaCDR3BERT_ap
+from src.modules import CDR3ClsBERT_apc, CDR3BERT_ap
 import torch
 from torch.nn import Module
 from warnings import warn
 
 
 @pytest.fixture
-def autocontrastive_cdr3bert_acp_template():
-    model = AutoContCDR3BERT_acp(
-        contrastive_loss_type='SimCLoss',
+def cdr3clsbert_apc_template():
+    model = CDR3ClsBERT_apc(
         num_encoder_layers=2,
         d_model=4,
         nhead=2,
@@ -23,8 +22,8 @@ def autocontrastive_cdr3bert_acp_template():
 
 
 @pytest.fixture
-def betacdr3bert_ap_template():
-    model = BetaCDR3BERT_ap(
+def cdr3bert_ap_template():
+    model = CDR3BERT_ap(
         num_encoder_layers=2,
         d_model=4,
         nhead=2,
@@ -109,15 +108,15 @@ class TestTrainingLoop:
     @pytest.mark.parametrize(
         ('model_name', 'tokeniser', 'data_file', 'gpu'),
         (
-            ('AutoContrastive_CDR3BERT_acp', 'CDR3ABTokeniser', 'mock_data.csv', False),
-            ('AutoContrastive_CDR3BERT_acp', 'CDR3ABTokeniser', 'mock_data.csv', True),
-            ('BetaCDR3BERT_ap', 'CDR3BTokeniser', 'mock_data_beta.csv', False)
+            ('CDR3ClsBERT_apc', 'ABCDR3Tokeniser', 'mock_data.csv', False),
+            ('CDR3ClsBERT_apc', 'ABCDR3Tokeniser', 'mock_data.csv', True),
+            ('CDR3BERT_ap', 'BCDR3Tokeniser', 'mock_data_beta.csv', False)
         )
     )
     def test_training_loop(
         self,
-        autocontrastive_cdr3bert_acp_template,
-        betacdr3bert_ap_template,
+        cdr3clsbert_apc_template,
+        cdr3bert_ap_template,
         tmp_path,
         model_name,
         tokeniser,
@@ -134,10 +133,10 @@ class TestTrainingLoop:
         config = get_config(tmp_path, model_name, tokeniser, data_file, gpu)
 
         # Get the correct model template
-        if model_name == 'AutoContrastive_CDR3BERT_acp':
-            model_template = autocontrastive_cdr3bert_acp_template
-        elif model_name == 'BetaCDR3BERT_ap':
-            model_template = betacdr3bert_ap_template
+        if model_name == 'CDR3ClsBERT_apc':
+            model_template = cdr3clsbert_apc_template
+        elif model_name == 'CDR3BERT_ap':
+            model_template = cdr3bert_ap_template
 
         # Copy toy state_dict into tmp_path
         torch.save(

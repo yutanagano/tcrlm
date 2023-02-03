@@ -1,6 +1,8 @@
 '''
 BERT templates.
 '''
+
+
 from src.modules.embedder import MLMEmbedder
 from src.utils import masked_average_pool
 import torch
@@ -9,7 +11,7 @@ from torch.nn.functional import normalize
 from typing import Tuple
 
 
-class BERTBase(MLMEmbedder):
+class _BERTBase(MLMEmbedder):
     '''
     BERT base template.
     '''
@@ -41,13 +43,6 @@ class BERTBase(MLMEmbedder):
             encoder_layer=encoder_layer,
             num_layers=num_encoder_layers
         )
-
-    
-    @property
-    def name(self) -> str:
-        return f'{self._name_base}_{self._name_suffix}_'\
-            f'{self._num_layers}_{self._d_model}_'\
-            f'{self._nhead}_{self._dim_feedforward}-embed_{self.embed_layer}'
 
 
     def forward(self, x: Tensor) -> Tuple[Tensor, Tensor]:
@@ -87,7 +82,7 @@ class BERTBase(MLMEmbedder):
         return self.generator(self.forward(x)[0])
 
 
-class BERTClsEmbedBase(BERTBase):
+class _BERTClsEmbedBase(_BERTBase):
     '''
     Base class for BERT models that use the <cls> token to embed input
     sequences instead of taking the average pool of a particular layer.
@@ -101,9 +96,3 @@ class BERTClsEmbedBase(BERTBase):
         x_emb = self.forward(x)[0]
         x_emb = x_emb[:,0,:]
         return normalize(x_emb, p=2, dim=1)
-
-
-    @property
-    def name(self) -> str:
-        # The final '-embed' part of the name is no longer needed
-        return super().name.split('-embed_')[0]

@@ -54,11 +54,6 @@ class AtchleyEmbedder(Embedder):
         )
 
 
-    @property
-    def name(self) -> str:
-        return 'atchley_embedder'
-
-
     def embed(self, x: Tensor) -> Tensor:
         '''
         :param x: Tensor representing a batch of tokenised TCRs. Expected

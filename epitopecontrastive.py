@@ -33,12 +33,13 @@ from typing import Union
 
 
 MODELS = {
-    'EpitopeContrastive_CDR3BERT_acp': modules.EpContCDR3BERT_acp,
-    'EpitopeContrastive_BetaCDR3BERT_ap': modules.EpContBetaCDR3BERT_ap
+    'CDR3ClsBERT_ap': modules.CDR3ClsBERT_ap,
+    'CDR3ClsBERT_apc': modules.CDR3ClsBERT_apc
 }
 
 TOKENISERS = {
-    'CDR3ABTokeniser': tokenisers.CDR3ABTokeniser
+    'ABCDR3Tokeniser': tokenisers.ABCDR3Tokeniser,
+    'BCDR3Tokeniser': tokenisers.BCDR3Tokeniser
 }
 
 AC_LOSSES = {
@@ -222,7 +223,6 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
     # Instantiate model
     print('Instantiating model...')
     model = MODELS[config['model']['name']](
-        contrastive_loss_type=config['optim']['autocontrastive_loss']['name'],
         **config['model']['config']
     )
     model.to(device)
