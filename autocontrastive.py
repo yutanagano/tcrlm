@@ -30,14 +30,14 @@ from typing import Union
 
 
 MODELS = {
-    'AutoContrastive_CDR3BERT_acp': modules.AutoContCDR3BERT_acp,
-    'AutoContrastive_BetaCDR3BERT_ap': modules.AutoContBetaCDR3BERT_ap,
-    'BetaCDR3BERT_ap': modules.BetaCDR3BERT_ap
+    'CDR3BERT_ap': modules.CDR3BERT_ap,
+    'CDR3ClsBERT_ap': modules.CDR3ClsBERT_ap,
+    'CDR3ClsBERT_apc': modules.CDR3ClsBERT_apc
 }
 
 TOKENISERS = {
-    'CDR3ABTokeniser': tokenisers.CDR3ABTokeniser,
-    'CDR3BTokeniser': tokenisers.CDR3BTokeniser
+    'ABCDR3Tokeniser': tokenisers.ABCDR3Tokeniser,
+    'BCDR3Tokeniser': tokenisers.BCDR3Tokeniser
 }
 
 CONTRASTIVE_LOSSES = {
@@ -187,7 +187,6 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
     # Instantiate model
     print('Instantiating model...')
     model = MODELS[config['model']['name']](
-        contrastive_loss_type=config['optim']['contrastive_loss']['name'],
         **config['model']['config']
     )
     model.to(device)

@@ -7,14 +7,6 @@ class Embedder(ABC, Module):
     '''
     Abstract base class for embedder modules.
     '''
-    
-
-    @property
-    @abstractmethod
-    def name(self) -> str:
-        '''
-        Return the name of the model as a string.
-        '''
 
 
     @abstractmethod

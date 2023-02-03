@@ -4,16 +4,15 @@ import multiprocessing as mp
 import pandas as pd
 from pathlib import Path
 import pytest
-from src.modules import EpContCDR3BERT_acp
+from src.modules import CDR3ClsBERT_apc
 import torch
 from torch.nn import Module
 from warnings import warn
 
 
 @pytest.fixture
-def epitope_contrastive_cdr3bert_cp_template():
-    model = EpContCDR3BERT_acp(
-        contrastive_loss_type='SimCLoss',
+def cdr3clsbert_apc_template():
+    model = CDR3ClsBERT_apc(
         num_encoder_layers=2,
         d_model=4,
         nhead=2,
@@ -25,7 +24,7 @@ def epitope_contrastive_cdr3bert_cp_template():
 def get_config(tmp_path: Path, gpu: bool) -> dict:
     config = {
         'model': {
-            'name': 'EpitopeContrastive_CDR3BERT_acp',
+            'name': 'CDR3ClsBERT_apc',
             'config': {
                 'num_encoder_layers': 2,
                 'd_model': 4,
@@ -43,7 +42,7 @@ def get_config(tmp_path: Path, gpu: bool) -> dict:
                 'autocontrastive': 'tests/resources/mock_data.csv',
                 'epitope_contrastive': 'tests/resources/mock_data.csv'
             },
-            'tokeniser': 'CDR3ABTokeniser',
+            'tokeniser': 'ABCDR3Tokeniser',
             'dataloader_config': {}
         },
         'optim': {
@@ -104,7 +103,7 @@ class TestTrainingLoop:
     )
     def test_training_loop(
         self,
-        epitope_contrastive_cdr3bert_cp_template,
+        cdr3clsbert_apc_template,
         tmp_path,
         gpu
     ):
@@ -120,7 +119,7 @@ class TestTrainingLoop:
 
         # Copy toy state_dict into tmp_path
         torch.save(
-            epitope_contrastive_cdr3bert_cp_template.state_dict(),
+            cdr3clsbert_apc_template.state_dict(),
             tmp_path/'state_dict.pt'
         )
 
@@ -142,7 +141,7 @@ class TestTrainingLoop:
         # Check that model is saved correctly
         assert model_saved(
             save_path=expected_save_dir/'state_dict.pt',
-            model_template=epitope_contrastive_cdr3bert_cp_template
+            model_template=cdr3clsbert_apc_template
         )
 
         # Check that log is saved correctly

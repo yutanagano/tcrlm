@@ -1,11 +1,11 @@
 import pytest
-from src.modules import CDR3BERT_acp
+from src.modules import CDR3BERT_apc
 import torch
 
 
 @pytest.fixture
 def model():
-    model = CDR3BERT_acp(
+    model = CDR3BERT_apc(
         num_encoder_layers=6,
         d_model=64,
         nhead=8,
@@ -53,7 +53,3 @@ class TestModel:
         out = model.mlm(x=batch)
 
         assert out.size() == (3,10,20)
-
-
-    def test_name(self, model):
-        assert model.name == 'CDR3BERT_acp_6_64_8_256-embed_5'

@@ -2,7 +2,7 @@ import pandas as pd
 from pathlib import Path
 import pytest
 from src.datahandling import datasets
-from src.datahandling.tokenisers import CDR3ABTokeniser
+from src.datahandling.tokenisers import ABCDR3Tokeniser
 
 
 @pytest.fixture
@@ -34,7 +34,7 @@ def mock_data_df(mock_data_path):
 def cdr3t_dataset(mock_data_path):
     dataset = datasets.TCRDataset(
         data=mock_data_path,
-        tokeniser=CDR3ABTokeniser()
+        tokeniser=ABCDR3Tokeniser()
     )
 
     return dataset
@@ -44,7 +44,7 @@ def cdr3t_dataset(mock_data_path):
 def cdr3t_auto_contrastive_dataset(mock_data_path):
     dataset = datasets.AutoContrastiveDataset(
         data=mock_data_path,
-        tokeniser=CDR3ABTokeniser()
+        tokeniser=ABCDR3Tokeniser()
     )
 
     return dataset
@@ -54,7 +54,7 @@ def cdr3t_auto_contrastive_dataset(mock_data_path):
 def cdr3t_epitope_contrastive_dataset(mock_data_path):
     dataset = datasets.EpitopeContrastiveDataset(
         data=mock_data_path,
-        tokeniser=CDR3ABTokeniser()
+        tokeniser=ABCDR3Tokeniser()
     )
 
     return dataset

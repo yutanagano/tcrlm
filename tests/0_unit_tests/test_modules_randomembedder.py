@@ -16,9 +16,3 @@ class TestRandomEmbedder:
         batch = next(iter(cdr3t_dataloader))
 
         assert embedder.embed(batch).size() == (3,10)
-
-
-    def test_name(self):
-        embedder = RandomEmbedder(name_idx=7)
-
-        assert embedder.name == 'random_embedder_7'

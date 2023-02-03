@@ -236,7 +236,7 @@ class _CDR3Tokeniser(Tokeniser):
         return 20
 
 
-class CDR3ABTokeniser(_CDR3Tokeniser):
+class ABCDR3Tokeniser(_CDR3Tokeniser):
     '''
     Basic tokeniser which will tokenise a TCR in terms of its alpha and beta
     chain CDR3 amino acid sequences.
@@ -288,7 +288,7 @@ class CDR3ABTokeniser(_CDR3Tokeniser):
         return torch.tensor(tokenised, dtype=torch.long)
 
 
-class CDR3BTokeniser(_CDR3Tokeniser):
+class BCDR3Tokeniser(_CDR3Tokeniser):
     '''
     Basic tokeniser which will tokenise a TCR in terms of its beta chain CDR3.
     '''
@@ -321,7 +321,7 @@ class CDR3BTokeniser(_CDR3Tokeniser):
         return torch.tensor(tokenised, dtype=torch.long)
     
 
-class VCDR3BTokeniser(Tokeniser):
+class BVCDR3Tokeniser(Tokeniser):
     '''
     Tokeniser which takes the beta chain V gene and CDR3 sequence.
     '''
