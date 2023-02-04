@@ -6,12 +6,12 @@ from src.datahandling.dataloaders import TCRDataLoader
 from src.datahandling.tokenisers import ABCDR3Tokeniser
 
 
-@pytest.fixture
+@pytest.fixture(scope='session')
 def mock_data_path():
     return Path('tests/resources/mock_data.csv')
 
 
-@pytest.fixture
+@pytest.fixture(scope='session')
 def mock_data_df(mock_data_path):
     df = pd.read_csv(
         mock_data_path,
@@ -32,9 +32,9 @@ def mock_data_df(mock_data_path):
 
 
 @pytest.fixture
-def abcdr3t_dataset(mock_data_path):
+def abcdr3t_dataset(mock_data_df):
     dataset = datasets.TCRDataset(
-        data=mock_data_path,
+        data=mock_data_df,
         tokeniser=ABCDR3Tokeniser()
     )
 
@@ -42,9 +42,9 @@ def abcdr3t_dataset(mock_data_path):
 
 
 @pytest.fixture
-def abcdr3t_auto_contrastive_dataset(mock_data_path):
+def abcdr3t_auto_contrastive_dataset(mock_data_df):
     dataset = datasets.AutoContrastiveDataset(
-        data=mock_data_path,
+        data=mock_data_df,
         tokeniser=ABCDR3Tokeniser()
     )
 
@@ -52,9 +52,9 @@ def abcdr3t_auto_contrastive_dataset(mock_data_path):
 
 
 @pytest.fixture
-def abcdr3t_epitope_contrastive_dataset(mock_data_path):
+def abcdr3t_epitope_contrastive_dataset(mock_data_df):
     dataset = datasets.EpitopeContrastiveDataset(
-        data=mock_data_path,
+        data=mock_data_df,
         tokeniser=ABCDR3Tokeniser()
     )
 
