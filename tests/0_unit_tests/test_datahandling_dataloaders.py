@@ -1,4 +1,5 @@
 import pandas as pd
+import pytest
 from src.datahandling import dataloaders
 import torch
 from torch.utils.data import BatchSampler, RandomSampler
@@ -163,3 +164,34 @@ class TestEpitopeAutoContrastiveSuperDataLoader:
             iterations += 1
 
         assert iterations == 3
+
+
+    @pytest.mark.parametrize('to_extend', ('a', 'e'))
+    def test_wrap_around(
+        self,
+        abcdr3t_auto_contrastive_dataset,
+        abcdr3t_epitope_contrastive_dataset,
+        to_extend
+    ):
+        if to_extend == 'a':
+            ds_to_extend = abcdr3t_auto_contrastive_dataset
+        elif to_extend == 'e':
+            ds_to_extend = abcdr3t_epitope_contrastive_dataset
+
+        orig_data = ds_to_extend._data
+        ds_to_extend._data =\
+            pd.concat((orig_data, orig_data))
+
+        dataloader = dataloaders.EpitopeAutoContrastiveSuperDataLoader(
+            dataset_ac=abcdr3t_auto_contrastive_dataset,
+            dataset_ec=abcdr3t_epitope_contrastive_dataset,
+            batch_size=1,
+            num_workers_ac=3,
+            num_workers_ec=3
+        )
+
+        assert(len(dataloader) == 6)
+
+        iterations = 0
+        for _ in dataloader:
+            iterations += 1
