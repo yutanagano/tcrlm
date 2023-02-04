@@ -11,7 +11,7 @@ from pathlib import Path
 from src.datahandling.dataloaders import TCRDataLoader
 from src.datahandling.datasets import TCRDataset
 from src.datahandling.tokenisers import _Tokeniser
-from src.modules.embedder import Embedder
+from src.modules.embedder import _Embedder
 import torch
 from torch import Tensor
 from torch.nn import Module
@@ -101,7 +101,7 @@ class PCDistModelWrapper:
     '''
     def __init__(
         self,
-        model: Embedder,
+        model: _Embedder,
         model_name: str,
         tokeniser: _Tokeniser
     ) -> None:
