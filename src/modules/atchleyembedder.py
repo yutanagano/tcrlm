@@ -1,11 +1,11 @@
-from src.modules.embedder import Embedder
+from src.modules.embedder import _Embedder
 import torch
 from torch import Tensor
 from torch.nn import Embedding
 from torch.nn.functional import normalize
 
 
-class AtchleyEmbedder(Embedder):
+class AtchleyEmbedder(_Embedder):
     '''
     Simplest baseline TCR representation method, where a fixed-size vector
     representation of a TCR is obtained by averaging the atchley factors for
@@ -52,6 +52,11 @@ class AtchleyEmbedder(Embedder):
             freeze=True,
             padding_idx=0
         )
+
+
+    @property
+    def name(self) -> str:
+        return 'Atchley Embedder'
 
 
     def embed(self, x: Tensor) -> Tensor:

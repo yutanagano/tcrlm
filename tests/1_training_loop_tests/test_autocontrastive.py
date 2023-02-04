@@ -1,35 +1,10 @@
-import json
 from autocontrastive import main
 import multiprocessing as mp
-import pandas as pd
 from pathlib import Path
 import pytest
-from src.modules import CDR3ClsBERT_apc, CDR3BERT_ap
+from tests.resources.helper_functions import *
 import torch
-from torch.nn import Module
 from warnings import warn
-
-
-@pytest.fixture
-def cdr3clsbert_apc_template():
-    model = CDR3ClsBERT_apc(
-        num_encoder_layers=2,
-        d_model=4,
-        nhead=2,
-        dim_feedforward=16
-    )
-    return model
-
-
-@pytest.fixture
-def cdr3bert_ap_template():
-    model = CDR3BERT_ap(
-        num_encoder_layers=2,
-        d_model=4,
-        nhead=2,
-        dim_feedforward=16
-    )
-    return model
 
 
 def get_config(
@@ -41,8 +16,9 @@ def get_config(
 ) -> dict:
     config = {
         'model': {
-            'name': model_name,
+            'class': model_name,
             'config': {
+                'name': 'foobar',
                 'num_encoder_layers': 2,
                 'd_model': 4,
                 'nhead': 2,
@@ -69,54 +45,19 @@ def get_config(
     return config
 
 
-def model_saved(save_path: Path, model_template: Module) -> bool:
-    result = torch.load(save_path)
-    expected = model_template.state_dict()
-
-    if len(result) != len(expected):
-        print('state_dicts have different sizes.')
-        return False
-    
-    for key in expected:
-        if expected[key].size() != result[key].size():
-            print(f'{key} has tensors of different sizes in state_dicts.')
-            return False
-
-    return True
-
-
-def log_saved(save_path: Path, expected_cols: list, expected_len: int) -> bool:
-    result = pd.read_csv(save_path)
-
-    if result.columns.to_list() != expected_cols:
-        return False
-
-    if len(result) != expected_len:
-        return False
-
-    return True
-
-
-def config_saved(save_path: Path, config_template: dict) -> bool:
-    with open(save_path, 'r') as f:
-        result = json.load(f)
-    
-    return result == config_template
-
-
 class TestTrainingLoop:
     @pytest.mark.parametrize(
         ('model_name', 'tokeniser', 'data_file', 'gpu'),
         (
             ('CDR3ClsBERT_apc', 'ABCDR3Tokeniser', 'mock_data.csv', False),
             ('CDR3ClsBERT_apc', 'ABCDR3Tokeniser', 'mock_data.csv', True),
-            ('CDR3BERT_ap', 'BCDR3Tokeniser', 'mock_data_beta.csv', False)
+            ('CDR3BERT_a', 'BCDR3Tokeniser', 'mock_data_beta.csv', False)
         )
     )
     def test_training_loop(
         self,
         cdr3clsbert_apc_template,
-        cdr3bert_ap_template,
+        cdr3bert_a_template,
         tmp_path,
         model_name,
         tokeniser,
@@ -135,8 +76,8 @@ class TestTrainingLoop:
         # Get the correct model template
         if model_name == 'CDR3ClsBERT_apc':
             model_template = cdr3clsbert_apc_template
-        elif model_name == 'CDR3BERT_ap':
-            model_template = cdr3bert_ap_template
+        elif model_name == 'CDR3BERT_a':
+            model_template = cdr3bert_a_template
 
         # Copy toy state_dict into tmp_path
         torch.save(

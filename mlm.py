@@ -8,7 +8,7 @@ from datetime import datetime
 import json
 from pathlib import Path
 from src import modules
-from src.modules.embedder import MLMEmbedder
+from src.modules.embedder import _MLMEmbedder
 from src.datahandling import tokenisers
 from src.datahandling.dataloaders import MLMDataLoader
 from src.datahandling.datasets import TCRDataset
@@ -59,7 +59,7 @@ def metric_feedback(metrics: dict) -> None:
 
 
 def train(
-    model: MLMEmbedder,
+    model: _MLMEmbedder,
     dl: DataLoader,
     loss_fn,
     optimiser,
@@ -94,7 +94,7 @@ def train(
 
 
 @torch.no_grad()
-def validate(model: MLMEmbedder, dl: DataLoader, loss_fn, device) -> dict:
+def validate(model: _MLMEmbedder, dl: DataLoader, loss_fn, device) -> dict:
     model.eval()
 
     total_loss = 0
@@ -149,7 +149,7 @@ def mlm(device: Union[str, int], wd: Path, name: str, config: dict):
 
     # Instantiate model
     print('Instantiating model...')
-    model = MODELS[config['model']['name']](**config['model']['config'])
+    model = MODELS[config['model']['class']](**config['model']['config'])
     model.to(device)
 
     # Instantiate loss function and optimiser

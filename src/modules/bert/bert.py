@@ -3,7 +3,7 @@ BERT templates.
 '''
 
 
-from src.modules.embedder import MLMEmbedder
+from src.modules.embedder import _MLMEmbedder
 from src.utils import masked_average_pool
 import torch
 from torch import Tensor
@@ -11,12 +11,13 @@ from torch.nn.functional import normalize
 from typing import Tuple
 
 
-class _BERTBase(MLMEmbedder):
+class _BERTBase(_MLMEmbedder):
     '''
     BERT base template.
     '''
     def __init__(
         self,
+        name: str,
         num_encoder_layers: int,
         d_model: int,
         nhead: int,
@@ -26,6 +27,8 @@ class _BERTBase(MLMEmbedder):
         super().__init__()
 
         self.embed_layer = num_encoder_layers - 1
+
+        self._name = name
 
         self._num_layers = num_encoder_layers
         self._d_model = d_model
@@ -43,6 +46,11 @@ class _BERTBase(MLMEmbedder):
             encoder_layer=encoder_layer,
             num_layers=num_encoder_layers
         )
+
+
+    @property
+    def name(self) -> str:
+        return self._name
 
 
     def forward(self, x: Tensor) -> Tuple[Tensor, Tensor]:

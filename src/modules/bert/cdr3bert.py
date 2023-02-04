@@ -23,6 +23,7 @@ class _CDR3BERTBase(_BERTBase):
 
     def __init__(
         self,
+        name: str,
         num_encoder_layers: int,
         d_model: int,
         nhead: int,
@@ -30,6 +31,7 @@ class _CDR3BERTBase(_BERTBase):
         dropout: float = 0.1
     ) -> None:
         super().__init__(
+            name,
             num_encoder_layers,
             d_model,
             nhead,
@@ -48,6 +50,7 @@ class CDR3BERT_a(_CDR3BERTBase):
 
     def __init__(
         self,
+        name: str,
         num_encoder_layers: int,
         d_model: int,
         nhead: int,
@@ -55,6 +58,7 @@ class CDR3BERT_a(_CDR3BERTBase):
         dropout: float = 0.1
     ) -> None:
         super().__init__(
+            name,
             num_encoder_layers,
             d_model,
             nhead,
@@ -73,6 +77,7 @@ class CDR3BERT_ap(_CDR3BERTBase):
 
     def __init__(
         self,
+        name: str,
         num_encoder_layers: int,
         d_model: int,
         nhead: int,
@@ -80,6 +85,7 @@ class CDR3BERT_ap(_CDR3BERTBase):
         dropout: float = 0.1
     ) -> None:
         super().__init__(
+            name,
             num_encoder_layers,
             d_model,
             nhead,
@@ -98,6 +104,7 @@ class CDR3BERT_ac(_CDR3BERTBase):
 
     def __init__(
         self,
+        name: str,
         num_encoder_layers: int,
         d_model: int,
         nhead: int,
@@ -105,6 +112,7 @@ class CDR3BERT_ac(_CDR3BERTBase):
         dropout: float = 0.1
     ) -> None:
         super().__init__(
+            name,
             num_encoder_layers,
             d_model,
             nhead,
@@ -124,6 +132,7 @@ class CDR3BERT_apc(_CDR3BERTBase):
 
     def __init__(
         self,
+        name: str,
         num_encoder_layers: int,
         d_model: int,
         nhead: int,
@@ -131,6 +140,7 @@ class CDR3BERT_apc(_CDR3BERTBase):
         dropout: float = 0.1
     ) -> None:
         super().__init__(
+            name,
             num_encoder_layers,
             d_model,
             nhead,
@@ -149,6 +159,7 @@ class CDR3ClsBERT_ap(_BERTClsEmbedBase, CDR3BERT_ap):
 
     def __init__(
         self,
+        name: str,
         num_encoder_layers: int,
         d_model: int,
         nhead: int,
@@ -156,6 +167,7 @@ class CDR3ClsBERT_ap(_BERTClsEmbedBase, CDR3BERT_ap):
         dropout: float = 0.1
     ) -> None:
         super().__init__(
+            name,
             num_encoder_layers,
             d_model,
             nhead,
@@ -172,6 +184,7 @@ class CDR3ClsBERT_apc(_BERTClsEmbedBase, CDR3BERT_apc):
 
     def __init__(
         self,
+        name: str,
         num_encoder_layers: int,
         d_model: int,
         nhead: int,
@@ -179,6 +192,7 @@ class CDR3ClsBERT_apc(_BERTClsEmbedBase, CDR3BERT_apc):
         dropout: float = 0.1
     ) -> None:
         super().__init__(
+            name,
             num_encoder_layers,
             d_model,
             nhead,

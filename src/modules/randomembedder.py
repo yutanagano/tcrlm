@@ -1,11 +1,11 @@
-from src.modules.embedder import Embedder
+from src.modules.embedder import _Embedder
 import torch
 from torch import Tensor
 from torch.nn import Embedding
 from torch.nn.functional import normalize
 
 
-class RandomEmbedder(Embedder):
+class RandomEmbedder(_Embedder):
     '''
     Simplest baseline TCR representation method, where a fixed-size vector
     representation of a TCR is obtained by averaging the randomly initialised
@@ -27,6 +27,11 @@ class RandomEmbedder(Embedder):
         )
         self.embedding.weight.requires_grad = False
         self._name_idx = name_idx
+
+
+    @property
+    def name(self) -> str:
+        return f'Random Embedder {self._name_idx}'
 
 
     def embed(self, x: Tensor) -> Tensor:

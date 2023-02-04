@@ -3,6 +3,12 @@ import torch
 
 
 class TestModel:
+    def test_name(self):
+        embedder = AtchleyEmbedder()
+
+        assert embedder.name == 'Atchley Embedder'
+
+
     def test_embed(self, abcdr3t_dataloader):
         embedder = AtchleyEmbedder()
 

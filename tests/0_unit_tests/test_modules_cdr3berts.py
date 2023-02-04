@@ -13,6 +13,7 @@ model_classes = (
 )
 model_instances = [
     Model(
+        name='foobar',
         num_encoder_layers=6,
         d_model=64,
         nhead=8,
@@ -23,6 +24,10 @@ model_instances = [
 
 @pytest.mark.parametrize('model', model_instances)
 class TestModel:
+    def test_name(self, model):
+        assert model.name == 'foobar'
+
+
     def test_forward(self, model):
         batch = torch.zeros((3,10,3), dtype=torch.long)
         out, padding_mask = model(x=batch)
