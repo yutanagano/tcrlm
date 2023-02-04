@@ -2,6 +2,7 @@ import pandas as pd
 from pathlib import Path
 import pytest
 from src.datahandling import datasets
+from src.datahandling.dataloaders import TCRDataLoader
 from src.datahandling.tokenisers import ABCDR3Tokeniser
 
 
@@ -31,7 +32,7 @@ def mock_data_df(mock_data_path):
 
 
 @pytest.fixture
-def cdr3t_dataset(mock_data_path):
+def abcdr3t_dataset(mock_data_path):
     dataset = datasets.TCRDataset(
         data=mock_data_path,
         tokeniser=ABCDR3Tokeniser()
@@ -41,7 +42,7 @@ def cdr3t_dataset(mock_data_path):
 
 
 @pytest.fixture
-def cdr3t_auto_contrastive_dataset(mock_data_path):
+def abcdr3t_auto_contrastive_dataset(mock_data_path):
     dataset = datasets.AutoContrastiveDataset(
         data=mock_data_path,
         tokeniser=ABCDR3Tokeniser()
@@ -51,10 +52,16 @@ def cdr3t_auto_contrastive_dataset(mock_data_path):
 
 
 @pytest.fixture
-def cdr3t_epitope_contrastive_dataset(mock_data_path):
+def abcdr3t_epitope_contrastive_dataset(mock_data_path):
     dataset = datasets.EpitopeContrastiveDataset(
         data=mock_data_path,
         tokeniser=ABCDR3Tokeniser()
     )
 
     return dataset
+
+
+@pytest.fixture
+def abcdr3t_dataloader(abcdr3t_dataset):
+    dl = TCRDataLoader(dataset=abcdr3t_dataset, batch_size=3, shuffle=False)
+    return dl
