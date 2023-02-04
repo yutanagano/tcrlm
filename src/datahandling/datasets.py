@@ -18,7 +18,7 @@ class TCRDataset(Dataset):
     def __init__(
         self,
         data: Union[Path, str, pd.DataFrame],
-        tokeniser: tokenisers.Tokeniser
+        tokeniser: tokenisers._Tokeniser
     ):
         '''
         :param data: TCR data source
@@ -78,7 +78,7 @@ class EpitopeContrastiveDataset(TCRDataset):
     def __init__(
         self,
         data: Union[Path, str, pd.DataFrame],
-        tokeniser: tokenisers.Tokeniser
+        tokeniser: tokenisers._Tokeniser
     ):
         super().__init__(data, tokeniser)
 

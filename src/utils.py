@@ -10,7 +10,7 @@ from pandas import DataFrame
 from pathlib import Path
 from src.datahandling.dataloaders import TCRDataLoader
 from src.datahandling.datasets import TCRDataset
-from src.datahandling.tokenisers import Tokeniser
+from src.datahandling.tokenisers import _Tokeniser
 from src.modules.embedder import Embedder
 import torch
 from torch import Tensor
@@ -103,7 +103,7 @@ class PCDistModelWrapper:
         self,
         model: Embedder,
         model_name: str,
-        tokeniser: Tokeniser
+        tokeniser: _Tokeniser
     ) -> None:
         self.module = model.eval()
         self._name = model_name

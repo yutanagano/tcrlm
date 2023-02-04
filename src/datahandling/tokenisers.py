@@ -197,7 +197,7 @@ trbjs = (
 )
 
 
-class Tokeniser(ABC):
+class _Tokeniser(ABC):
     '''
     Abstract base class for tokenisers.
     '''
@@ -218,7 +218,7 @@ class Tokeniser(ABC):
         '''
 
 
-class _CDR3Tokeniser(Tokeniser):
+class _CDR3Tokeniser(_Tokeniser):
     '''
     Base class for CDR3 tokenisers.
     '''
@@ -321,7 +321,7 @@ class BCDR3Tokeniser(_CDR3Tokeniser):
         return torch.tensor(tokenised, dtype=torch.long)
     
 
-class BVCDR3Tokeniser(Tokeniser):
+class BVCDR3Tokeniser(_Tokeniser):
     '''
     Tokeniser which takes the beta chain V gene and CDR3 sequence.
     '''

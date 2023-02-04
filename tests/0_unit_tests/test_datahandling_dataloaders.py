@@ -5,26 +5,26 @@ from torch.utils.data import BatchSampler, RandomSampler
 
 
 class TestTCRDataLoader:
-    def test_init(self, cdr3t_dataset):
+    def test_init(self, abcdr3t_dataset):
         dataloader = dataloaders.TCRDataLoader(
-            dataset=cdr3t_dataset,
+            dataset=abcdr3t_dataset,
             batch_size=3,
             num_workers=3
         )
 
-        assert dataloader.dataset == cdr3t_dataset
+        assert dataloader.dataset == abcdr3t_dataset
         assert dataloader.batch_size == 3
         assert type(dataloader.sampler) == RandomSampler
-        assert dataloader.sampler.data_source == cdr3t_dataset
+        assert dataloader.sampler.data_source == abcdr3t_dataset
         assert type(dataloader.batch_sampler) == BatchSampler
         assert dataloader.batch_sampler.sampler == dataloader.sampler
         assert dataloader.batch_sampler.batch_size == 3
         assert dataloader.num_workers == 3
 
 
-    def test_padding_collation(self, cdr3t_dataset):
+    def test_padding_collation(self, abcdr3t_dataset):
         dataloader = dataloaders.TCRDataLoader(
-            dataset=cdr3t_dataset,
+            dataset=abcdr3t_dataset,
             batch_size=3,
             shuffle=False
         )
@@ -55,9 +55,9 @@ class TestTCRDataLoader:
 
 
 class TestMLMDataLoader:
-    def test_shapes(self, cdr3t_dataset):
+    def test_shapes(self, abcdr3t_dataset):
         dataloader = dataloaders.MLMDataLoader(
-            dataset=cdr3t_dataset,
+            dataset=abcdr3t_dataset,
             batch_size=3
         )
 
@@ -72,9 +72,9 @@ class TestMLMDataLoader:
 
 
 class TestAutoContrastiveDataLoader:
-    def test_shapes(self, cdr3t_auto_contrastive_dataset):
+    def test_shapes(self, abcdr3t_auto_contrastive_dataset):
         dataloader = dataloaders.AutoContrastiveDataLoader(
-            dataset=cdr3t_auto_contrastive_dataset,
+            dataset=abcdr3t_auto_contrastive_dataset,
             batch_size=3
         )
 
@@ -94,12 +94,12 @@ class TestAutoContrastiveDataLoader:
 class TestEpitopeAutoContrastiveSuperDataLoader:
     def test_shapes(
         self,
-        cdr3t_auto_contrastive_dataset,
-        cdr3t_epitope_contrastive_dataset
+        abcdr3t_auto_contrastive_dataset,
+        abcdr3t_epitope_contrastive_dataset
     ):
         dataloader = dataloaders.EpitopeAutoContrastiveSuperDataLoader(
-            dataset_ac=cdr3t_auto_contrastive_dataset,
-            dataset_ec=cdr3t_epitope_contrastive_dataset,
+            dataset_ac=abcdr3t_auto_contrastive_dataset,
+            dataset_ec=abcdr3t_epitope_contrastive_dataset,
             batch_size=3,
             num_workers_ac=3,
             num_workers_ec=3
@@ -127,15 +127,15 @@ class TestEpitopeAutoContrastiveSuperDataLoader:
 
     def test_len(
         self,
-        cdr3t_auto_contrastive_dataset,
-        cdr3t_epitope_contrastive_dataset
+        abcdr3t_auto_contrastive_dataset,
+        abcdr3t_epitope_contrastive_dataset
     ):
-        orig_data = cdr3t_auto_contrastive_dataset._data
-        cdr3t_auto_contrastive_dataset._data =\
+        orig_data = abcdr3t_auto_contrastive_dataset._data
+        abcdr3t_auto_contrastive_dataset._data =\
             pd.concat((orig_data, orig_data))
         dataloader = dataloaders.EpitopeAutoContrastiveSuperDataLoader(
-            dataset_ac=cdr3t_auto_contrastive_dataset,
-            dataset_ec=cdr3t_epitope_contrastive_dataset,
+            dataset_ac=abcdr3t_auto_contrastive_dataset,
+            dataset_ec=abcdr3t_epitope_contrastive_dataset,
             batch_size=3,
             num_workers_ac=3,
             num_workers_ec=3
@@ -146,12 +146,12 @@ class TestEpitopeAutoContrastiveSuperDataLoader:
 
     def test_iter(
         self,
-        cdr3t_auto_contrastive_dataset,
-        cdr3t_epitope_contrastive_dataset
+        abcdr3t_auto_contrastive_dataset,
+        abcdr3t_epitope_contrastive_dataset
     ):
         dataloader = dataloaders.EpitopeAutoContrastiveSuperDataLoader(
-            dataset_ac=cdr3t_auto_contrastive_dataset,
-            dataset_ec=cdr3t_epitope_contrastive_dataset,
+            dataset_ac=abcdr3t_auto_contrastive_dataset,
+            dataset_ec=abcdr3t_epitope_contrastive_dataset,
             batch_size=1,
             num_workers_ac=3,
             num_workers_ec=3

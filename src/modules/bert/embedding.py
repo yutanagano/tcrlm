@@ -24,6 +24,7 @@ class SinPositionEmbedding(Module):
 
         super().__init__()
 
+        # 0th dim size is num_embeddings+1 to account for fact that 0 is null value (positions are 1-indexed)
         position_embedding = torch.zeros(num_embeddings+1, embedding_dim)
         position_indices = torch.arange(0, num_embeddings).unsqueeze(1)
         div_term = torch.exp(-math.log(sin_scale_factor) * \

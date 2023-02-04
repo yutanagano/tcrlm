@@ -1,10 +1,7 @@
 '''
 CDR3BERT classes
 
-Compatible tokenisers:
-
-Paired chain models: CDR3ABTokeniser
-Beta chain models: CDR3BTokeniser
+Compatible tokenisers: ABCDR3Tokeniser, BCDR3Tokeniser
 '''
 
 
@@ -16,7 +13,6 @@ from src.modules.bert.embedding import (
     AAEmbedding_apc
 )
 import torch
-from typing import Optional
 
 
 class _CDR3BERTBase(_BERTBase):
