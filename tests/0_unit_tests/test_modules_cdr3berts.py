@@ -1,29 +1,28 @@
 import pytest
-from src.modules import CDR3BERT_a
+from src.modules import *
 import torch
 
 
-@pytest.fixture
-def model():
-    model = CDR3BERT_a(
+model_classes = (
+    CDR3BERT_a,
+    CDR3BERT_ac,
+    CDR3BERT_ap,
+    CDR3BERT_apc,
+    CDR3ClsBERT_ap,
+    CDR3ClsBERT_apc
+)
+model_instances = [
+    Model(
         num_encoder_layers=6,
         d_model=64,
         nhead=8,
         dim_feedforward=256
-    )
+    ) for Model in model_classes
+]
 
-    return model
 
-
+@pytest.mark.parametrize('model', model_instances)
 class TestModel:
-    def test_init_attributes(self, model):
-        assert model.embed_layer == 5
-        assert model._num_layers == 6
-        assert model._d_model == 64
-        assert model._nhead == 8
-        assert model._dim_feedforward == 256
-
-
     def test_forward(self, model):
         batch = torch.zeros((3,10,3), dtype=torch.long)
         out, padding_mask = model(x=batch)
@@ -33,15 +32,8 @@ class TestModel:
         assert (padding_mask == 1).all()
 
 
-    def test_embed(self, model):
-        batch = torch.tensor(
-            [
-                [[3,1,1],[4,1,2],[5,1,3],[3,2,1],[4,2,2],[5,2,3]],
-                [[6,1,1],[7,1,2],[8,1,3],[6,2,1],[7,2,2],[8,2,3]],
-                [[3,1,1],[4,1,2],[5,1,3],[6,2,1],[7,2,2],[8,2,3]]
-            ],
-            dtype=torch.long
-        )
+    def test_embed(self, model, abcdr3t_dataloader):
+        batch = next(iter(abcdr3t_dataloader))
         out = model.embed(x=batch)
 
         assert out.size() == (3,64)

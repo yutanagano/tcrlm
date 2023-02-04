@@ -16,7 +16,7 @@ def mock_data_beta_df():
     return df
 
 
-class TestCDR3Tokeniser:
+class TestABCDR3Tokeniser:
     def test_tokenise(self, mock_data_df):
         tokeniser = tokenisers.ABCDR3Tokeniser()
 
@@ -92,7 +92,7 @@ class TestCDR3Tokeniser:
         assert tokeniser.vocab_size == 20
 
 
-class TestCDR3BetaTokeniser:
+class TestBCDR3Tokeniser:
     def test_tokenise(self, mock_data_beta_df):
         tokeniser = tokenisers.BCDR3Tokeniser()
 

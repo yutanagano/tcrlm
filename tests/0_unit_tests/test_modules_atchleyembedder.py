@@ -1,17 +1,9 @@
-import pytest
-from src.datahandling.dataloaders import TCRDataLoader
 from src.modules import AtchleyEmbedder
 import torch
 
 
-@pytest.fixture
-def cdr3t_dataloader(cdr3t_dataset):
-    dl = TCRDataLoader(dataset=cdr3t_dataset, batch_size=3, shuffle=False)
-    return dl
-
-
 class TestModel:
-    def test_embed(self, cdr3t_dataloader):
+    def test_embed(self, abcdr3t_dataloader):
         embedder = AtchleyEmbedder()
 
         expected = torch.tensor([
@@ -29,7 +21,7 @@ class TestModel:
             ]
         ])
 
-        batch = next(iter(cdr3t_dataloader))
+        batch = next(iter(abcdr3t_dataloader))
 
         torch.testing.assert_close(
             embedder.embed(batch),

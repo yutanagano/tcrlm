@@ -1,12 +1,12 @@
 import pytest
 import random
 from src.datahandling import datasets
-from src.datahandling.tokenisers import Tokeniser
+from src.datahandling.tokenisers import _Tokeniser
 
 
 @pytest.fixture
 def dummy_tokeniser():
-    class DummyTokeniser(Tokeniser):
+    class DummyTokeniser(_Tokeniser):
         '''
         Dummy tokeniser that just returns the row index of an item in the
         dataset as the 'tokenisation'
