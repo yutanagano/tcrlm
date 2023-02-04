@@ -9,7 +9,7 @@ from datetime import datetime
 import json
 from pathlib import Path
 from src import modules
-from src.modules.embedder import MLMEmbedder
+from src.modules.embedder import _MLMEmbedder
 from src.datahandling import tokenisers
 from src.datahandling.dataloaders import EpitopeAutoContrastiveSuperDataLoader
 from src.datahandling.datasets import (
@@ -76,7 +76,7 @@ def metric_feedback(metrics: dict) -> None:
 
 
 def train(
-    model: MLMEmbedder,
+    model: _MLMEmbedder,
     dl: DataLoader,
     ec_loss_fn,
     ac_loss_fn,
@@ -125,7 +125,7 @@ def train(
 
 @torch.no_grad()
 def validate(
-    model: MLMEmbedder,
+    model: _MLMEmbedder,
     dl: DataLoader,
     ec_loss_fn,
     ac_loss_fn,
@@ -222,9 +222,7 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
 
     # Instantiate model
     print('Instantiating model...')
-    model = MODELS[config['model']['name']](
-        **config['model']['config']
-    )
+    model = MODELS[config['model']['class']](**config['model']['config'])
     model.to(device)
     model.load_state_dict(
         torch.load(config['model']['pretrain_state_dict_path'])

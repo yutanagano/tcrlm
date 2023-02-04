@@ -3,10 +3,18 @@ from torch import Tensor
 from torch.nn import Module
 
 
-class Embedder(ABC, Module):
+class _Embedder(ABC, Module):
     '''
     Abstract base class for embedder modules.
     '''
+
+
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        '''
+        Return a string that represents the name of the model object.
+        '''
 
 
     @abstractmethod
@@ -17,7 +25,7 @@ class Embedder(ABC, Module):
         '''
 
 
-class MLMEmbedder(Embedder):
+class _MLMEmbedder(_Embedder):
     '''
     Abstract base class for MLM embedders.
     '''
