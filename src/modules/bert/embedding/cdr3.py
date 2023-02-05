@@ -1,45 +1,15 @@
 '''
-Modules to embed various TCR tokens.
+Various amino acid embedding modules.
 '''
 
 
 import math
-import torch
+from src.modules.bert.embedding.sinpos import SinPositionEmbedding
 from torch import Tensor
 from torch.nn import Embedding, Module
 
 
-class SinPositionEmbedding(Module):
-    '''
-    Module to encode positional embeddings via a stacked sinusoidal function.
-    '''
-    def __init__(
-        self,
-        num_embeddings: int,
-        embedding_dim: int,
-        sin_scale_factor: int = 30
-    ) -> None:
-        assert embedding_dim % 2 == 0
-        self._embedding_dim = embedding_dim
-
-        super().__init__()
-
-        # 0th dim size is num_embeddings+1 to account for fact that 0 is null value (positions are 1-indexed)
-        position_embedding = torch.zeros(num_embeddings+1, embedding_dim)
-        position_indices = torch.arange(0, num_embeddings).unsqueeze(1)
-        div_term = torch.exp(-math.log(sin_scale_factor) * \
-                             torch.arange(0, embedding_dim, 2) / embedding_dim)
-        position_embedding[1:, 0::2] = torch.sin(position_indices * div_term)
-        position_embedding[1:, 1::2] = torch.cos(position_indices * div_term)
-
-        self.register_buffer('position_embedding', position_embedding)
-
-
-    def forward(self, x: Tensor) -> Tensor:
-        return self.position_embedding[x]
-
-
-class AAEmbedding_a(Module):
+class CDR3Embedding_a(Module):
     '''
     CDR3 embedder which encodes amino acid information information only.
 
@@ -61,7 +31,7 @@ class AAEmbedding_a(Module):
             self.token_embedding(x[:,:,0]) * math.sqrt(self.embedding_dim)
 
 
-class AAEmbedding_ap(AAEmbedding_a):
+class CDR3Embedding_ap(CDR3Embedding_a):
     '''
     CDR3 embedder which encodes amino acid and residue position information.
 
@@ -84,7 +54,7 @@ class AAEmbedding_ap(AAEmbedding_a):
             ) * math.sqrt(self.embedding_dim)
 
 
-class AAEmbedding_ac(AAEmbedding_a):
+class CDR3Embedding_ac(CDR3Embedding_a):
     '''
     CDR3 embedder which encodes amino acid and chain information.
 
@@ -106,7 +76,7 @@ class AAEmbedding_ac(AAEmbedding_a):
                 * math.sqrt(self.embedding_dim)
 
 
-class AAEmbedding_apc(AAEmbedding_ap):
+class CDR3Embedding_apc(CDR3Embedding_ap):
     '''
     CDR3 embedder which encodes amino acid, chain, and residue position
     information.

@@ -1,4 +1,4 @@
-from src.modules.bert.embedding import SinPositionEmbedding
+from src.modules.bert.embedding.sinpos import SinPositionEmbedding
 import torch
 
 
