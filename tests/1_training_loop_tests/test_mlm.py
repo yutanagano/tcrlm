@@ -6,10 +6,15 @@ import torch
 from warnings import warn
 
 
-def get_config(gpu: bool) -> dict:
+def get_config(
+    model_class: str,
+    tokeniser: str,
+    data_file: str,
+    gpu: bool
+) -> dict:
     config = {
         'model': {
-            'class': 'CDR3BERT_a',
+            'class': model_class,
             'config': {
                 'name': 'foobar',
                 'num_encoder_layers': 2,
@@ -19,9 +24,9 @@ def get_config(gpu: bool) -> dict:
             }
         },
         'data': {
-            'train_path': 'tests/resources/mock_data.csv',
-            'valid_path': 'tests/resources/mock_data.csv',
-            'tokeniser': 'ABCDR3Tokeniser',
+            'train_path': f'tests/resources/{data_file}',
+            'valid_path': f'tests/resources/{data_file}',
+            'tokeniser': tokeniser,
             'dataloader': {
                 'config': {}
             }
@@ -37,15 +42,35 @@ def get_config(gpu: bool) -> dict:
 
 class TestTrainingLoop:
     @pytest.mark.parametrize(
-        'gpu', (False, True)
+        ('model_class', 'tokeniser', 'data_file', 'gpu'),
+        (
+            ('CDR3BERT_a', 'ABCDR3Tokeniser', 'mock_data.csv', False),
+            ('CDR3BERT_a', 'ABCDR3Tokeniser', 'mock_data.csv', True),
+            ('BVCDR3BERT', 'BVCDR3Tokeniser', 'mock_data_beta.csv', False)
+        )
     )
-    def test_training_loop(self, cdr3bert_a_template, tmp_path, gpu):
+    def test_training_loop(
+        self,
+        cdr3bert_a_template,
+        bvcdr3bert_template,
+        tmp_path,
+        model_class,
+        tokeniser,
+        data_file,
+        gpu
+    ):
         if gpu and not torch.cuda.is_available():
             warn('MLM GPU test skipped due to hardware limitations.')
             return
 
         # Set up config
-        config = get_config(gpu)
+        config = get_config(model_class, tokeniser, data_file, gpu)
+
+        # Get the correct model template
+        if model_class == 'CDR3BERT_a':
+            model_template = cdr3bert_a_template
+        elif model_class == 'BVCDR3BERT':
+            model_template = bvcdr3bert_template
 
         # Run MLM training loop in separate process
         p = mp.Process(
@@ -65,7 +90,7 @@ class TestTrainingLoop:
         # Check that model is saved correctly
         assert model_saved(
             save_path=expected_save_dir/'state_dict.pt',
-            model_template=cdr3bert_a_template
+            model_template=model_template
         )
 
         # Check that log is saved correctly

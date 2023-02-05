@@ -1,5 +1,5 @@
 '''
-Various amino acid embedding modules.
+CDR3 embedding modules.
 '''
 
 
