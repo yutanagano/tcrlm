@@ -6,11 +6,11 @@ Compatible tokenisers: ABCDR3Tokeniser, BCDR3Tokeniser
 
 
 from src.modules.bert.bert import _BERTBase, _BERTClsEmbedBase
-from src.modules.bert.embedding import (
-    AAEmbedding_a,
-    AAEmbedding_ap,
-    AAEmbedding_ac,
-    AAEmbedding_apc
+from src.modules.bert.embedding.cdr3 import (
+    CDR3Embedding_a,
+    CDR3Embedding_ap,
+    CDR3Embedding_ac,
+    CDR3Embedding_apc
 )
 import torch
 
@@ -66,7 +66,7 @@ class CDR3BERT_a(_CDR3BERTBase):
             dropout
         )
 
-        self.embedder = AAEmbedding_a(embedding_dim=d_model)
+        self.embedder = CDR3Embedding_a(embedding_dim=d_model)
 
 
 class CDR3BERT_ap(_CDR3BERTBase):
@@ -93,7 +93,7 @@ class CDR3BERT_ap(_CDR3BERTBase):
             dropout
         )
 
-        self.embedder = AAEmbedding_ap(embedding_dim=d_model)
+        self.embedder = CDR3Embedding_ap(embedding_dim=d_model)
 
 
 class CDR3BERT_ac(_CDR3BERTBase):
@@ -120,7 +120,7 @@ class CDR3BERT_ac(_CDR3BERTBase):
             dropout
         )
 
-        self.embedder = AAEmbedding_ac(embedding_dim=d_model)
+        self.embedder = CDR3Embedding_ac(embedding_dim=d_model)
 
 
 class CDR3BERT_apc(_CDR3BERTBase):
@@ -148,7 +148,7 @@ class CDR3BERT_apc(_CDR3BERTBase):
             dropout
         )
 
-        self.embedder = AAEmbedding_apc(embedding_dim=d_model)
+        self.embedder = CDR3Embedding_apc(embedding_dim=d_model)
 
 
 class CDR3ClsBERT_ap(_BERTClsEmbedBase, CDR3BERT_ap):
