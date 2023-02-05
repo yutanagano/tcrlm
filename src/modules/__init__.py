@@ -8,3 +8,7 @@ from .bert.cdr3bert import (
     CDR3ClsBERT_ap,
     CDR3ClsBERT_apc
 )
+from .bert.vcdr3bert import (
+    BVCDR3BERT,
+    BVCDR3ClsBERT
+)
