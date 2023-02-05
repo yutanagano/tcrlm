@@ -103,7 +103,7 @@ class TestBCDR3Tokeniser:
             ]),
             torch.tensor([
                 [2,0],
-                [4,1],[3,2],[19,3],[22,4],[21,5]
+                [4,1],[3,2],[16,3],[22,4],[7,5]
             ]),
         ]
 
@@ -115,3 +115,30 @@ class TestBCDR3Tokeniser:
         tokeniser = tokenisers.ABCDR3Tokeniser()
 
         assert tokeniser.vocab_size == 20
+
+
+class TestBVCDR3Tokeniser:
+    def test_tokenise(self, mock_data_beta_df):
+        tokeniser = tokenisers.BVCDR3Tokeniser()
+
+        expected = [
+            torch.tensor([
+                [2,0,0],
+                [23,0,1],
+                [4,1,2],[3,2,2],[19,3,2],[22,4,2],[21,5,2]
+            ]),
+            torch.tensor([
+                [2,0,0],
+                [70,0,1],
+                [4,1,2],[3,2,2],[16,3,2],[22,4,2],[7,5,2]
+            ])
+        ]
+
+        for (_, item), target in zip(mock_data_beta_df.iterrows(), expected):
+            assert torch.equal(tokeniser.tokenise(item), target)
+
+
+    def test_vocab_size(self):
+        tokeniser = tokenisers.BVCDR3Tokeniser()
+
+        assert tokeniser.vocab_size == 68
