@@ -368,10 +368,13 @@ class BVCDR3Tokeniser(_Tokeniser):
 
         tokenised = [[2,0,0]]
 
-        if isna(cdr3b) or isna(trbv):
-            raise ValueError(f'CDR3 data missing from row {tcr.index}')
+        if isna(trbv):
+            raise ValueError(f'V gene data missing from row {tcr.name}')
 
-        tokenised.append([self._v_to_index[trbv]], 0, 1)
+        if isna(cdr3b):
+            raise ValueError(f'CDR3 data missing from row {tcr.name}')
+
+        tokenised.append([self._v_to_index[trbv], 0, 1])
 
         for i, aa in enumerate(cdr3b):
             tokenised.append([self._aa_to_index[aa], i+1, 2])
