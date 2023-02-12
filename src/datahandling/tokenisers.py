@@ -364,7 +364,7 @@ class BVCDR3Tokeniser(_Tokeniser):
             CDR3, or a V gene.
         '''
         trbv = tcr.loc['TRBV']
-        cdr3b = tcr.loc['CDR3B']
+        cdr3b = tcr.loc['CDR3B'].split('*')[0]
 
         tokenised = [[2,0,0]]
 
