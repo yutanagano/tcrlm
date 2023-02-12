@@ -35,13 +35,15 @@ from typing import Union
 MODELS = {
     'CDR3ClsBERT_ap': modules.CDR3ClsBERT_ap,
     'CDR3ClsBERT_apc': modules.CDR3ClsBERT_apc,
-    'BVCDR3ClsBERT': modules.BVCDR3ClsBERT
+    'BVCDR3ClsBERT': modules.BVCDR3ClsBERT,
+    'BCDRClsBERT': modules.BCDRClsBERT
 }
 
 TOKENISERS = {
     'ABCDR3Tokeniser': tokenisers.ABCDR3Tokeniser,
     'BCDR3Tokeniser': tokenisers.BCDR3Tokeniser,
-    'BVCDR3Tokeniser': tokenisers.BVCDR3Tokeniser
+    'BVCDR3Tokeniser': tokenisers.BVCDR3Tokeniser,
+    'BCDRTokeniser': tokenisers.BCDRTokeniser
 }
 
 AC_LOSSES = {
