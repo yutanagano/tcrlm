@@ -17,184 +17,9 @@ describe chain, position, etc.), there are two more reserved indices:
 
 from abc import ABC, abstractmethod
 from pandas import isna, notna, Series
+from src.resources import *
 import torch
 from torch import Tensor
-
-
-amino_acids = (
-    'A','C','D','E','F','G','H','I','K','L',
-    'M','N','P','Q','R','S','T','V','W','Y'
-)
-
-travs = (
-    "TRAV1-1",
-    "TRAV1-2",
-    "TRAV2",
-    "TRAV3",
-    "TRAV4",
-    "TRAV5",
-    "TRAV6",
-    "TRAV7",
-    "TRAV8-1",
-    "TRAV8-2",
-    "TRAV8-3",
-    "TRAV8-4",
-    "TRAV8-6",
-    "TRAV9-1",
-    "TRAV9-2",
-    "TRAV10",
-    "TRAV12-1",
-    "TRAV12-2",
-    "TRAV12-3",
-    "TRAV13-1",
-    "TRAV13-2",
-    "TRAV14/DV4",
-    "TRAV16",
-    "TRAV17",
-    "TRAV18",
-    "TRAV19",
-    "TRAV20",
-    "TRAV21",
-    "TRAV22",
-    "TRAV23/DV6",
-    "TRAV24",
-    "TRAV25",
-    "TRAV26-1",
-    "TRAV26-2",
-    "TRAV27",
-    "TRAV29/DV5",
-    "TRAV30",
-    "TRAV34",
-    "TRAV35",
-    "TRAV36/DV7",
-    "TRAV38-1",
-    "TRAV38-2/DV8",
-    "TRAV39",
-    "TRAV40",
-    "TRAV41"
-)
-
-trajs = (
-    "TRAJ3",
-    "TRAJ4",
-    "TRAJ5",
-    "TRAJ6",
-    "TRAJ7",
-    "TRAJ8",
-    "TRAJ9",
-    "TRAJ10",
-    "TRAJ11",
-    "TRAJ12",
-    "TRAJ13",
-    "TRAJ14",
-    "TRAJ15",
-    "TRAJ16",
-    "TRAJ17",
-    "TRAJ18",
-    "TRAJ20",
-    "TRAJ21",
-    "TRAJ22",
-    "TRAJ23",
-    "TRAJ24",
-    "TRAJ26",
-    "TRAJ27",
-    "TRAJ28",
-    "TRAJ29",
-    "TRAJ30",
-    "TRAJ31",
-    "TRAJ32",
-    "TRAJ33",
-    "TRAJ34",
-    "TRAJ35",
-    "TRAJ36",
-    "TRAJ37",
-    "TRAJ38",
-    "TRAJ39",
-    "TRAJ40",
-    "TRAJ41",
-    "TRAJ42",
-    "TRAJ43",
-    "TRAJ44",
-    "TRAJ45",
-    "TRAJ46",
-    "TRAJ47",
-    "TRAJ48",
-    "TRAJ49",
-    "TRAJ50",
-    "TRAJ52",
-    "TRAJ53",
-    "TRAJ54",
-    "TRAJ56",
-    "TRAJ57"
-)
-
-trbvs = (
-    "TRBV2",
-    "TRBV3-1",
-    "TRBV4-1",
-    "TRBV4-2",
-    "TRBV4-3",
-    "TRBV5-1",
-    "TRBV5-4",
-    "TRBV5-5",
-    "TRBV5-6",
-    "TRBV5-8",
-    "TRBV6-1",
-    "TRBV6-2",
-    "TRBV6-3",
-    "TRBV6-4",
-    "TRBV6-5",
-    "TRBV6-6",
-    "TRBV6-8",
-    "TRBV6-9",
-    "TRBV7-2",
-    "TRBV7-3",
-    "TRBV7-4",
-    "TRBV7-6",
-    "TRBV7-7",
-    "TRBV7-8",
-    "TRBV7-9",
-    "TRBV9",
-    "TRBV10-1",
-    "TRBV10-2",
-    "TRBV10-3",
-    "TRBV11-1",
-    "TRBV11-2",
-    "TRBV11-3",
-    "TRBV12-3",
-    "TRBV12-4",
-    "TRBV12-5",
-    "TRBV13",
-    "TRBV14",
-    "TRBV15",
-    "TRBV16",
-    "TRBV18",
-    "TRBV19",
-    "TRBV20-1",
-    "TRBV24-1",
-    "TRBV25-1",
-    "TRBV27",
-    "TRBV28",
-    "TRBV29-1",
-    "TRBV30"
-)
-
-
-trbjs = (
-    "TRBJ1-1",
-    "TRBJ1-2",
-    "TRBJ1-3",
-    "TRBJ1-4",
-    "TRBJ1-5",
-    "TRBJ1-6",
-    "TRBJ2-1",
-    "TRBJ2-2",
-    "TRBJ2-3",
-    "TRBJ2-4",
-    "TRBJ2-5",
-    "TRBJ2-6",
-    "TRBJ2-7"
-)
 
 
 class _Tokeniser(ABC):
@@ -218,16 +43,16 @@ class _Tokeniser(ABC):
         '''
 
 
-class _CDR3Tokeniser(_Tokeniser):
+class _AATokeniser(_Tokeniser):
     '''
-    Base class for CDR3 tokenisers.
+    Base class for tokenisers focusing on AA-level tokenisation.
     '''
 
 
     def __init__(self) -> None:
         self._aa_to_index = dict()
 
-        for i, aa in enumerate(amino_acids):
+        for i, aa in enumerate(AMINO_ACIDS):
             self._aa_to_index[aa] = 3+i # offset for reserved tokens
 
 
@@ -236,7 +61,7 @@ class _CDR3Tokeniser(_Tokeniser):
         return 20
 
 
-class ABCDR3Tokeniser(_CDR3Tokeniser):
+class ABCDR3Tokeniser(_AATokeniser):
     '''
     Basic tokeniser which will tokenise a TCR in terms of its alpha and beta
     chain CDR3 amino acid sequences.
@@ -288,7 +113,7 @@ class ABCDR3Tokeniser(_CDR3Tokeniser):
         return torch.tensor(tokenised, dtype=torch.long)
 
 
-class BCDR3Tokeniser(_CDR3Tokeniser):
+class BCDR3Tokeniser(_AATokeniser):
     '''
     Basic tokeniser which will tokenise a TCR in terms of its beta chain CDR3.
     '''
@@ -331,10 +156,10 @@ class BVCDR3Tokeniser(_Tokeniser):
         self._v_to_index = dict()
 
 
-        for i, aa in enumerate(amino_acids):
+        for i, aa in enumerate(AMINO_ACIDS):
             self._aa_to_index[aa] = 3+i # offset for reserved tokens
 
-        for i, trbv in enumerate(trbvs):
+        for i, trbv in enumerate(FUNCTIONAL_TRBVS):
             self._v_to_index[trbv] = 3+20+i # offset for reserved tokens and amino acid tokens
 
 
@@ -363,8 +188,10 @@ class BVCDR3Tokeniser(_Tokeniser):
             integer indicating whether the token represents something from the
             CDR3, or a V gene.
         '''
-        trbv = tcr.loc['TRBV']
-        cdr3b = tcr.loc['CDR3B'].split('*')[0]
+
+
+        trbv = tcr.loc['TRBV'].split('*')[0]
+        cdr3b = tcr.loc['CDR3B']
 
         tokenised = [[2,0,0]]
 
@@ -378,5 +205,56 @@ class BVCDR3Tokeniser(_Tokeniser):
 
         for i, aa in enumerate(cdr3b):
             tokenised.append([self._aa_to_index[aa], i+1, 2])
+
+        return torch.tensor(tokenised, dtype=torch.long)
+
+
+class BCDR123Tokeniser(_AATokeniser):
+    '''
+    Tokeniser that takes the beta V gene and CDR3, and represents the chain as
+    the set of CDRs 1, 2 and 3.
+    '''
+
+
+    def tokenise(self, tcr: Series, chain: str = 'both') -> Tensor:
+        '''
+        Tokenise a TCR in terms of the amino acid sequences of its 3 CDRs.
+
+        Amino acids get mapped as in the following: 'A' -> 3, 'C' -> 4, ...
+        'Y' -> 22.
+
+        :return:
+            Tensor where the first column is always a <cls> token, followed by
+            tokens representing amino acids from the CDR1, then CDR2, then CDR3
+            regions. Each column is a 3-dimensional vector where the first
+            element is the amino acid index, the second element is an integer
+            indicating the residue position within its compartment (1-indexed),
+            and the third element is an integer indicating whether the token
+            represents something from the CDR1, 2, or 3.
+        '''
+
+
+        trbv = tcr.loc['TRBV']
+        cdr3b = tcr.loc['CDR3B']
+
+        if isna(trbv):
+            raise ValueError(f'V gene data missing from row {tcr.name}')
+
+        if isna(cdr3b):
+            raise ValueError(f'CDR3 data missing from row {tcr.name}')
+
+        cdr1b = V_CDRS[trbv]['CDR1-IMGT']
+        cdr2b = V_CDRS[trbv]['CDR2-IMGT']
+
+        tokenised = [[2,0,0]]
+
+        for i, aa in enumerate(cdr1b):
+            tokenised.append([self._aa_to_index[aa], i+1, 1])
+
+        for i, aa in enumerate(cdr2b):
+            tokenised.append([self._aa_to_index[aa], i+1, 2])
+
+        for i, aa in enumerate(cdr3b):
+            tokenised.append([self._aa_to_index[aa], i+1, 3])
 
         return torch.tensor(tokenised, dtype=torch.long)
