@@ -8,3 +8,4 @@ __pycache__
 /.python3.8
 /ignore
 /model_saves
+/run_local_training.sh
