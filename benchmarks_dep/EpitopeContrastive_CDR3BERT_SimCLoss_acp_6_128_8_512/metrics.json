@@ -1,7 +1,0 @@
-{
-    "model_name": "EpitopeContrastive_CDR3BERT_SimCLoss_acp_6_128_8_512",
-    "alignment": 1.2707931995391846,
-    "uniformity": -1.3117327690124512,
-    "alignment + uniformity": -0.0409395694732666,
-    "5nn_accuracy": 0.33916667103767395
-}
