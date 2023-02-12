@@ -1,14 +1,14 @@
 import pytest
 from src.datahandling.datasets import TCRDataset
 from src.datahandling.dataloaders import TCRDataLoader
-from src.datahandling.tokenisers import BVCDR3Tokeniser
+from src.datahandling.tokenisers import BCDRTokeniser
 from src.modules import *
 import torch
 
 
 model_classes = (
-    BVCDR3BERT,
-    BVCDR3ClsBERT
+    BCDRBERT,
+    BCDRClsBERT
 )
 model_instances = [
     Model(
@@ -22,9 +22,9 @@ model_instances = [
 
 
 @pytest.fixture
-def bvcdr3t_dataloader(mock_data_beta_df):
+def bcdrt_dataloader(mock_data_beta_df):
     return TCRDataLoader(
-        TCRDataset(mock_data_beta_df, BVCDR3Tokeniser()),
+        TCRDataset(mock_data_beta_df, BCDRTokeniser()),
         batch_size=2,
         shuffle=False
     )
@@ -45,8 +45,8 @@ class TestModel:
         assert (padding_mask == 1).all()
 
 
-    def test_embed(self, model, bvcdr3t_dataloader):
-        batch = next(iter(bvcdr3t_dataloader))
+    def test_embed(self, model, bcdrt_dataloader):
+        batch = next(iter(bcdrt_dataloader))
         out = model.embed(x=batch)
 
         assert out.size() == (2,64)
@@ -57,4 +57,4 @@ class TestModel:
         batch = torch.zeros((3,10,3), dtype=torch.long)
         out = model.mlm(x=batch)
 
-        assert out.size() == (3,10,68)
+        assert out.size() == (3,10,20)

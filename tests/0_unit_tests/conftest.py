@@ -8,13 +8,33 @@ from src.datahandling.tokenisers import ABCDR3Tokeniser
 
 @pytest.fixture(scope='session')
 def mock_data_path():
-    return Path('tests/resources/mock_data.csv')
+    return Path('tests')/'resources'/'mock_data.csv'
 
 
 @pytest.fixture(scope='session')
 def mock_data_df(mock_data_path):
     df = pd.read_csv(
         mock_data_path,
+        dtype={
+            'TRAV': 'string',
+            'CDR3A': 'string',
+            'TRAJ': 'string',
+            'TRBV': 'string',
+            'CDR3B': 'string',
+            'TRBJ': 'string',
+            'Epitope': 'string',
+            'MHCA': 'string',
+            'MHCB': 'string',
+            'duplicate_count': 'UInt32'
+        }
+    )
+    return df
+
+
+@pytest.fixture(scope='session')
+def mock_data_beta_df():
+    df = pd.read_csv(
+        Path('tests')/'resources'/'mock_data_beta.csv',
         dtype={
             'TRAV': 'string',
             'CDR3A': 'string',

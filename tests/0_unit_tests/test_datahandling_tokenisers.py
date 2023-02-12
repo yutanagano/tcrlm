@@ -144,9 +144,9 @@ class TestBVCDR3Tokeniser:
         assert tokeniser.vocab_size == 68
 
 
-class TestBCDR123Tokeniser:
+class TestBCDRTokeniser:
     def test_tokenise(self, mock_data_beta_df):
-        tokeniser = tokenisers.BCDR123Tokeniser()
+        tokeniser = tokenisers.BCDRTokeniser()
 
         expected = [
             torch.tensor([

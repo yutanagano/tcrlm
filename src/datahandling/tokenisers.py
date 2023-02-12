@@ -209,7 +209,7 @@ class BVCDR3Tokeniser(_Tokeniser):
         return torch.tensor(tokenised, dtype=torch.long)
 
 
-class BCDR123Tokeniser(_AATokeniser):
+class BCDRTokeniser(_AATokeniser):
     '''
     Tokeniser that takes the beta V gene and CDR3, and represents the chain as
     the set of CDRs 1, 2 and 3.

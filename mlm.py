@@ -26,13 +26,15 @@ MODELS = {
     'CDR3BERT_ap': modules.CDR3BERT_ap,
     'CDR3BERT_ac': modules.CDR3BERT_ac,
     'CDR3BERT_apc': modules.CDR3BERT_apc,
-    'BVCDR3BERT': modules.BVCDR3BERT
+    'BVCDR3BERT': modules.BVCDR3BERT,
+    'BCDRBERT': modules.BCDRBERT
 }
 
 TOKENISERS = {
     'ABCDR3Tokeniser': tokenisers.ABCDR3Tokeniser,
     'BCDR3Tokeniser': tokenisers.BCDR3Tokeniser,
-    'BVCDR3Tokeniser': tokenisers.BVCDR3Tokeniser
+    'BVCDR3Tokeniser': tokenisers.BVCDR3Tokeniser,
+    'BCDRTokeniser': tokenisers.BCDRTokeniser
 }
 
 
