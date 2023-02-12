@@ -110,6 +110,9 @@ class ABCDR3Tokeniser(_AATokeniser):
             for i, aa in enumerate(cdr3b):
                 tokenised.append([self._aa_to_index[aa], i+1, 2])
 
+        if len(tokenised) == 1:
+            raise ValueError(f'No CDR3 data found in row {tcr.name}.')
+
         return torch.tensor(tokenised, dtype=torch.long)
 
 
@@ -133,6 +136,7 @@ class BCDR3Tokeniser(_AATokeniser):
             second element is an integer indicating the residue position within
             its chain (1-indexed).
         '''
+    
         cdr3b = tcr.loc['CDR3B']
 
         tokenised = [[2,0]]
@@ -189,22 +193,20 @@ class BVCDR3Tokeniser(_Tokeniser):
             CDR3, or a V gene.
         '''
 
-
-        trbv = tcr.loc['TRBV'].split('*')[0]
+        trbv = None if isna(tcr.loc['TRBV']) else tcr.loc['TRBV'].split('*')[0]
         cdr3b = tcr.loc['CDR3B']
 
         tokenised = [[2,0,0]]
 
-        if isna(trbv):
-            raise ValueError(f'V gene data missing from row {tcr.name}')
+        if notna(trbv):
+            tokenised.append([self._v_to_index[trbv], 0, 1])
 
-        if isna(cdr3b):
-            raise ValueError(f'CDR3 data missing from row {tcr.name}')
-
-        tokenised.append([self._v_to_index[trbv], 0, 1])
-
-        for i, aa in enumerate(cdr3b):
-            tokenised.append([self._aa_to_index[aa], i+1, 2])
+        if notna(cdr3b):
+            for i, aa in enumerate(cdr3b):
+                tokenised.append([self._aa_to_index[aa], i+1, 2])
+        
+        if len(tokenised) == 1:
+            raise ValueError(f'No TCRB data found in row {tcr.name}.')
 
         return torch.tensor(tokenised, dtype=torch.long)
 
@@ -237,24 +239,24 @@ class BCDRTokeniser(_AATokeniser):
         trbv = tcr.loc['TRBV']
         cdr3b = tcr.loc['CDR3B']
 
-        if isna(trbv):
-            raise ValueError(f'V gene data missing from row {tcr.name}')
-
-        if isna(cdr3b):
-            raise ValueError(f'CDR3 data missing from row {tcr.name}')
-
-        cdr1b = V_CDRS[trbv]['CDR1-IMGT']
-        cdr2b = V_CDRS[trbv]['CDR2-IMGT']
+        cdr1b = None if isna(trbv) else V_CDRS[trbv]['CDR1-IMGT']
+        cdr2b = None if isna(trbv) else V_CDRS[trbv]['CDR2-IMGT']
 
         tokenised = [[2,0,0]]
 
-        for i, aa in enumerate(cdr1b):
-            tokenised.append([self._aa_to_index[aa], i+1, 1])
+        if notna(cdr1b):
+            for i, aa in enumerate(cdr1b):
+                tokenised.append([self._aa_to_index[aa], i+1, 1])
 
-        for i, aa in enumerate(cdr2b):
-            tokenised.append([self._aa_to_index[aa], i+1, 2])
+        if notna(cdr2b):
+            for i, aa in enumerate(cdr2b):
+                tokenised.append([self._aa_to_index[aa], i+1, 2])
 
-        for i, aa in enumerate(cdr3b):
-            tokenised.append([self._aa_to_index[aa], i+1, 3])
+        if notna(cdr3b):
+            for i, aa in enumerate(cdr3b):
+                tokenised.append([self._aa_to_index[aa], i+1, 3])
+
+        if len(tokenised) == 1:
+            raise ValueError(f'No TCRB data found in row {tcr.name}.')
 
         return torch.tensor(tokenised, dtype=torch.long)
