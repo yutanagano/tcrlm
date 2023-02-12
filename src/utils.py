@@ -16,6 +16,7 @@ import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.nn.parallel import DistributedDataParallel
+from typing import Dict
 
 
 def masked_average_pool(
@@ -115,7 +116,7 @@ class PCDistModelWrapper:
         return self._name
 
     
-    def pdist(self, sequence_elements: dict[str, ndarray]) -> ndarray:
+    def pdist(self, sequence_elements: Dict[str, ndarray]) -> ndarray:
         dl = self._generate_dataloader(sequence_elements)
         embedded = self._generate_embeddings(dl)
 
@@ -124,8 +125,8 @@ class PCDistModelWrapper:
 
     def cdist(
         self,
-        sequence_elements_1: dict[str, ndarray],
-        sequence_elements_2: dict[str, ndarray]
+        sequence_elements_1: Dict[str, ndarray],
+        sequence_elements_2: Dict[str, ndarray]
     ) -> ndarray:
         dl_1 = self._generate_dataloader(sequence_elements_1)
         dl_2 = self._generate_dataloader(sequence_elements_2)
@@ -138,7 +139,7 @@ class PCDistModelWrapper:
 
     def _generate_dataloader(
         self,
-        sequence_elements: dict[str, ndarray]
+        sequence_elements: Dict[str, ndarray]
     ) -> TCRDataLoader:
         # Create missing columns if any and mark as empty
         for col in (
