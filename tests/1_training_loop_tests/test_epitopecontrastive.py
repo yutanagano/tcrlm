@@ -1,4 +1,4 @@
-from epitopecontrastive import main
+from ecl import main
 import multiprocessing as mp
 from pathlib import Path
 import pytest

@@ -1,4 +1,4 @@
-from autocontrastive import main
+from acl import main
 import multiprocessing as mp
 from pathlib import Path
 import pytest
