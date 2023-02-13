@@ -6,12 +6,7 @@ Compatible tokenisers: ABCDR3Tokeniser, BCDR3Tokeniser
 
 
 from src.modules.bert.bert import _BERTBase, _BERTClsEmbedBase
-from src.modules.bert.embedding.cdr3 import (
-    CDR3Embedding_a,
-    CDR3Embedding_ap,
-    CDR3Embedding_ac,
-    CDR3Embedding_apc
-)
+from src.modules.bert.embedding.cdr3 import *
 import torch
 
 
@@ -96,6 +91,33 @@ class CDR3BERT_ap(_CDR3BERTBase):
         self.embedder = CDR3Embedding_ap(embedding_dim=d_model)
 
 
+class CDR3BERT_ar(_CDR3BERTBase):
+    '''
+    CDR3BERT model that gets amino acid and relative positional information.
+    '''
+
+
+    def __init__(
+        self,
+        name: str,
+        num_encoder_layers: int,
+        d_model: int,
+        nhead: int,
+        dim_feedforward: int,
+        dropout: float = 0.1
+    ) -> None:
+        super().__init__(
+            name,
+            num_encoder_layers,
+            d_model,
+            nhead,
+            dim_feedforward,
+            dropout
+        )
+
+        self.embedder = CDR3Embedding_ar(embedding_dim=d_model)
+
+
 class CDR3BERT_ac(_CDR3BERTBase):
     '''
     CDR3BERT model that gets amino acid and chain information.
@@ -154,6 +176,31 @@ class CDR3BERT_apc(_CDR3BERTBase):
 class CDR3ClsBERT_ap(_BERTClsEmbedBase, CDR3BERT_ap):
     '''
     CDR3BERT_ap model which uses the <cls> token to embed.
+    '''
+
+
+    def __init__(
+        self,
+        name: str,
+        num_encoder_layers: int,
+        d_model: int,
+        nhead: int,
+        dim_feedforward: int,
+        dropout: float = 0.1
+    ) -> None:
+        super().__init__(
+            name,
+            num_encoder_layers,
+            d_model,
+            nhead,
+            dim_feedforward,
+            dropout
+        )
+
+
+class CDR3ClsBERT_ar(_BERTClsEmbedBase, CDR3BERT_ar):
+    '''
+    CDR3BERT_ar model which uses the <cls> token to embed.
     '''
 
 

@@ -40,5 +40,5 @@ class BVCDR3Embedding(Module):
             (
                 self.token_embedding(x[:,:,0]) +
                 self.position_embedding(x[:,:,1]) +
-                self.compartment_embedding(x[:,:,2])
+                self.compartment_embedding(x[:,:,3])
             ) * math.sqrt(self.embedding_dim)
