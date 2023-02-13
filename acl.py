@@ -39,7 +39,7 @@ MODELS = {
 }
 
 TOKENISERS = {
-    'ABCDR3Tokeniser': tokenisers.ABCDR3Tokeniser,
+    'CDR3Tokeniser': tokenisers.CDR3Tokeniser,
     'BCDR3Tokeniser': tokenisers.BCDR3Tokeniser,
     'BVCDR3Tokeniser': tokenisers.BVCDR3Tokeniser,
     'BCDRTokeniser': tokenisers.BCDRTokeniser

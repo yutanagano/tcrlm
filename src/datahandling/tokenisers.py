@@ -61,7 +61,7 @@ class _AATokeniser(_Tokeniser):
         return 20
 
 
-class ABCDR3Tokeniser(_AATokeniser):
+class CDR3Tokeniser(_AATokeniser):
     '''
     Basic tokeniser which will tokenise a TCR in terms of its alpha and beta
     chain CDR3 amino acid sequences.

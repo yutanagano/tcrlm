@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from src.datahandling import datasets
 from src.datahandling.dataloaders import TCRDataLoader
-from src.datahandling.tokenisers import ABCDR3Tokeniser
+from src.datahandling.tokenisers import CDR3Tokeniser
 
 
 @pytest.fixture(scope='session')
@@ -55,7 +55,7 @@ def mock_data_beta_df():
 def abcdr3t_dataset(mock_data_df):
     dataset = datasets.TCRDataset(
         data=mock_data_df,
-        tokeniser=ABCDR3Tokeniser()
+        tokeniser=CDR3Tokeniser()
     )
 
     return dataset
@@ -65,7 +65,7 @@ def abcdr3t_dataset(mock_data_df):
 def abcdr3t_auto_contrastive_dataset(mock_data_df):
     dataset = datasets.AutoContrastiveDataset(
         data=mock_data_df,
-        tokeniser=ABCDR3Tokeniser()
+        tokeniser=CDR3Tokeniser()
     )
 
     return dataset
@@ -75,7 +75,7 @@ def abcdr3t_auto_contrastive_dataset(mock_data_df):
 def abcdr3t_epitope_contrastive_dataset(mock_data_df):
     dataset = datasets.EpitopeContrastiveDataset(
         data=mock_data_df,
-        tokeniser=ABCDR3Tokeniser()
+        tokeniser=CDR3Tokeniser()
     )
 
     return dataset

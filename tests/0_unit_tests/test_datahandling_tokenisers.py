@@ -18,7 +18,7 @@ def mock_data_beta_df():
 
 class TestABCDR3Tokeniser:
     def test_tokenise(self, mock_data_df):
-        tokeniser = tokenisers.ABCDR3Tokeniser()
+        tokeniser = tokenisers.CDR3Tokeniser()
 
         expected = [
             torch.tensor([
@@ -80,14 +80,14 @@ class TestABCDR3Tokeniser:
         )
     )
     def test_chain(self, mock_data_df, chain, expected):
-        tokeniser = tokenisers.ABCDR3Tokeniser()
+        tokeniser = tokenisers.CDR3Tokeniser()
 
         for (_, item), target in zip(mock_data_df.iterrows(), expected):
             assert torch.equal(tokeniser.tokenise(item, chain), target)
 
 
     def test_vocab_size(self):
-        tokeniser = tokenisers.ABCDR3Tokeniser()
+        tokeniser = tokenisers.CDR3Tokeniser()
 
         assert tokeniser.vocab_size == 20
 
@@ -112,7 +112,7 @@ class TestBCDR3Tokeniser:
 
 
     def test_vocab_size(self):
-        tokeniser = tokenisers.ABCDR3Tokeniser()
+        tokeniser = tokenisers.CDR3Tokeniser()
 
         assert tokeniser.vocab_size == 20
 
