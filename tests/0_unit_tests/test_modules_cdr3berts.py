@@ -8,6 +8,7 @@ model_classes = (
     CDR3BERT_ac,
     CDR3BERT_ap,
     CDR3BERT_ar,
+    CDR3BERT_ab,
     CDR3BERT_apc,
     CDR3ClsBERT_ap,
     CDR3ClsBERT_ar,
