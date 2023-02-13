@@ -39,3 +39,43 @@ class SinPositionEmbedding(Module):
 
     def forward(self, x: Tensor) -> Tensor:
         return self.position_embedding[x]
+
+
+class SinPositionEmbeddingRelative(Module):
+    '''
+    Stacked sinusoidal position embedding but for relative position (position
+    here is a float value between 1 and 2 where 1 is the beginning and 2 is the
+    end).
+    '''
+
+
+    def __init__(
+        self,
+        embedding_dim: int,
+        sin_scale_factor: int
+    ) -> None:
+        assert embedding_dim % 2 == 0
+        self._embedding_dim = embedding_dim
+
+        super().__init__()
+
+        phase_vector = torch.exp(
+            math.log(math.pi) +
+            math.log(sin_scale_factor) * torch.arange(embedding_dim/2)
+        )
+        self.register_buffer('phase_vector', phase_vector)
+
+
+    def forward(self, x: Tensor) -> Tensor:
+        padding = x[...,0] == 0
+        x = (x[...,0]-1) / (x[...,1]-1)
+
+        position_embedding = torch.zeros(*x.size(), self._embedding_dim)
+
+        position_embedding[...,0::2] = torch.sin(
+            x.unsqueeze(-1) * self.phase_vector)
+        position_embedding[...,1::2] = torch.cos(
+            x.unsqueeze(-1) * self.phase_vector)
+        position_embedding[padding,...] = 0
+
+        return position_embedding

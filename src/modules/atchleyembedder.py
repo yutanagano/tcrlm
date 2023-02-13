@@ -71,8 +71,8 @@ class AtchleyEmbedder(_Embedder):
         '''
 
         padding_mask = (x[:,:,[0]] >= 2)
-        alpha_mask = padding_mask * (x[:,:,[2]] == 1)
-        beta_mask = padding_mask * (x[:,:,[2]] == 2)
+        alpha_mask = padding_mask * (x[:,:,[3]] == 1)
+        beta_mask = padding_mask * (x[:,:,[3]] == 2)
 
         as_atchley = self.embedding(x[:,:,0])
 

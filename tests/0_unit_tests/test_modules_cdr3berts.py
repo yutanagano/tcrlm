@@ -7,8 +7,10 @@ model_classes = (
     CDR3BERT_a,
     CDR3BERT_ac,
     CDR3BERT_ap,
+    CDR3BERT_ar,
     CDR3BERT_apc,
     CDR3ClsBERT_ap,
+    CDR3ClsBERT_ar,
     CDR3ClsBERT_apc
 )
 model_instances = [
@@ -29,7 +31,7 @@ class TestModel:
 
 
     def test_forward(self, model):
-        batch = torch.zeros((3,10,3), dtype=torch.long)
+        batch = torch.zeros((3,10,4), dtype=torch.long)
         out, padding_mask = model(x=batch)
 
         assert out.size() == (3,10,64)
@@ -46,7 +48,7 @@ class TestModel:
 
 
     def test_mlm(self, model):
-        batch = torch.zeros((3,10,3), dtype=torch.long)
+        batch = torch.zeros((3,10,4), dtype=torch.long)
         out = model.mlm(x=batch)
 
         assert out.size() == (3,10,20)
