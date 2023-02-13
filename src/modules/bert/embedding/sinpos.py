@@ -6,13 +6,15 @@ Modules to embed various TCR tokens.
 import math
 import torch
 from torch import Tensor
-from torch.nn import Embedding, Module
+from torch.nn import Module
 
 
 class SinPositionEmbedding(Module):
     '''
     Module to encode positional embeddings via a stacked sinusoidal function.
     '''
+
+    
     def __init__(
         self,
         num_embeddings: int,
