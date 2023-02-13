@@ -64,13 +64,22 @@ class SinPositionEmbeddingRelative(Module):
             math.log(sin_scale_factor) * torch.arange(embedding_dim/2)
         )
         self.register_buffer('phase_vector', phase_vector)
+        self._device = None
 
 
     def forward(self, x: Tensor) -> Tensor:
+        if self._device is None:
+            self._device = self.phase_vector.device
+
         padding = x[...,0] == 0
         x = (x[...,0]-1) / (x[...,1]-1)
 
-        position_embedding = torch.zeros(*x.size(), self._embedding_dim)
+        x[torch.isnan(x)] = 0.5
+
+        position_embedding = torch.zeros(
+            *x.size(), self._embedding_dim,
+            device=self._device
+        )
 
         position_embedding[...,0::2] = torch.sin(
             x.unsqueeze(-1) * self.phase_vector)
