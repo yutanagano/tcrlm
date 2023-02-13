@@ -88,3 +88,40 @@ class SinPositionEmbeddingRelative(Module):
         position_embedding[padding,...] = 0
 
         return position_embedding
+
+
+class SinPositionEmbeddingBiDirectional(Module):
+    '''
+    Bidirectional positioning.
+    '''
+
+
+    def __init__(
+        self,
+        num_embeddings: int,
+        embedding_dim: int,
+        sin_scale_factor: int = 30
+    ) -> None:
+        assert embedding_dim % 4 == 0
+        self._embedding_dim = embedding_dim
+
+        super().__init__()
+
+        # 0th dim size is num_embeddings+1 to account for fact that 0 is null value (positions are 1-indexed)
+        position_embedding = torch.zeros(num_embeddings+1, int(embedding_dim/2))
+        position_indices = torch.arange(0, num_embeddings).unsqueeze(1)
+        div_term = torch.exp(-math.log(sin_scale_factor) * \
+            torch.arange(0, embedding_dim/2, 2) / embedding_dim/2)
+        position_embedding[1:, 0::2] = torch.sin(position_indices * div_term)
+        position_embedding[1:, 1::2] = torch.cos(position_indices * div_term)
+
+        self.register_buffer('position_embedding', position_embedding)
+
+
+    def forward(self, x: Tensor) -> Tensor:
+        forward_embs = self.position_embedding[x[...,0]]
+        backward_embs = self.position_embedding[x[...,1]-x[...,0]+1]
+        combined = torch.concat([forward_embs, backward_embs], dim=-1)
+        combined[x[...,0] == 0] = 0 # zero out padding
+
+        return combined

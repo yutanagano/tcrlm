@@ -118,6 +118,34 @@ class CDR3BERT_ar(_CDR3BERTBase):
         self.embedder = CDR3Embedding_ar(embedding_dim=d_model)
 
 
+class CDR3BERT_ab(_CDR3BERTBase):
+    '''
+    CDR3BERT model that gets amino acid and bidirectional positional
+    information.
+    '''
+
+
+    def __init__(
+        self,
+        name: str,
+        num_encoder_layers: int,
+        d_model: int,
+        nhead: int,
+        dim_feedforward: int,
+        dropout: float = 0.1
+    ) -> None:
+        super().__init__(
+            name,
+            num_encoder_layers,
+            d_model,
+            nhead,
+            dim_feedforward,
+            dropout
+        )
+
+        self.embedder = CDR3Embedding_ab(embedding_dim=d_model)
+
+
 class CDR3BERT_ac(_CDR3BERTBase):
     '''
     CDR3BERT model that gets amino acid and chain information.
