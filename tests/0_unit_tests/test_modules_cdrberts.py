@@ -37,7 +37,7 @@ class TestModel:
 
 
     def test_forward(self, model):
-        batch = torch.zeros((3,10,3), dtype=torch.long)
+        batch = torch.zeros((3,10,4), dtype=torch.long)
         out, padding_mask = model(x=batch)
 
         assert out.size() == (3,10,64)
@@ -54,7 +54,7 @@ class TestModel:
 
 
     def test_mlm(self, model):
-        batch = torch.zeros((3,10,3), dtype=torch.long)
+        batch = torch.zeros((3,10,4), dtype=torch.long)
         out = model.mlm(x=batch)
 
         assert out.size() == (3,10,20)

@@ -33,19 +33,19 @@ class TestTCRDataLoader:
         expected = torch.tensor(
             [
                 [
-                    [2,0,0],
-                    [4,1,1],[3,2,1],[18,3,1],[16,4,1],[22,5,1],[7,6,1],
-                    [4,1,2],[3,2,2],[19,3,2],[22,4,2],[21,5,2]
+                    [2,0,0,0],
+                    [4,1,6,1],[3,2,6,1],[18,3,6,1],[16,4,6,1],[22,5,6,1],[7,6,6,1],
+                    [4,1,5,2],[3,2,5,2],[19,3,5,2],[22,4,5,2],[21,5,5,2]
                 ],
                 [
-                    [2,0,0],
-                    [4,1,1],[3,2,1],[18,3,1],[16,4,1],[22,5,1],[7,6,1],
-                    [0,0,0],[0,0,0],[ 0,0,0],[ 0,0,0],[ 0,0,0]
+                    [2,0,0,0],
+                    [4,1,6,1],[3,2,6,1],[18,3,6,1],[16,4,6,1],[22,5,6,1],[7,6,6,1],
+                    [0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]
                 ],
                 [
-                    [2,0,0],
-                    [4,1,2],[3,2,2],[19,3,2],[22,4,2],[21,5,2],
-                    [0,0,0],[0,0,0],[ 0,0,0],[ 0,0,0],[ 0,0,0],[0,0,0]
+                    [2,0,0,0],
+                    [4,1,5,2],[3,2,5,2],[19,3,5,2],[22,4,5,2],[21,5,5,2],
+                    [0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]
                 ]
             ]
         )
@@ -69,7 +69,7 @@ class TestMLMDataLoader:
         assert target.dim() == 2
         assert masked.size(0) == target.size(0) == 3
         assert masked.size(1) == target.size(1) == 12
-        assert masked.size(2) == 3
+        assert masked.size(2) == 4
 
 
 class TestAutoContrastiveDataLoader:
@@ -89,7 +89,7 @@ class TestAutoContrastiveDataLoader:
             == masked.size(0) == target.size(0) == 3
         assert x.size(1) == masked.size(1) == target.size(1) == 12
         assert x_prime.size(1) in (6, 7, 12)
-        assert x.size(2) == x_prime.size(2) == masked.size(2) == 3
+        assert x.size(2) == x_prime.size(2) == masked.size(2) == 4
 
 
 class TestEpitopeAutoContrastiveSuperDataLoader:
@@ -123,7 +123,7 @@ class TestEpitopeAutoContrastiveSuperDataLoader:
         assert ac_prime.size(1) in (6, 7, 12)
         assert ec_prime.size(1) in (7, 12)
         assert ac.size(2) == ac_prime.size(2) == ac_masked.size(2) ==\
-            ec.size(2) == ec_prime.size(2) == 3
+            ec.size(2) == ec_prime.size(2) == 4
 
 
     def test_len(
