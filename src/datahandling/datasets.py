@@ -63,12 +63,8 @@ class AutoContrastiveDataset(TCRDataset):
     '''
     def __getitem__(self, index) -> any:
         x = self._tokeniser.tokenise(self._data.iloc[index])
-        x_prime = self._tokeniser.tokenise(
-            self._data.iloc[index],
-            chain=random.choice(('both', 'alpha', 'beta'))
-        )
 
-        return (x, x_prime)
+        return (x, x)
 
 
 class EpitopeContrastiveDataset(TCRDataset):
