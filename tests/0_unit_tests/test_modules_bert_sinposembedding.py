@@ -36,3 +36,23 @@ class TestSinPositionEmbeddingRelative:
         )
 
         torch.testing.assert_close(result, expected)
+
+
+class TestSinPositionEmbeddingBidirectional:
+    def test_embedding(self):
+        embedding = SinPositionEmbeddingBiDirectional(num_embeddings=2, embedding_dim=4)
+        result = embedding(torch.tensor([[[1,2],[2,2]],[[1,1],[0,0]]], dtype=torch.long))
+        expected = torch.tensor(
+            [
+                [
+                    [0.0000,1.0000,0.8415,0.5403],
+                    [0.8415,0.5403,0.0000,1.0000]
+                ],
+                [
+                    [0.0000,1.0000,0.0000,1.0000],
+                    [0.0000,0.0000,0.0000,0.0000]
+                ]
+            ]
+        )
+
+        torch.testing.assert_close(result, expected, rtol=0.001, atol=0)
