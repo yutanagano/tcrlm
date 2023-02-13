@@ -49,8 +49,8 @@ class TestTrainingLoop:
     @pytest.mark.parametrize(
         ('model_name', 'tokeniser', 'data_file', 'gpu'),
         (
-            ('CDR3ClsBERT_apc', 'ABCDR3Tokeniser', 'mock_data.csv', False),
-            ('CDR3ClsBERT_apc', 'ABCDR3Tokeniser', 'mock_data.csv', True),
+            ('CDR3ClsBERT_apc', 'CDR3Tokeniser', 'mock_data.csv', False),
+            ('CDR3ClsBERT_apc', 'CDR3Tokeniser', 'mock_data.csv', True),
             ('CDR3BERT_a', 'BCDR3Tokeniser', 'mock_data_beta.csv', False)
         )
     )

@@ -2,7 +2,7 @@ import json
 import numpy as np
 import pandas as pd
 import pytest
-from src.datahandling.tokenisers import ABCDR3Tokeniser
+from src.datahandling.tokenisers import CDR3Tokeniser
 from src.modules import RandomEmbedder
 from src import utils
 import torch
@@ -191,7 +191,7 @@ class TestPCDistModelWrapper:
         model = utils.PCDistModelWrapper(
             RandomEmbedder(),
             'foobar',
-            ABCDR3Tokeniser()
+            CDR3Tokeniser()
         )
 
         assert model.name == 'foobar'
@@ -205,7 +205,7 @@ class TestPCDistModelWrapper:
         model = utils.PCDistModelWrapper(
             RandomEmbedder(),
             'foobar',
-            ABCDR3Tokeniser()
+            CDR3Tokeniser()
         )
         pdist = model.pdist(sequence_elements=data)
 
@@ -222,7 +222,7 @@ class TestPCDistModelWrapper:
         model = utils.PCDistModelWrapper(
             RandomEmbedder(),
             'foobar',
-            ABCDR3Tokeniser()
+            CDR3Tokeniser()
         )
         cdist = model.cdist(
             sequence_elements_1=data_1,
