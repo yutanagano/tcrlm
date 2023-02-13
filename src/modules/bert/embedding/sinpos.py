@@ -60,7 +60,7 @@ class SinPositionEmbeddingRelative(Module):
         super().__init__()
 
         phase_vector = torch.exp(
-            math.log(math.pi) +
+            math.log(2 * math.pi) +
             math.log(sin_scale_factor) * torch.arange(embedding_dim/2)
         )
         self.register_buffer('phase_vector', phase_vector)
