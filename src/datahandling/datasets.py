@@ -15,6 +15,8 @@ class TCRDataset(Dataset):
     '''
     Base dataset class to load and tokenise TCR data.
     '''
+
+
     def __init__(
         self,
         data: Union[Path, str, pd.DataFrame],
@@ -61,11 +63,23 @@ class AutoContrastiveDataset(TCRDataset):
     '''
     Dataset for producing unsupervised contrastive loss pairs (x = x_prime).
     '''
+
+
+    def __init__(
+        self,
+        data: Union[Path, str, pd.DataFrame],
+        tokeniser: tokenisers._Tokeniser,
+        noising: bool = False
+    ):
+        super().__init__(data, tokeniser)
+        self._noising = noising
+
+
     def __getitem__(self, index) -> any:
         x = self._tokeniser.tokenise(self._data.iloc[index])
         x_prime = self._tokeniser.tokenise(
             self._data.iloc[index],
-            noising=True
+            noising=self._noising
         )
 
         return (x, x_prime)

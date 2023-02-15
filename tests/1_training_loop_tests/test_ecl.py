@@ -1,4 +1,4 @@
-from acl import main
+from ecl import main
 import multiprocessing as mp
 from pathlib import Path
 import pytest
@@ -7,16 +7,10 @@ import torch
 from warnings import warn
 
 
-def get_config(
-    tmp_path: Path,
-    model_name: str,
-    tokeniser: str,
-    data_file: str,
-    gpu: bool
-) -> dict:
+def get_config(tmp_path: Path, gpu: bool) -> dict:
     config = {
         'model': {
-            'class': model_name,
+            'class': 'CDR3ClsBERT_apc',
             'config': {
                 'name': 'foobar',
                 'num_encoder_layers': 2,
@@ -27,14 +21,25 @@ def get_config(
             'pretrain_state_dict_path': str(tmp_path/'state_dict.pt')
         },
         'data': {
-            'train_path': f'tests/resources/{data_file}',
-            'valid_path': f'tests/resources/{data_file}',
-            'tokeniser': tokeniser,
+            'train_path': {
+                'autocontrastive': 'tests/resources/mock_data.csv',
+                'epitope_contrastive': 'tests/resources/mock_data.csv'
+            },
+            'valid_path': {
+                'autocontrastive': 'tests/resources/mock_data.csv',
+                'epitope_contrastive': 'tests/resources/mock_data.csv'
+            },
+            'tokeniser': 'CDR3Tokeniser',
+            'autocontrastive_noising': False,
             'dataloader_config': {}
         },
         'optim': {
-            'contrastive_loss': {
+            'autocontrastive_loss': {
                 'name': 'SimCLoss',
+                'config': {'temp': 0.05}
+            },
+            'epitope_contrastive_loss': {
+                'name': 'PosBackSimCLoss',
                 'config': {'temp': 0.05}
             },
             'optimiser_config': {'n_warmup_steps': 10000}
@@ -47,41 +52,27 @@ def get_config(
 
 class TestTrainingLoop:
     @pytest.mark.parametrize(
-        ('model_name', 'tokeniser', 'data_file', 'gpu'),
-        (
-            ('CDR3ClsBERT_apc', 'CDR3Tokeniser', 'mock_data.csv', False),
-            ('CDR3ClsBERT_apc', 'CDR3Tokeniser', 'mock_data.csv', True),
-            ('CDR3BERT_a', 'BCDR3Tokeniser', 'mock_data_beta.csv', False)
-        )
+        'gpu', (False, True)
     )
     def test_training_loop(
         self,
         cdr3clsbert_apc_template,
-        cdr3bert_a_template,
         tmp_path,
-        model_name,
-        tokeniser,
-        data_file,
         gpu
     ):
         if gpu and not torch.cuda.is_available():
             warn(
-                'Autocontrastive GPU test skipped due to hardware limitations.'
+                'Epitope contrastive GPU test '
+                'skipped due to hardware limitations.'
             )
             return
 
         # Set up config
-        config = get_config(tmp_path, model_name, tokeniser, data_file, gpu)
-
-        # Get the correct model template
-        if model_name == 'CDR3ClsBERT_apc':
-            model_template = cdr3clsbert_apc_template
-        elif model_name == 'CDR3BERT_a':
-            model_template = cdr3bert_a_template
+        config = get_config(tmp_path, gpu)
 
         # Copy toy state_dict into tmp_path
         torch.save(
-            model_template.state_dict(),
+            cdr3clsbert_apc_template.state_dict(),
             tmp_path/'state_dict.pt'
         )
 
@@ -100,10 +91,10 @@ class TestTrainingLoop:
         expected_save_dir = tmp_path/'model_saves'/'test'
         assert expected_save_dir.is_dir()
 
-        # Check that model is saved correctly    
+        # Check that model is saved correctly
         assert model_saved(
             save_path=expected_save_dir/'state_dict.pt',
-            model_template=model_template
+            model_template=cdr3clsbert_apc_template
         )
 
         # Check that log is saved correctly
@@ -113,9 +104,11 @@ class TestTrainingLoop:
                 'epoch',
                 'loss',
                 'lr',
-                'valid_cont_loss',
+                'valid_ec_loss',
+                'valid_ac_loss',
                 'valid_mlm_loss',
-                'valid_aln',
+                'valid_epitope_aln',
+                'valid_auto_aln',
                 'valid_unf',
                 'valid_mlm_acc'
             ],
