@@ -17,6 +17,7 @@ describe chain, position, etc.), there are two more reserved indices:
 
 from abc import ABC, abstractmethod
 from pandas import isna, notna, Series
+import random
 from src.resources import *
 import torch
 from torch import Tensor
@@ -109,7 +110,7 @@ class BCDR3Tokeniser(_AATokeniser):
     '''
 
 
-    def tokenise(self, tcr: Series) -> Tensor:
+    def tokenise(self, tcr: Series, noising: bool = False) -> Tensor:
         '''
         Tokenise a TCR in terms of its beta chain CDR3 amino acid sequences.
 
@@ -129,6 +130,9 @@ class BCDR3Tokeniser(_AATokeniser):
 
         cdr3b_size = len(cdr3b)
         for i, aa in enumerate(cdr3b):
+            if noising and random.random() < 0.2:
+                continue
+
             tokenised.append([self._aa_to_index[aa], i+1, cdr3b_size])
 
         return torch.tensor(tokenised, dtype=torch.long)
