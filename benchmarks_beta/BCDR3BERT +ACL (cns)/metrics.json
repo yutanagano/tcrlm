@@ -1,5 +1,5 @@
 {
-    "model_name": "BCDR3BERT +ACL +noise",
+    "model_name": "BCDR3BERT +ACL (cns)",
     "alignment": 1.3863016366958618,
     "uniformity": -1.3993076086044312,
     "knn_scores": {
