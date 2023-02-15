@@ -71,6 +71,20 @@ class TestAutoContrastiveDataset:
 
         x, x_prime = dataset[random_index]
         assert x == (random_index, False)
+        assert x_prime == (random_index, False)
+    
+
+    def test_noising(self, mock_data_df, dummy_tokeniser):
+        dataset = datasets.AutoContrastiveDataset(
+            data=mock_data_df,
+            tokeniser=dummy_tokeniser,
+            noising=True
+        )
+
+        random_index = random.randrange(0, len(dataset))
+
+        x, x_prime = dataset[random_index]
+        assert x == (random_index, False)
         assert x_prime == (random_index, True)
 
 
