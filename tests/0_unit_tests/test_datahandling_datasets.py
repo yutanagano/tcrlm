@@ -15,8 +15,8 @@ def dummy_tokeniser():
         def vocab_size(self) -> int:
             return 0
 
-        def tokenise(self, tcr, chain: str = 'both'):
-            return (tcr.name, chain)
+        def tokenise(self, tcr, noising: bool = False):
+            return (tcr.name, noising)
     
     return DummyTokeniser()
 
@@ -57,7 +57,7 @@ class TestTcrDataset:
     def test_getitem(self, tcr_dataset):
         random_index = random.randrange(0, len(tcr_dataset))
 
-        assert tcr_dataset[random_index] == (random_index, 'both')
+        assert tcr_dataset[random_index] == (random_index, False)
 
 
 class TestAutoContrastiveDataset:
@@ -70,9 +70,8 @@ class TestAutoContrastiveDataset:
         random_index = random.randrange(0, len(dataset))
 
         x, x_prime = dataset[random_index]
-        assert x == (random_index, 'both')
-        assert x_prime[0] == random_index
-        assert x_prime[1] in ('both', 'alpha', 'beta')
+        assert x == (random_index, False)
+        assert x_prime == (random_index, True)
 
 
 class TestEpitopeContrastiveDataset:
@@ -91,16 +90,16 @@ class TestEpitopeContrastiveDataset:
         )
 
         x, x_prime = dataset[0]
-        assert x == (0, 'both')
+        assert x == (0, False)
         assert x_prime[0] in (0, 1)
-        assert x_prime[1] == 'both'
+        assert x_prime[1] == False
 
         x, x_prime = dataset[1]
-        assert x == (1, 'both')
+        assert x == (1, False)
         assert x_prime[0] in (0, 1)
-        assert x_prime[1] == 'both'
+        assert x_prime[1] == False
 
         x, x_prime = dataset[2]
-        assert x == (2, 'both')
+        assert x == (2, False)
         assert x_prime[0] == 2
-        assert x_prime[1] == 'both'
+        assert x_prime[1] == False
