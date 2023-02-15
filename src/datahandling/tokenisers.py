@@ -70,7 +70,7 @@ class CDR3Tokeniser(_AATokeniser):
     '''
 
 
-    def tokenise(self, tcr: Series) -> Tensor:
+    def tokenise(self, tcr: Series, noising: bool = False) -> Tensor:
         '''
         Tokenise a TCR in terms of its alpha and/or beta chain CDR3 amino acid
         sequences.
@@ -82,6 +82,8 @@ class CDR3Tokeniser(_AATokeniser):
             Dim 2 - compartment length
             Dim 3 - chain ID
         '''
+
+        # NOTE: noising not yet implemented
 
         cdr3a = tcr.loc['CDR3A']
         cdr3b = tcr.loc['CDR3B']
