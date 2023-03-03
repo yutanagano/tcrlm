@@ -203,7 +203,8 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
         dataset_ac=AutoContrastiveDataset(
             data=config['data']['train_path']['autocontrastive'],
             tokeniser=tokeniser,
-            noising=config['data']['autocontrastive_noising']
+            noising_lhs=config['data']['acl_noising_lhs'],
+            noising_rhs=config['data']['acl_noising_rhs']
         ),
         dataset_ec=EpitopeContrastiveDataset(
             data=config['data']['train_path']['epitope_contrastive'],

@@ -30,7 +30,8 @@ def get_config(tmp_path: Path, gpu: bool) -> dict:
                 'epitope_contrastive': 'tests/resources/mock_data.csv'
             },
             'tokeniser': 'CDR3Tokeniser',
-            'autocontrastive_noising': False,
+            'acl_noising_lhs': False,
+            'acl_noising_rhs': False,
             'dataloader_config': {}
         },
         'optim': {

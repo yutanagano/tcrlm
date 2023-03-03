@@ -74,18 +74,33 @@ class TestAutoContrastiveDataset:
         assert x_prime == (random_index, False)
     
 
-    def test_noising(self, mock_data_df, dummy_tokeniser):
+    @pytest.mark.parametrize(
+        ('noising_lhs', 'noising_rhs'),
+        (
+            (True, False),
+            (False, True),
+            (True, True)
+        )
+    )
+    def test_noising(
+        self,
+        mock_data_df,
+        dummy_tokeniser,
+        noising_lhs,
+        noising_rhs
+    ):
         dataset = datasets.AutoContrastiveDataset(
             data=mock_data_df,
             tokeniser=dummy_tokeniser,
-            noising=True
+            noising_lhs=noising_lhs,
+            noising_rhs=noising_rhs,
         )
 
         random_index = random.randrange(0, len(dataset))
 
         x, x_prime = dataset[random_index]
-        assert x == (random_index, False)
-        assert x_prime == (random_index, True)
+        assert x == (random_index, noising_lhs)
+        assert x_prime == (random_index, noising_rhs)
 
 
 class TestEpitopeContrastiveDataset:
