@@ -213,6 +213,27 @@ class TestSimCLoss:
         torch.testing.assert_close(result, expected, rtol=0, atol=5e-5)
 
 
+class TestSimCLoss2:
+    def test_simcloss2(self):
+        loss_fn = metrics.SimCLoss2(temp=0.05)
+        z = torch.eye(3)
+        z_prime = normalize(
+            torch.tensor(
+                [[3,2,1],
+                 [1,2,3],
+                 [2,1,3]],
+                dtype=torch.float32
+            ),
+            p=2,
+            dim=1
+        )
+        
+        result = loss_fn(z, z_prime)
+        expected = torch.tensor(-13.5608)
+
+        torch.testing.assert_close(result, expected, rtol=0, atol=5e-5)
+
+
 class TestAULoss:
     def test_auloss(self):
         loss_fn = metrics.AULoss()
