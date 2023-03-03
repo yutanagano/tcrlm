@@ -146,6 +146,30 @@ class SimCLoss(Module):
         closs = -torch.log(pos_sim/back_sim)
 
         return closs.mean()
+    
+
+class SimCLoss2(Module):
+    '''
+    A version of SimCLoss where the uniformity is calculated over the lhs.
+    '''
+
+
+    def __init__(self, temp: float = 0.05) -> None:
+        super().__init__()
+        self._temp = temp
+
+
+    def forward(self, z: Tensor, z_prime: Tensor) -> Tensor:
+        # z.size: (N,E), z_prime.size: (N,E)
+        pos_sim = torch.exp(torch.sum(z*z_prime, dim=-1)/self._temp) #(N,)
+
+        z_sim = torch.exp(torch.matmul(z,z.T)/self._temp) #(N,N)
+        torch.diagonal(z_sim, 0).zero_() #(N,N) with zero diagonal
+        back_sim = torch.sum(z_sim, dim=-1) # (N,)
+
+        closs = -torch.log(pos_sim/back_sim)
+
+        return closs.mean()
 
 
 class AULoss(Module):
