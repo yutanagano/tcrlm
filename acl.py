@@ -176,7 +176,8 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
         dataset=AutoContrastiveDataset(
             data=config['data']['train_path'],
             tokeniser=tokeniser,
-            noising=config['data']['autocontrastive_noising']
+            noising_lhs=config['data']['acl_noising_lhs'],
+            noising_rhs=config['data']['acl_noising_rhs']
         ),
         **config['data']['dataloader_config']
     )

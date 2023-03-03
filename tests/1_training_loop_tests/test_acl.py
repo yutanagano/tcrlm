@@ -30,7 +30,8 @@ def get_config(
             'train_path': f'tests/resources/{data_file}',
             'valid_path': f'tests/resources/{data_file}',
             'tokeniser': tokeniser,
-            'autocontrastive_noising': False,
+            'acl_noising_lhs': False,
+            'acl_noising_rhs': False,
             'dataloader_config': {}
         },
         'optim': {
