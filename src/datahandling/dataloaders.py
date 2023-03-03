@@ -162,7 +162,10 @@ class AutoContrastiveDataLoader(MLMDataLoader):
     Dataloader for unsupervised contrastive loss training.
     '''
     def collate_fn(self, batch) -> Union[Tuple[Tensor], Tensor]:
-        batch = [(x, x_prime, *self._make_mlm_pair(x)) for x, x_prime in batch]
+        batch = [
+            (x_lhs, x_rhs, *self._make_mlm_pair(x))
+            for x, x_lhs, x_rhs in batch
+        ]
 
         return super(MLMDataLoader, self).collate_fn(batch)
 
