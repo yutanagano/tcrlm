@@ -69,9 +69,8 @@ class TestAutoContrastiveDataset:
 
         random_index = random.randrange(0, len(dataset))
 
-        x, x_prime = dataset[random_index]
-        assert x == (random_index, False)
-        assert x_prime == (random_index, False)
+        x, x_lhs, x_rhs = dataset[random_index]
+        assert x == x_lhs == x_rhs == (random_index, False)
     
 
     @pytest.mark.parametrize(
@@ -98,9 +97,10 @@ class TestAutoContrastiveDataset:
 
         random_index = random.randrange(0, len(dataset))
 
-        x, x_prime = dataset[random_index]
-        assert x == (random_index, noising_lhs)
-        assert x_prime == (random_index, noising_rhs)
+        x, x_lhs, x_rhs = dataset[random_index]
+        assert x == (random_index, False)
+        assert x_lhs == (random_index, noising_lhs)
+        assert x_rhs == (random_index, noising_rhs)
 
 
 class TestEpitopeContrastiveDataset:
