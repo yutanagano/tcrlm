@@ -164,7 +164,7 @@ class SimCLoss2(Module):
         pos_sim = torch.exp(torch.sum(z*z_prime, dim=-1)/self._temp) #(N,)
 
         z_sim = torch.exp(torch.matmul(z,z.T)/self._temp) #(N,N)
-        torch.diagonal(z_sim, 0).zero_() #(N,N) with zero diagonal
+        z_sim = z_sim * (1-torch.eye(z.size(0))).to(z_sim.device) #(N,N), zero diag
         back_sim = torch.sum(z_sim, dim=-1) # (N,)
 
         closs = -torch.log(pos_sim/back_sim)
