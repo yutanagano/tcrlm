@@ -8,6 +8,7 @@ import torch
 
 model_classes = (
     BCDRBERT,
+    BCDRBERTBDPos,
     BCDRClsBERT
 )
 model_instances = [
