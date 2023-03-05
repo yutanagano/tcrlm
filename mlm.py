@@ -29,7 +29,8 @@ MODELS = {
     'CDR3BERT_ac': modules.CDR3BERT_ac,
     'CDR3BERT_apc': modules.CDR3BERT_apc,
     'BVCDR3BERT': modules.BVCDR3BERT,
-    'BCDRBERT': modules.BCDRBERT
+    'BCDRBERT': modules.BCDRBERT,
+    'BCDRBERTBDPos': modules.BCDRBERTBDPos
 }
 
 TOKENISERS = {
