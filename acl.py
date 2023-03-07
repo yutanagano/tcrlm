@@ -34,6 +34,7 @@ MODELS = {
     'CDR3BERT_a': modules.CDR3BERT_a,
     'CDR3BERT_ap': modules.CDR3BERT_ap,
     'CDR3ClsBERT_ap': modules.CDR3ClsBERT_ap,
+    'CDR3ClsBERT_ap': modules.CDR3ClsBERT_ab,
     'CDR3ClsBERT_apc': modules.CDR3ClsBERT_apc,
     'BVCDR3ClsBERT': modules.BVCDR3ClsBERT,
     'BCDRClsBERT': modules.BCDRClsBERT
