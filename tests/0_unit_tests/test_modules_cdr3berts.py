@@ -11,7 +11,7 @@ model_classes = (
     CDR3BERT_ab,
     CDR3BERT_apc,
     CDR3ClsBERT_ap,
-    CDR3ClsBERT_ar,
+    CDR3ClsBERT_ab,
     CDR3ClsBERT_apc
 )
 model_instances = [
