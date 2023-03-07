@@ -226,9 +226,9 @@ class CDR3ClsBERT_ap(_BERTClsEmbedBase, CDR3BERT_ap):
         )
 
 
-class CDR3ClsBERT_ar(_BERTClsEmbedBase, CDR3BERT_ar):
+class CDR3ClsBERT_ab(_BERTClsEmbedBase, CDR3BERT_ab):
     '''
-    CDR3BERT_ar model which uses the <cls> token to embed.
+    CDR3BERT_ab model which uses the <cls> token to embed.
     '''
 
 
