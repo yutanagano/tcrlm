@@ -4,7 +4,7 @@ CDR123 embedding modules.
 
 
 import math
-from src.modules.bert.embedding.sinpos import (
+from .sinpos import (
     SinPositionEmbedding,
     SinPositionEmbeddingBiDirectional
 )

@@ -1,4 +1,4 @@
-from src.modules import AtchleyEmbedder
+from src.models import AtchleyEmbedder
 import torch
 
 

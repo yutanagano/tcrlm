@@ -3,7 +3,7 @@ BERT templates.
 '''
 
 
-from src.modules.embedder import _MLMEmbedder
+from ..embedder import _MLMEmbedder
 from src.utils import masked_average_pool
 import torch
 from torch import Tensor

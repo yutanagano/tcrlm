@@ -1,15 +1,18 @@
 import pytest
-from src.datahandling.datasets import TCRDataset
-from src.datahandling.dataloaders import TCRDataLoader
-from src.datahandling.tokenisers import BCDRTokeniser
-from src.modules import *
+from src.models import *
 import torch
 
 
 model_classes = (
-    BCDRBERT,
-    BCDRBERTBDPos,
-    BCDRClsBERT
+    CDR3BERT_a,
+    CDR3BERT_ac,
+    CDR3BERT_ap,
+    CDR3BERT_ar,
+    CDR3BERT_ab,
+    CDR3BERT_apc,
+    CDR3ClsBERT_ap,
+    CDR3ClsBERT_ab,
+    CDR3ClsBERT_apc
 )
 model_instances = [
     Model(
@@ -20,15 +23,6 @@ model_instances = [
         dim_feedforward=256
     ) for Model in model_classes
 ]
-
-
-@pytest.fixture
-def bcdrt_dataloader(mock_data_beta_df):
-    return TCRDataLoader(
-        TCRDataset(mock_data_beta_df, BCDRTokeniser(p_drop_aa=0, p_drop_cdr=0)),
-        batch_size=2,
-        shuffle=False
-    )
 
 
 @pytest.mark.parametrize('model', model_instances)
@@ -46,12 +40,12 @@ class TestModel:
         assert (padding_mask == 1).all()
 
 
-    def test_embed(self, model, bcdrt_dataloader):
-        batch = next(iter(bcdrt_dataloader))
+    def test_embed(self, model, abcdr3t_dataloader):
+        batch = next(iter(abcdr3t_dataloader))
         out = model.embed(x=batch)
 
-        assert out.size() == (2,64)
-        torch.testing.assert_close(out.norm(dim=1), torch.ones(2))
+        assert out.size() == (3,64)
+        torch.testing.assert_close(out.norm(dim=1), torch.ones(3))
 
 
     def test_mlm(self, model):

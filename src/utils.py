@@ -11,7 +11,7 @@ from pathlib import Path
 from src.datahandling.dataloaders import TCRDataLoader
 from src.datahandling.datasets import TCRDataset
 from src.datahandling.tokenisers import _Tokeniser
-from src.modules.embedder import _Embedder
+from src.models.embedder import _Embedder
 import torch
 from torch import Tensor
 from torch.nn import Module
@@ -132,7 +132,7 @@ class PCDistModelWrapper:
         dl_2 = self._generate_dataloader(sequence_elements_2)
 
         embedded_1 = self._generate_embeddings(dl_1)
-        embedded_2  =self._generate_embeddings(dl_2)
+        embedded_2 = self._generate_embeddings(dl_2)
 
         return torch.cdist(embedded_1, embedded_2, p=2).detach().numpy()
 

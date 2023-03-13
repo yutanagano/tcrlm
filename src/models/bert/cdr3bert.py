@@ -5,8 +5,8 @@ Compatible tokenisers: ABCDR3Tokeniser, BCDR3Tokeniser
 '''
 
 
-from src.modules.bert.bert import _BERTBase, _BERTClsEmbedBase
-from src.modules.bert.embedding.cdr3 import *
+from .bert import _BERTBase, _BERTClsEmbedBase
+from .embedding.cdr3 import *
 import torch
 
 
