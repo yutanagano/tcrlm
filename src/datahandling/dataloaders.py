@@ -4,7 +4,7 @@ Custom dataloader classes.
 
 
 import random
-from src.datahandling import datasets
+from . import datasets
 import torch
 from torch import Tensor
 from torch.nn.utils.rnn import pad_sequence
