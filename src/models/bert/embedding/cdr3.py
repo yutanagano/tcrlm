@@ -4,7 +4,7 @@ CDR3 embedding modules.
 
 
 import math
-from src.modules.bert.embedding.sinpos import *
+from .sinpos import *
 from torch import Tensor
 from torch.nn import Embedding, Module
 

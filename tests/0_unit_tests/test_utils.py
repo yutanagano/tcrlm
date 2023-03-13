@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from src.datahandling.tokenisers import CDR3Tokeniser
-from src.modules import RandomEmbedder
+from src.models import RandomEmbedder
 from src import utils
 import torch
 from torch.nn import Linear

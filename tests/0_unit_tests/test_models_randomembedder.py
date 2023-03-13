@@ -1,4 +1,4 @@
-from src.modules import RandomEmbedder
+from src.models import RandomEmbedder
 
 
 class TestRandomEmbedder:

@@ -8,8 +8,8 @@ import argparse
 from datetime import datetime
 import json
 from pathlib import Path
-from src import modules
-from src.modules.embedder import _MLMEmbedder
+from src import models
+from src.models.embedder import _MLMEmbedder
 from src.datahandling import tokenisers
 from src.datahandling.dataloaders import EpitopeAutoContrastiveSuperDataLoader
 from src.datahandling.datasets import (
@@ -204,7 +204,7 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
 
     # Instantiate model
     print('Instantiating model...')
-    model = getattr(modules, config['model']['class'])(**config['model']['config'])
+    model = getattr(models, config['model']['class'])(**config['model']['config'])
     model.to(device)
     model.load_state_dict(
         torch.load(config['model']['pretrain_state_dict_path'])
