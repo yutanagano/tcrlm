@@ -25,7 +25,7 @@ model_instances = [
 @pytest.fixture
 def bcdrt_dataloader(mock_data_beta_df):
     return TCRDataLoader(
-        TCRDataset(mock_data_beta_df, BCDRTokeniser()),
+        TCRDataset(mock_data_beta_df, BCDRTokeniser(p_drop_aa=0, p_drop_cdr=0)),
         batch_size=2,
         shuffle=False
     )

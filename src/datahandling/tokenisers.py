@@ -111,8 +111,7 @@ class BCDR3Tokeniser(_AATokeniser):
     Basic tokeniser which will tokenise a TCR in terms of its beta chain CDR3.
     '''
 
-
-    def __init__(self, p_drop_aa: float = 0.2) -> None:
+    def __init__(self, p_drop_aa: float) -> None:
         super().__init__()
         self._p_drop_aa = p_drop_aa
 
@@ -209,8 +208,8 @@ class BCDRTokeniser(_AATokeniser):
 
     def __init__(
         self,
-        p_drop_cdr: float = 0.2,
-        p_drop_aa: float = 0.2
+        p_drop_cdr: float,
+        p_drop_aa: float
     ) -> None:
         super().__init__()
         self._p_drop_cdr = p_drop_cdr
