@@ -13,45 +13,14 @@ from src.modules.embedder import _MLMEmbedder
 from src.datahandling import tokenisers
 from src.datahandling.dataloaders import AutoContrastiveDataLoader
 from src.datahandling.datasets import AutoContrastiveDataset
-from src.metrics import (
-    AdjustedCELoss,
-    SimCLoss,
-    SimCLoss2,
-    AULoss,
-    alignment_paired,
-    uniformity,
-    mlm_acc
-)
+from src import metrics
+from src.metrics import AdjustedCELoss, alignment_paired, mlm_acc, uniformity
 from src.optim import AdamWithScheduling
 from src.utils import save
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from typing import Union
-
-
-MODELS = {
-    'CDR3BERT_a': modules.CDR3BERT_a,
-    'CDR3BERT_ap': modules.CDR3BERT_ap,
-    'CDR3ClsBERT_ap': modules.CDR3ClsBERT_ap,
-    'CDR3ClsBERT_ab': modules.CDR3ClsBERT_ab,
-    'CDR3ClsBERT_apc': modules.CDR3ClsBERT_apc,
-    'BVCDR3ClsBERT': modules.BVCDR3ClsBERT,
-    'BCDRClsBERT': modules.BCDRClsBERT
-}
-
-TOKENISERS = {
-    'CDR3Tokeniser': tokenisers.CDR3Tokeniser,
-    'BCDR3Tokeniser': tokenisers.BCDR3Tokeniser,
-    'BVCDR3Tokeniser': tokenisers.BVCDR3Tokeniser,
-    'BCDRTokeniser': tokenisers.BCDRTokeniser
-}
-
-CONTRASTIVE_LOSSES = {
-    'AULoss': AULoss,
-    'SimCLoss': SimCLoss,
-    'SimCLoss2': SimCLoss2
-}
 
 
 def parse_command_line_arguments() -> argparse.Namespace:
@@ -174,7 +143,7 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
 
     # Load training data
     print('Loading data...')
-    tokeniser = TOKENISERS[config['data']['tokeniser']['class']](
+    tokeniser = getattr(tokenisers, config['data']['tokeniser']['class'])(
         **config['data']['tokeniser']['config']
     )
     train_dl = AutoContrastiveDataLoader(
@@ -196,7 +165,7 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
 
     # Instantiate model
     print('Instantiating model...')
-    model = MODELS[config['model']['class']](**config['model']['config'])
+    model = getattr(modules, config['model']['class'])(**config['model']['config'])
     model.to(device)
     model.load_state_dict(
         torch.load(config['model']['pretrain_state_dict_path'])
@@ -205,7 +174,7 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
     # Instantiate loss function and optimiser
     mlm_loss_fn = AdjustedCELoss(label_smoothing=0.1)
     cont_loss_fn =\
-        CONTRASTIVE_LOSSES[config['optim']['contrastive_loss']['name']](
+        getattr(metrics, config['optim']['contrastive_loss']['class'])(
             **config['optim']['contrastive_loss']['config']
         )
     optimiser = AdamWithScheduling(
