@@ -64,28 +64,15 @@ class AutoContrastiveDataset(TCRDataset):
     Dataset for producing unsupervised contrastive loss pairs (x = x_prime).
     '''
 
-
-    def __init__(
-        self,
-        data: Union[Path, str, pd.DataFrame],
-        tokeniser: tokenisers._Tokeniser,
-        noising_lhs: bool = False,
-        noising_rhs: bool = False
-    ):
-        super().__init__(data, tokeniser)
-        self._noising_lhs = noising_lhs
-        self._noising_rhs = noising_rhs
-
-
     def __getitem__(self, index) -> any:
         x = self._tokeniser.tokenise(self._data.iloc[index])
         x_lhs = self._tokeniser.tokenise(
             self._data.iloc[index],
-            noising=self._noising_lhs
+            noising=True
         )
         x_rhs = self._tokeniser.tokenise(
             self._data.iloc[index],
-            noising=self._noising_rhs
+            noising=True
         )
 
         return (x, x_lhs, x_rhs)
