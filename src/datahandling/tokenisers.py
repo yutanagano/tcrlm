@@ -282,4 +282,9 @@ class BCDRTokeniser(_AATokeniser):
 
             tokenised.append([self._aa_to_index[aa], i+1, cdr_size, cmpt_idx])
 
+        # Make sure filter doesn't cause the whole CDR to be censored
+        if not tokenised:
+            for i, aa in enumerate(cdr):
+                tokenised.append([self._aa_to_index[aa], i+1, cdr_size, cmpt_idx])
+
         return tokenised
