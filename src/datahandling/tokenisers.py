@@ -18,7 +18,7 @@ describe chain, position, etc.), there are two more reserved indices:
 from abc import ABC, abstractmethod
 from pandas import isna, notna, Series
 import random
-from src.resources import *
+from ..resources import *
 import torch
 from torch import Tensor
 
