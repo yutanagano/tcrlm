@@ -21,26 +21,6 @@ from tqdm import tqdm
 from typing import Union
 
 
-MODELS = {
-    'CDR3BERT_a': modules.CDR3BERT_a,
-    'CDR3BERT_ap': modules.CDR3BERT_ap,
-    'CDR3BERT_ar': modules.CDR3BERT_ar,
-    'CDR3BERT_ab': modules.CDR3BERT_ab,
-    'CDR3BERT_ac': modules.CDR3BERT_ac,
-    'CDR3BERT_apc': modules.CDR3BERT_apc,
-    'BVCDR3BERT': modules.BVCDR3BERT,
-    'BCDRBERT': modules.BCDRBERT,
-    'BCDRBERTBDPos': modules.BCDRBERTBDPos
-}
-
-TOKENISERS = {
-    'CDR3Tokeniser': tokenisers.CDR3Tokeniser,
-    'BCDR3Tokeniser': tokenisers.BCDR3Tokeniser,
-    'BVCDR3Tokeniser': tokenisers.BVCDR3Tokeniser,
-    'BCDRTokeniser': tokenisers.BCDRTokeniser
-}
-
-
 def parse_command_line_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description='Masked-language modelling training loop.'
@@ -136,7 +116,7 @@ def mlm(device: Union[str, int], wd: Path, name: str, config: dict):
 
     # Load training data
     print('Loading data...')
-    tokeniser = TOKENISERS[config['data']['tokeniser']]()
+    tokeniser = getattr(tokenisers, config['data']['tokeniser'])()
     train_dl = MLMDataLoader(
         dataset=TCRDataset(
             data=config['data']['train_path'],
@@ -156,7 +136,7 @@ def mlm(device: Union[str, int], wd: Path, name: str, config: dict):
 
     # Instantiate model
     print('Instantiating model...')
-    model = MODELS[config['model']['class']](**config['model']['config'])
+    model = getattr(modules, config['model']['class'])(**config['model']['config'])
     model.to(device)
 
     # Instantiate loss function and optimiser

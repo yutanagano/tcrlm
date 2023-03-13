@@ -37,11 +37,11 @@ def get_config(tmp_path: Path, gpu: bool) -> dict:
         },
         'optim': {
             'autocontrastive_loss': {
-                'name': 'SimCLoss',
+                'class': 'SimCLoss',
                 'config': {'temp': 0.05}
             },
             'epitope_contrastive_loss': {
-                'name': 'PosBackSimCLoss',
+                'class': 'PosBackSimCLoss',
                 'config': {'temp': 0.05}
             },
             'optimiser_config': {'n_warmup_steps': 10000}
