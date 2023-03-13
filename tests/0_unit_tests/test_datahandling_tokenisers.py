@@ -48,7 +48,7 @@ class TestABCDR3Tokeniser:
 
 class TestBCDR3Tokeniser:
     def test_tokenise(self, mock_data_beta_df):
-        tokeniser = tokenisers.BCDR3Tokeniser()
+        tokeniser = tokenisers.BCDR3Tokeniser(p_drop_aa=0)
 
         expected = [
             torch.tensor([
@@ -66,7 +66,7 @@ class TestBCDR3Tokeniser:
 
 
     def test_vocab_size(self):
-        tokeniser = tokenisers.CDR3Tokeniser()
+        tokeniser = tokenisers.BCDR3Tokeniser(p_drop_aa=0)
 
         assert tokeniser.vocab_size == 20
 
@@ -100,7 +100,7 @@ class TestBVCDR3Tokeniser:
 
 class TestBCDRTokeniser:
     def test_tokenise(self, mock_data_beta_df):
-        tokeniser = tokenisers.BCDRTokeniser()
+        tokeniser = tokenisers.BCDRTokeniser(p_drop_aa=0, p_drop_cdr=0)
 
         expected = [
             torch.tensor([

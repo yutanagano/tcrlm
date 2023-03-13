@@ -30,8 +30,6 @@ def get_config(
             'train_path': f'tests/resources/{data_file}',
             'valid_path': f'tests/resources/{data_file}',
             'tokeniser': tokeniser,
-            'acl_noising_lhs': False,
-            'acl_noising_rhs': False,
             'dataloader_config': {}
         },
         'optim': {
@@ -51,9 +49,9 @@ class TestTrainingLoop:
     @pytest.mark.parametrize(
         ('model_name', 'tokeniser', 'data_file', 'gpu'),
         (
-            ('CDR3ClsBERT_apc', 'CDR3Tokeniser', 'mock_data.csv', False),
-            ('CDR3ClsBERT_apc', 'CDR3Tokeniser', 'mock_data.csv', True),
-            ('CDR3BERT_a', 'BCDR3Tokeniser', 'mock_data_beta.csv', False)
+            ('CDR3ClsBERT_apc', {'class': 'CDR3Tokeniser', 'config': {}}, 'mock_data.csv', False),
+            ('CDR3ClsBERT_apc', {'class': 'CDR3Tokeniser', 'config':{}}, 'mock_data.csv', True),
+            ('CDR3BERT_a', {'class': 'BCDR3Tokeniser', 'config': {'p_drop_aa': 0}}, 'mock_data_beta.csv', False)
         )
     )
     def test_training_loop(

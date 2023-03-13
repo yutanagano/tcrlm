@@ -198,13 +198,13 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
 
     # Load training data
     print('Loading data...')
-    tokeniser = TOKENISERS[config['data']['tokeniser']]()
+    tokeniser = TOKENISERS[config['data']['tokeniser']['class']](
+        **config['data']['tokeniser']['config']
+    )
     train_dl = EpitopeAutoContrastiveSuperDataLoader(
         dataset_ac=AutoContrastiveDataset(
             data=config['data']['train_path']['autocontrastive'],
-            tokeniser=tokeniser,
-            noising_lhs=config['data']['acl_noising_lhs'],
-            noising_rhs=config['data']['acl_noising_rhs']
+            tokeniser=tokeniser
         ),
         dataset_ec=EpitopeContrastiveDataset(
             data=config['data']['train_path']['epitope_contrastive'],
