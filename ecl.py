@@ -16,10 +16,9 @@ from src.datahandling.datasets import (
     AutoContrastiveDataset,
     EpitopeContrastiveDataset
 )
+from src import metrics
 from src.metrics import (
     AdjustedCELoss,
-    SimCLoss,
-    PosBackSimCLoss,
     alignment_paired,
     uniformity,
     mlm_acc
@@ -30,29 +29,6 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from typing import Union
-
-
-MODELS = {
-    'CDR3ClsBERT_ap': modules.CDR3ClsBERT_ap,
-    'CDR3ClsBERT_apc': modules.CDR3ClsBERT_apc,
-    'BVCDR3ClsBERT': modules.BVCDR3ClsBERT,
-    'BCDRClsBERT': modules.BCDRClsBERT
-}
-
-TOKENISERS = {
-    'CDR3Tokeniser': tokenisers.CDR3Tokeniser,
-    'BCDR3Tokeniser': tokenisers.BCDR3Tokeniser,
-    'BVCDR3Tokeniser': tokenisers.BVCDR3Tokeniser,
-    'BCDRTokeniser': tokenisers.BCDRTokeniser
-}
-
-AC_LOSSES = {
-    'SimCLoss': SimCLoss
-}
-
-EC_LOSSES = {
-    'PosBackSimCLoss': PosBackSimCLoss
-}
 
 
 def parse_command_line_arguments() -> argparse.Namespace:
@@ -198,7 +174,7 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
 
     # Load training data
     print('Loading data...')
-    tokeniser = TOKENISERS[config['data']['tokeniser']['class']](
+    tokeniser = getattr(tokenisers, config['data']['tokeniser']['class'])(
         **config['data']['tokeniser']['config']
     )
     train_dl = EpitopeAutoContrastiveSuperDataLoader(
@@ -228,7 +204,7 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
 
     # Instantiate model
     print('Instantiating model...')
-    model = MODELS[config['model']['class']](**config['model']['config'])
+    model = getattr(modules, config['model']['class'])(**config['model']['config'])
     model.to(device)
     model.load_state_dict(
         torch.load(config['model']['pretrain_state_dict_path'])
@@ -237,11 +213,11 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
     # Instantiate loss function and optimiser
     mlm_loss_fn = AdjustedCELoss(label_smoothing=0.1)
     ac_loss_fn =\
-        AC_LOSSES[config['optim']['autocontrastive_loss']['name']](
+        getattr(metrics, config['optim']['autocontrastive_loss']['class'])(
             **config['optim']['autocontrastive_loss']['config']
         )
     ec_loss_fn =\
-        EC_LOSSES[config['optim']['epitope_contrastive_loss']['name']](
+        getattr(metrics, config['optim']['epitope_contrastive_loss']['class'])(
             **config['optim']['epitope_contrastive_loss']['config']
         )
     optimiser = AdamWithScheduling(

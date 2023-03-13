@@ -34,7 +34,7 @@ def get_config(
         },
         'optim': {
             'contrastive_loss': {
-                'name': 'SimCLoss',
+                'class': 'SimCLoss',
                 'config': {'temp': 0.05}
             },
             'optimiser_config': {'n_warmup_steps': 10000}
