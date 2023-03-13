@@ -1,4 +1,4 @@
-from src.modules.embedder import _Embedder
+from .embedder import _Embedder
 import torch
 from torch import Tensor
 from torch.nn import Embedding

@@ -1,4 +1,4 @@
-from src.modules.bert.embedding.sinpos import *
+from src.models.bert.embedding.sinpos import *
 import torch
 
 

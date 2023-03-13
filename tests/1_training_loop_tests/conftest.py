@@ -1,6 +1,6 @@
 import multiprocessing as mp
 import pytest
-from src.modules import *
+from src.models import *
 
 
 mp.set_start_method('spawn')

@@ -4,7 +4,7 @@ VCDR3 embedding modules.
 
 
 import math
-from src.modules.bert.embedding.sinpos import SinPositionEmbedding
+from .sinpos import SinPositionEmbedding
 from torch import Tensor
 from torch.nn import Embedding, Module
 
