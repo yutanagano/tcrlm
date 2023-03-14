@@ -181,7 +181,7 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
         dataset_ac=AutoContrastiveDataset(
             data=config['data']['train_path']['autocontrastive'],
             tokeniser=tokeniser,
-            noising=True
+            **config['data']['dataset_config']
         ),
         dataset_ec=EpitopeContrastiveDataset(
             data=config['data']['train_path']['epitope_contrastive'],
@@ -193,7 +193,8 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
         dataset_ac=AutoContrastiveDataset(
             data=config['data']['valid_path']['autocontrastive'],
             tokeniser=tokeniser,
-            noising=False
+            censoring_lhs=False,
+            censoring_rhs=False
         ),
         dataset_ec=EpitopeContrastiveDataset(
             data=config['data']['valid_path']['epitope_contrastive'],
