@@ -61,17 +61,21 @@ class TestTcrDataset:
 
 
 class TestAutoContrastiveDataset:
-    def test_getitem(self, mock_data_df, dummy_tokeniser):
+    @pytest.mark.parametrize(
+        'noising', (True, False)
+    )
+    def test_getitem(self, mock_data_df, dummy_tokeniser, noising):
         dataset = datasets.AutoContrastiveDataset(
             data=mock_data_df,
-            tokeniser=dummy_tokeniser
+            tokeniser=dummy_tokeniser,
+            noising=noising
         )
 
         random_index = random.randrange(0, len(dataset))
 
         x, x_lhs, x_rhs = dataset[random_index]
         assert x == (random_index, False)
-        assert x_lhs == x_rhs == (random_index, True)
+        assert x_lhs == x_rhs == (random_index, noising)
 
 
 class TestEpitopeContrastiveDataset:

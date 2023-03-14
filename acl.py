@@ -149,14 +149,16 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
     train_dl = AutoContrastiveDataLoader(
         dataset=AutoContrastiveDataset(
             data=config['data']['train_path'],
-            tokeniser=tokeniser
+            tokeniser=tokeniser,
+            noising=True
         ),
         **config['data']['dataloader_config']
     )
     valid_dl = AutoContrastiveDataLoader(
         dataset=AutoContrastiveDataset(
             data=config['data']['valid_path'],
-            tokeniser=tokeniser
+            tokeniser=tokeniser,
+            noising=False
         ),
         p_mask_random=0,
         p_mask_keep=0,
