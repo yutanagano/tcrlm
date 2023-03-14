@@ -33,6 +33,10 @@ def get_config(tmp_path: Path, gpu: bool) -> dict:
                 'class': 'CDR3Tokeniser',
                 'config': {}
             },
+            'dataset_config': {
+                'censoring_lhs': True,
+                'censoring_rhs': True
+            },
             'dataloader_config': {}
         },
         'optim': {

@@ -30,6 +30,10 @@ def get_config(
             'train_path': f'tests/resources/{data_file}',
             'valid_path': f'tests/resources/{data_file}',
             'tokeniser': tokeniser,
+            'dataset_config': {
+                'censoring_lhs': True,
+                'censoring_rhs': True
+            },
             'dataloader_config': {}
         },
         'optim': {

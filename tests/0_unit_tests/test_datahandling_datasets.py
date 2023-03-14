@@ -1,3 +1,4 @@
+from itertools import product
 import pytest
 import random
 from src.datahandling import datasets
@@ -62,20 +63,23 @@ class TestTcrDataset:
 
 class TestAutoContrastiveDataset:
     @pytest.mark.parametrize(
-        'noising', (True, False)
+        ('noising_lhs', 'noising_rhs'),
+        product((True,False), repeat=2)
     )
-    def test_getitem(self, mock_data_df, dummy_tokeniser, noising):
+    def test_getitem(self, mock_data_df, dummy_tokeniser, noising_lhs, noising_rhs):
         dataset = datasets.AutoContrastiveDataset(
             data=mock_data_df,
             tokeniser=dummy_tokeniser,
-            noising=noising
+            censoring_lhs=noising_lhs,
+            censoring_rhs=noising_rhs
         )
 
         random_index = random.randrange(0, len(dataset))
 
         x, x_lhs, x_rhs = dataset[random_index]
         assert x == (random_index, False)
-        assert x_lhs == x_rhs == (random_index, noising)
+        assert x_lhs == (random_index, noising_lhs)
+        assert x_rhs == (random_index, noising_rhs)
 
 
 class TestEpitopeContrastiveDataset:
