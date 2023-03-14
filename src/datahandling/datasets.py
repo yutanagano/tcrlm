@@ -66,20 +66,22 @@ class AutoContrastiveDataset(TCRDataset):
         self,
         data: Union[Path, str, pd.DataFrame],
         tokeniser: tokenisers._Tokeniser,
-        noising: bool
+        censoring_lhs: bool,
+        censoring_rhs: bool
     ):
         super().__init__(data, tokeniser)
-        self.noising = noising
+        self.censoring_lhs = censoring_lhs
+        self.censoring_rhs = censoring_rhs
 
     def __getitem__(self, index) -> any:
         x = self._tokeniser.tokenise(self._data.iloc[index])
         x_lhs = self._tokeniser.tokenise(
             self._data.iloc[index],
-            noising=self.noising
+            noising=self.censoring_lhs
         )
         x_rhs = self._tokeniser.tokenise(
             self._data.iloc[index],
-            noising=self.noising
+            noising=self.censoring_rhs
         )
 
         return (x, x_lhs, x_rhs)
