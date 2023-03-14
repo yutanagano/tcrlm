@@ -18,5 +18,6 @@ from .bert.vcdr3bert import (
 from .bert.cdrbert import (
     BCDRBERT,
     BCDRBERTBDPos,
-    BCDRClsBERT
+    BCDRClsBERT,
+    BCDRClsBERTBDPos
 )
