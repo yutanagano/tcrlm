@@ -65,7 +65,8 @@ def abcdr3t_dataset(mock_data_df):
 def abcdr3t_auto_contrastive_dataset(mock_data_df):
     dataset = datasets.AutoContrastiveDataset(
         data=mock_data_df,
-        tokeniser=CDR3Tokeniser()
+        tokeniser=CDR3Tokeniser(),
+        noising=True
     )
 
     return dataset

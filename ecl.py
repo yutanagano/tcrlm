@@ -180,7 +180,8 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
     train_dl = EpitopeAutoContrastiveSuperDataLoader(
         dataset_ac=AutoContrastiveDataset(
             data=config['data']['train_path']['autocontrastive'],
-            tokeniser=tokeniser
+            tokeniser=tokeniser,
+            noising=True
         ),
         dataset_ec=EpitopeContrastiveDataset(
             data=config['data']['train_path']['epitope_contrastive'],
@@ -191,7 +192,8 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
     valid_dl = EpitopeAutoContrastiveSuperDataLoader(
         dataset_ac=AutoContrastiveDataset(
             data=config['data']['valid_path']['autocontrastive'],
-            tokeniser=tokeniser
+            tokeniser=tokeniser,
+            noising=False
         ),
         dataset_ec=EpitopeContrastiveDataset(
             data=config['data']['valid_path']['epitope_contrastive'],
