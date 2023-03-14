@@ -9,7 +9,8 @@ import torch
 model_classes = (
     BCDRBERT,
     BCDRBERTBDPos,
-    BCDRClsBERT
+    BCDRClsBERT,
+    BCDRClsBERTBDPos
 )
 model_instances = [
     Model(
