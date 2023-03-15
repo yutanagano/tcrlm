@@ -100,6 +100,12 @@ class BCDRClsBERT(_BERTClsEmbedBase, BCDRBERT):
     """
 
 
+class CDRClsBERT(_BERTClsEmbedBase, CDRBERT):
+    """
+    CDRBERT model which uses the <cls> token to embed.
+    """
+
+
 class BCDRClsBERTBDPos(_BERTClsEmbedBase, BCDRBERTBDPos):
     """
     BCDRBERTBDPos model which uses the <cls> token to embed.

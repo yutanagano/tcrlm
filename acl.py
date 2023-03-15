@@ -136,9 +136,9 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
         dataset=AutoContrastiveDataset(
             data=config["data"]["train_path"],
             tokeniser=tokeniser,
-            **config["data"]["dataset_config"],
+            **config["data"]["dataset"]["config"],
         ),
-        **config["data"]["dataloader_config"],
+        **config["data"]["dataloader"]["config"],
     )
     valid_dl = AutoContrastiveDataLoader(
         dataset=AutoContrastiveDataset(
@@ -149,7 +149,7 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
         ),
         p_mask_random=0,
         p_mask_keep=0,
-        **config["data"]["dataloader_config"],
+        **config["data"]["dataloader"]["config"],
     )
 
     # Instantiate model
@@ -166,7 +166,7 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
     optimiser = AdamWithScheduling(
         params=model.parameters(),
         d_model=config["model"]["config"]["d_model"],
-        **config["optim"]["optimiser_config"],
+        **config["optim"]["optimiser"]["config"],
     )
 
     # Evaluate model at pre-SimC learning state

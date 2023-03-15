@@ -1,8 +1,17 @@
 import json
 import pandas as pd
 from pathlib import Path
+from src import models
+from src.models.embedder import _Embedder
 import torch
 from torch.nn import Module
+
+
+def get_model_template(class_name: str) -> _Embedder:
+    model = getattr(models, class_name)(
+        name="foobar", num_encoder_layers=2, d_model=4, nhead=2, dim_feedforward=16
+    )
+    return model
 
 
 def model_saved(save_path: Path, model_template: Module) -> bool:
