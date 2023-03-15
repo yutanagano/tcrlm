@@ -4,15 +4,15 @@ import torch
 
 
 model_classes = (
-    CDR3BERT_a,
-    CDR3BERT_ac,
-    CDR3BERT_ap,
-    CDR3BERT_ar,
-    CDR3BERT_ab,
-    CDR3BERT_apc,
-    CDR3ClsBERT_ap,
-    CDR3ClsBERT_ab,
-    CDR3ClsBERT_apc
+    BCDR3BERTMPos,
+    CDR3BERTMPos,
+    BCDR3BERT,
+    BCDR3BERTRPos,
+    BCDR3BERTBDPos,
+    CDR3BERT,
+    BCDR3ClsBERT,
+    BCDR3ClsBERTBDPos,
+    CDR3ClsBERT
 )
 model_instances = [
     Model(

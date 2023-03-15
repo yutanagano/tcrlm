@@ -7,8 +7,8 @@ mp.set_start_method('spawn')
 
 
 @pytest.fixture
-def cdr3bert_a_template():
-    model = CDR3BERT_a(
+def bcdr3bert_template():
+    model = BCDR3BERT(
         name='foobar',
         num_encoder_layers=2,
         d_model=4,
@@ -19,8 +19,8 @@ def cdr3bert_a_template():
 
 
 @pytest.fixture
-def cdr3clsbert_apc_template():
-    model = CDR3ClsBERT_apc(
+def cdr3clsbert_template():
+    model = CDR3ClsBERT(
         name='foobar',
         num_encoder_layers=2,
         d_model=4,
