@@ -30,8 +30,8 @@ def get_config(tmp_path: Path, gpu: bool) -> dict:
                 "epitope_contrastive": "tests/resources/mock_data.csv",
             },
             "tokeniser": {"class": "CDR3Tokeniser", "config": {}},
-            "dataset_config": {"censoring_lhs": True, "censoring_rhs": True},
-            "dataloader_config": {},
+            "dataset": {"config": {"censoring_lhs": True, "censoring_rhs": True}},
+            "dataloader": {"config": {}},
         },
         "optim": {
             "autocontrastive_loss": {"class": "SimCLoss", "config": {"temp": 0.05}},
@@ -39,7 +39,7 @@ def get_config(tmp_path: Path, gpu: bool) -> dict:
                 "class": "PosBackSimCLoss",
                 "config": {"temp": 0.05},
             },
-            "optimiser_config": {"n_warmup_steps": 10000},
+            "optimiser": {"config": {"n_warmup_steps": 10000}},
         },
         "n_epochs": 3,
         "gpu": gpu,
@@ -49,7 +49,7 @@ def get_config(tmp_path: Path, gpu: bool) -> dict:
 
 class TestTrainingLoop:
     @pytest.mark.parametrize("gpu", (False, True))
-    def test_training_loop(self, cdr3clsbert_template, tmp_path, gpu):
+    def test_training_loop(self, tmp_path, gpu):
         if gpu and not torch.cuda.is_available():
             warn("Epitope contrastive GPU test " "skipped due to hardware limitations.")
             return
@@ -57,8 +57,11 @@ class TestTrainingLoop:
         # Set up config
         config = get_config(tmp_path, gpu)
 
+        # Get model template
+        model_template = get_model_template("CDR3ClsBERT")
+
         # Copy toy state_dict into tmp_path
-        torch.save(cdr3clsbert_template.state_dict(), tmp_path / "state_dict.pt")
+        torch.save(model_template.state_dict(), tmp_path / "state_dict.pt")
 
         # Run MLM training loop in separate process
         p = mp.Process(
@@ -73,7 +76,7 @@ class TestTrainingLoop:
         # Check that model is saved correctly
         assert model_saved(
             save_path=expected_save_dir / "state_dict.pt",
-            model_template=cdr3clsbert_template,
+            model_template=model_template,
         )
 
         # Check that log is saved correctly
