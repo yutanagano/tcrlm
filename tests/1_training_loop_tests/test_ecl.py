@@ -10,7 +10,7 @@ from warnings import warn
 def get_config(tmp_path: Path, gpu: bool) -> dict:
     config = {
         'model': {
-            'class': 'CDR3ClsBERT_apc',
+            'class': 'CDR3ClsBERT',
             'config': {
                 'name': 'foobar',
                 'num_encoder_layers': 2,
@@ -62,7 +62,7 @@ class TestTrainingLoop:
     )
     def test_training_loop(
         self,
-        cdr3clsbert_apc_template,
+        cdr3clsbert_template,
         tmp_path,
         gpu
     ):
@@ -78,7 +78,7 @@ class TestTrainingLoop:
 
         # Copy toy state_dict into tmp_path
         torch.save(
-            cdr3clsbert_apc_template.state_dict(),
+            cdr3clsbert_template.state_dict(),
             tmp_path/'state_dict.pt'
         )
 
@@ -100,7 +100,7 @@ class TestTrainingLoop:
         # Check that model is saved correctly
         assert model_saved(
             save_path=expected_save_dir/'state_dict.pt',
-            model_template=cdr3clsbert_apc_template
+            model_template=cdr3clsbert_template
         )
 
         # Check that log is saved correctly
