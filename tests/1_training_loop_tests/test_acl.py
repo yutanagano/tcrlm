@@ -26,12 +26,12 @@ def get_config(
             "train_path": f"tests/resources/{data_file}",
             "valid_path": f"tests/resources/{data_file}",
             "tokeniser": tokeniser,
-            "dataset_config": {"censoring_lhs": True, "censoring_rhs": True},
-            "dataloader_config": {},
+            "dataset": {"config": {"censoring_lhs": True, "censoring_rhs": True}},
+            "dataloader": {"config": {}},
         },
         "optim": {
             "contrastive_loss": {"class": "SimCLoss", "config": {"temp": 0.05}},
-            "optimiser_config": {"n_warmup_steps": 10000},
+            "optimiser": {"config": {"n_warmup_steps": 10000}},
         },
         "n_epochs": 3,
         "gpu": gpu,
@@ -41,7 +41,7 @@ def get_config(
 
 class TestTrainingLoop:
     @pytest.mark.parametrize(
-        ("model_name", "tokeniser", "data_file", "gpu"),
+        ("model_class", "tokeniser", "data_file", "gpu"),
         (
             (
                 "CDR3ClsBERT",
@@ -65,10 +65,8 @@ class TestTrainingLoop:
     )
     def test_training_loop(
         self,
-        cdr3clsbert_template,
-        bcdr3bert_template,
         tmp_path,
-        model_name,
+        model_class,
         tokeniser,
         data_file,
         gpu,
@@ -78,13 +76,10 @@ class TestTrainingLoop:
             return
 
         # Set up config
-        config = get_config(tmp_path, model_name, tokeniser, data_file, gpu)
+        config = get_config(tmp_path, model_class, tokeniser, data_file, gpu)
 
         # Get the correct model template
-        if model_name == "CDR3ClsBERT":
-            model_template = cdr3clsbert_template
-        elif model_name == "BCDR3BERT":
-            model_template = bcdr3bert_template
+        model_template = get_model_template(model_class)
 
         # Copy toy state_dict into tmp_path
         torch.save(model_template.state_dict(), tmp_path / "state_dict.pt")

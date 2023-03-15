@@ -104,7 +104,9 @@ def mlm(device: Union[str, int], wd: Path, name: str, config: dict):
 
     # Load training data
     print("Loading data...")
-    tokeniser = getattr(tokenisers, config["data"]["tokeniser"])()
+    tokeniser = getattr(tokenisers, config["data"]["tokeniser"]["class"])(
+        **config["data"]["tokeniser"]["config"]
+    )
     train_dl = MLMDataLoader(
         dataset=TCRDataset(data=config["data"]["train_path"], tokeniser=tokeniser),
         **config["data"]["dataloader"]["config"],
@@ -126,7 +128,7 @@ def mlm(device: Union[str, int], wd: Path, name: str, config: dict):
     optimiser = AdamWithScheduling(
         params=model.parameters(),
         d_model=config["model"]["config"]["d_model"],
-        **config["optim"]["optimiser_config"],
+        **config["optim"]["optimiser"]["config"],
     )
 
     metric_log = dict()

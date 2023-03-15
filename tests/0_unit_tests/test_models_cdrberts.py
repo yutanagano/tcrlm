@@ -6,7 +6,7 @@ from src.models import *
 import torch
 
 
-model_classes = (CDRBERT,)
+model_classes = (CDRBERT, CDRClsBERT)
 model_instances = [
     Model(name="foobar", num_encoder_layers=6, d_model=64, nhead=8, dim_feedforward=256)
     for Model in model_classes

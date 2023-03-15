@@ -25,7 +25,7 @@ def get_config(model_class: str, tokeniser: str, data_file: str, gpu: bool) -> d
             "dataloader": {"config": {}},
         },
         "optim": {
-            "optimiser_config": {"n_warmup_steps": 10000},
+            "optimiser": {"config": {"n_warmup_steps": 10000}},
         },
         "n_epochs": 3,
         "gpu": gpu,
@@ -37,15 +37,37 @@ class TestTrainingLoop:
     @pytest.mark.parametrize(
         ("model_class", "tokeniser", "data_file", "gpu"),
         (
-            ("BCDR3BERT", "CDR3Tokeniser", "mock_data.csv", False),
-            ("BCDR3BERT", "CDR3Tokeniser", "mock_data.csv", True),
-            ("BVCDR3BERT", "BVCDR3Tokeniser", "mock_data_beta.csv", False),
+            (
+                "BCDR3BERT",
+                {"class": "CDR3Tokeniser", "config": {}},
+                "mock_data.csv",
+                False,
+            ),
+            (
+                "BCDR3BERT",
+                {"class": "CDR3Tokeniser", "config": {}},
+                "mock_data.csv",
+                True,
+            ),
+            (
+                "BVCDR3BERT",
+                {"class": "BVCDR3Tokeniser", "config": {}},
+                "mock_data_beta.csv",
+                False,
+            ),
+            (
+                "CDRBERT",
+                {
+                    "class": "CDRTokeniser",
+                    "config": {"p_drop_aa": 0, "p_drop_cdr": 0, "p_drop_chain": 0},
+                },
+                "mock_data.csv",
+                False,
+            ),
         ),
     )
     def test_training_loop(
         self,
-        bcdr3bert_template,
-        bvcdr3bert_template,
         tmp_path,
         model_class,
         tokeniser,
@@ -60,10 +82,7 @@ class TestTrainingLoop:
         config = get_config(model_class, tokeniser, data_file, gpu)
 
         # Get the correct model template
-        if model_class == "BCDR3BERT":
-            model_template = bcdr3bert_template
-        elif model_class == "BVCDR3BERT":
-            model_template = bvcdr3bert_template
+        model_template = get_model_template(model_class)
 
         # Run MLM training loop in separate process
         p = mp.Process(
