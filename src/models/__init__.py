@@ -9,16 +9,13 @@ from .bert.cdr3bert import (
     CDR3BERT,
     BCDR3ClsBERT,
     BCDR3ClsBERTBDPos,
-    CDR3ClsBERT
+    CDR3ClsBERT,
 )
-from .bert.vcdr3bert import (
-    BVCDR3BERT,
-    BVCDR3ClsBERT
-)
+from .bert.vcdr3bert import BVCDR3BERT, BVCDR3ClsBERT
 from .bert.cdrbert import (
     BCDRBERT,
     CDRBERT,
     BCDRBERTBDPos,
     BCDRClsBERT,
-    BCDRClsBERTBDPos
+    BCDRClsBERTBDPos,
 )

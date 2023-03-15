@@ -1,7 +1,7 @@
-'''
+"""
 An executable script to conduct simple contrastive learning on TCR models using
 a combination of unlabelled and epitope-labelled TCR data.
-'''
+"""
 
 
 import argparse
@@ -12,17 +12,9 @@ from src import models
 from src.models.embedder import _MLMEmbedder
 from src.datahandling import tokenisers
 from src.datahandling.dataloaders import EpitopeAutoContrastiveSuperDataLoader
-from src.datahandling.datasets import (
-    AutoContrastiveDataset,
-    EpitopeContrastiveDataset
-)
+from src.datahandling.datasets import AutoContrastiveDataset, EpitopeContrastiveDataset
 from src import metrics
-from src.metrics import (
-    AdjustedCELoss,
-    alignment_paired,
-    uniformity,
-    mlm_acc
-)
+from src.metrics import AdjustedCELoss, alignment_paired, uniformity, mlm_acc
 from src.optim import AdamWithScheduling
 from src.utils import save
 import torch
@@ -33,26 +25,23 @@ from typing import Union
 
 def parse_command_line_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description='Simple contrastive learning training loop.'
+        description="Simple contrastive learning training loop."
     )
     parser.add_argument(
-        '-d', '--working-directory',
-        help='Path to tcr_embedder project working directory.'
+        "-d",
+        "--working-directory",
+        help="Path to tcr_embedder project working directory.",
     )
+    parser.add_argument("-n", "--name", help="Name of the training run.")
     parser.add_argument(
-        '-n', '--name',
-        help='Name of the training run.'
-    )
-    parser.add_argument(
-        'config_path',
-        help='Path to the training run config json file.'
+        "config_path", help="Path to the training run config json file."
     )
     return parser.parse_args()
 
 
 def metric_feedback(metrics: dict) -> None:
     for metric in metrics:
-        print(f'{metric}: {metrics[metric]}')
+        print(f"{metric}: {metrics[metric]}")
 
 
 def train(
@@ -62,7 +51,7 @@ def train(
     ac_loss_fn,
     mlm_loss_fn,
     optimiser,
-    device
+    device,
 ) -> dict:
     model.train()
 
@@ -87,9 +76,11 @@ def train(
         z_ec_prime = model.embed(ec_prime)
 
         optimiser.zero_grad()
-        loss = ec_loss_fn(z_ec, z_ec_prime, z_ac_prime) +\
-            ac_loss_fn(z_ac, z_ac_prime) +\
-            mlm_loss_fn(mlm_logits.flatten(0,1), ac_target.view(-1))
+        loss = (
+            ec_loss_fn(z_ec, z_ec_prime, z_ac_prime)
+            + ac_loss_fn(z_ac, z_ac_prime)
+            + mlm_loss_fn(mlm_logits.flatten(0, 1), ac_target.view(-1))
+        )
         loss.backward()
         optimiser.step()
 
@@ -97,20 +88,12 @@ def train(
         total_lr += optimiser.lr * num_samples
         divisor += num_samples
 
-    return {
-        'loss': total_loss / divisor,
-        'lr': total_lr / divisor
-    }
+    return {"loss": total_loss / divisor, "lr": total_lr / divisor}
 
 
 @torch.no_grad()
 def validate(
-    model: _MLMEmbedder,
-    dl: DataLoader,
-    ec_loss_fn,
-    ac_loss_fn,
-    mlm_loss_fn,
-    device
+    model: _MLMEmbedder, dl: DataLoader, ec_loss_fn, ac_loss_fn, mlm_loss_fn, device
 ) -> dict:
     total_ec_loss = 0
     total_ac_loss = 0
@@ -133,7 +116,7 @@ def validate(
         ec = ec.to(device)
         ec_prime = ec_prime.to(device)
 
-        model.train() # turn dropout on for autocontrastive eval
+        model.train()  # turn dropout on for autocontrastive eval
         z_ac = model.embed(ac)
         z_ac_prime = model.embed(ac_prime)
 
@@ -144,28 +127,26 @@ def validate(
 
         ec_loss = ec_loss_fn(z_ec, z_ec_prime, z_ac_prime)
         ac_loss = ac_loss_fn(z_ac, z_ac_prime)
-        mlm_loss = mlm_loss_fn(mlm_logits.flatten(0,1), ac_target.view(-1))
+        mlm_loss = mlm_loss_fn(mlm_logits.flatten(0, 1), ac_target.view(-1))
 
         total_ec_loss += ec_loss.item() * num_ec_samples
         total_ac_loss += ac_loss.item() * num_ac_samples
         total_mlm_loss += mlm_loss.item() * num_ac_samples
-        total_epitope_aln +=\
-            alignment_paired(z_ec, z_ec_prime).item() * num_ec_samples
-        total_auto_aln +=\
-            alignment_paired(z_ac, z_ac_prime).item() * num_ac_samples
+        total_epitope_aln += alignment_paired(z_ec, z_ec_prime).item() * num_ec_samples
+        total_auto_aln += alignment_paired(z_ac, z_ac_prime).item() * num_ac_samples
         total_unf += uniformity(z_ac).item() * num_ac_samples
         total_mlm_acc += mlm_acc(mlm_logits, ac_target) * num_ac_samples
         ac_divisor += num_ac_samples
         ec_divisor += num_ec_samples
 
     return {
-        'valid_ec_loss': total_ec_loss / ec_divisor,
-        'valid_ac_loss': total_ac_loss / ac_divisor,
-        'valid_mlm_loss': total_mlm_loss / ac_divisor,
-        'valid_epitope_aln': total_epitope_aln / ec_divisor,
-        'valid_auto_aln': total_auto_aln / ac_divisor,
-        'valid_unf': total_unf / ac_divisor,
-        'valid_mlm_acc': total_mlm_acc / ac_divisor
+        "valid_ec_loss": total_ec_loss / ec_divisor,
+        "valid_ac_loss": total_ac_loss / ac_divisor,
+        "valid_mlm_loss": total_mlm_loss / ac_divisor,
+        "valid_epitope_aln": total_epitope_aln / ec_divisor,
+        "valid_auto_aln": total_auto_aln / ac_divisor,
+        "valid_unf": total_unf / ac_divisor,
+        "valid_mlm_acc": total_mlm_acc / ac_divisor,
     }
 
 
@@ -173,83 +154,77 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
     device = torch.device(device)
 
     # Load training data
-    print('Loading data...')
-    tokeniser = getattr(tokenisers, config['data']['tokeniser']['class'])(
-        **config['data']['tokeniser']['config']
+    print("Loading data...")
+    tokeniser = getattr(tokenisers, config["data"]["tokeniser"]["class"])(
+        **config["data"]["tokeniser"]["config"]
     )
     train_dl = EpitopeAutoContrastiveSuperDataLoader(
         dataset_ac=AutoContrastiveDataset(
-            data=config['data']['train_path']['autocontrastive'],
+            data=config["data"]["train_path"]["autocontrastive"],
             tokeniser=tokeniser,
-            **config['data']['dataset_config']
+            **config["data"]["dataset_config"],
         ),
         dataset_ec=EpitopeContrastiveDataset(
-            data=config['data']['train_path']['epitope_contrastive'],
-            tokeniser=tokeniser
+            data=config["data"]["train_path"]["epitope_contrastive"],
+            tokeniser=tokeniser,
         ),
-        **config['data']['dataloader_config']
+        **config["data"]["dataloader_config"],
     )
     valid_dl = EpitopeAutoContrastiveSuperDataLoader(
         dataset_ac=AutoContrastiveDataset(
-            data=config['data']['valid_path']['autocontrastive'],
+            data=config["data"]["valid_path"]["autocontrastive"],
             tokeniser=tokeniser,
             censoring_lhs=False,
-            censoring_rhs=False
+            censoring_rhs=False,
         ),
         dataset_ec=EpitopeContrastiveDataset(
-            data=config['data']['valid_path']['epitope_contrastive'],
-            tokeniser=tokeniser
+            data=config["data"]["valid_path"]["epitope_contrastive"],
+            tokeniser=tokeniser,
         ),
         p_mask_random_ac=0,
         p_mask_keep_ac=0,
-        **config['data']['dataloader_config']
+        **config["data"]["dataloader_config"],
     )
 
     # Instantiate model
-    print('Instantiating model...')
-    model = getattr(models, config['model']['class'])(**config['model']['config'])
+    print("Instantiating model...")
+    model = getattr(models, config["model"]["class"])(**config["model"]["config"])
     model.to(device)
-    model.load_state_dict(
-        torch.load(config['model']['pretrain_state_dict_path'])
-    )
+    model.load_state_dict(torch.load(config["model"]["pretrain_state_dict_path"]))
 
     # Instantiate loss function and optimiser
     mlm_loss_fn = AdjustedCELoss(label_smoothing=0.1)
-    ac_loss_fn =\
-        getattr(metrics, config['optim']['autocontrastive_loss']['class'])(
-            **config['optim']['autocontrastive_loss']['config']
-        )
-    ec_loss_fn =\
-        getattr(metrics, config['optim']['epitope_contrastive_loss']['class'])(
-            **config['optim']['epitope_contrastive_loss']['config']
-        )
+    ac_loss_fn = getattr(metrics, config["optim"]["autocontrastive_loss"]["class"])(
+        **config["optim"]["autocontrastive_loss"]["config"]
+    )
+    ec_loss_fn = getattr(metrics, config["optim"]["epitope_contrastive_loss"]["class"])(
+        **config["optim"]["epitope_contrastive_loss"]["config"]
+    )
     optimiser = AdamWithScheduling(
         params=model.parameters(),
-        d_model=config['model']['config']['d_model'],
-        **config['optim']['optimiser_config']
+        d_model=config["model"]["config"]["d_model"],
+        **config["optim"]["optimiser_config"],
     )
 
     # Evaluate model at pre-SimC learning state
-    print('Evaluating pre-trained model state...')
+    print("Evaluating pre-trained model state...")
     valid_metrics = validate(
         model=model,
         dl=valid_dl,
         ec_loss_fn=ec_loss_fn,
         ac_loss_fn=ac_loss_fn,
         mlm_loss_fn=mlm_loss_fn,
-        device=device
+        device=device,
     )
     metric_feedback(valid_metrics)
 
-    metric_log = {
-        0: {'loss': None, 'lr': None, **valid_metrics}
-    }
+    metric_log = {0: {"loss": None, "lr": None, **valid_metrics}}
 
     # Go through epochs of training
-    for epoch in range(1, config['n_epochs']+1):
-        print(f'Starting epoch {epoch}...')
-        
-        print('Training...')
+    for epoch in range(1, config["n_epochs"] + 1):
+        print(f"Starting epoch {epoch}...")
+
+        print("Training...")
         train_metrics = train(
             model=model,
             dl=train_dl,
@@ -257,49 +232,43 @@ def simcl(device: Union[str, int], wd: Path, name: str, config: dict):
             ac_loss_fn=ac_loss_fn,
             mlm_loss_fn=mlm_loss_fn,
             optimiser=optimiser,
-            device=device
+            device=device,
         )
         metric_feedback(train_metrics)
 
-        print('Validating...')
+        print("Validating...")
         valid_metrics = validate(
             model=model,
             dl=valid_dl,
             ec_loss_fn=ec_loss_fn,
             ac_loss_fn=ac_loss_fn,
             mlm_loss_fn=mlm_loss_fn,
-            device=device
+            device=device,
         )
         metric_feedback(valid_metrics)
 
         metric_log[epoch] = {**train_metrics, **valid_metrics}
-    
-    # Save results    
-    print('Saving results...')
-    save(
-        wd=wd,
-        save_name=name,
-        model=model,
-        log=metric_log,
-        config=config
-    )
-    
-    print('Done!')
+
+    # Save results
+    print("Saving results...")
+    save(wd=wd, save_name=name, model=model, log=metric_log, config=config)
+
+    print("Done!")
 
 
 def main(wd: Path, name: str, config: dict):
     # Single GPU traiing
-    if config['gpu']:
-        print('Commencing training on 1 CUDA device...')
+    if config["gpu"]:
+        print("Commencing training on 1 CUDA device...")
         simcl(device=0, wd=wd, name=name, config=config)
         return
 
     # CPU training
-    print('Commencing training on CPU...')
-    simcl(device='cpu', wd=wd, name=name, config=config)
+    print("Commencing training on CPU...")
+    simcl(device="cpu", wd=wd, name=name, config=config)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = parse_command_line_arguments()
 
     if args.working_directory is None:
@@ -308,11 +277,11 @@ if __name__ == '__main__':
         wd = Path(args.working_directory).resolve()
 
     if args.name is None:
-        name = datetime.now().strftime(r'%Y%m%d-%H%M%S')
+        name = datetime.now().strftime(r"%Y%m%d-%H%M%S")
 
     assert wd.is_dir()
 
-    with open(args.config_path, 'r') as f:
+    with open(args.config_path, "r") as f:
         config = json.load(f)
 
     main(wd=wd, name=name, config=config)
