@@ -1,13 +1,16 @@
 import pytest
 from src.datahandling.datasets import TCRDataset
 from src.datahandling.dataloaders import TCRDataLoader
-from src.datahandling.tokenisers import CDRTokeniser
+from src.datahandling.tokenisers import BCDRTokeniser
 from src.models import *
 import torch
 
 
 model_classes = (
-    CDRBERT,
+    BCDRBERT,
+    BCDRBERTBDPos,
+    BCDRClsBERT,
+    BCDRClsBERTBDPos
 )
 model_instances = [
     Model(
@@ -21,9 +24,9 @@ model_instances = [
 
 
 @pytest.fixture
-def cdrt_dataloader(mock_data_df):
+def bcdrt_dataloader(mock_data_beta_df):
     return TCRDataLoader(
-        TCRDataset(mock_data_df, CDRTokeniser(p_drop_aa=0, p_drop_cdr=0, p_drop_chain=0)),
+        TCRDataset(mock_data_beta_df, BCDRTokeniser(p_drop_aa=0, p_drop_cdr=0)),
         batch_size=2,
         shuffle=False
     )
@@ -44,8 +47,8 @@ class TestModel:
         assert (padding_mask == 1).all()
 
 
-    def test_embed(self, model, cdrt_dataloader):
-        batch = next(iter(cdrt_dataloader))
+    def test_embed(self, model, bcdrt_dataloader):
+        batch = next(iter(bcdrt_dataloader))
         out = model.embed(x=batch)
 
         assert out.size() == (2,64)
