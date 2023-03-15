@@ -341,8 +341,8 @@ class CDRTokeniser(_AATokeniser):
 
         # Get CDRs
         v_gene = tcr.loc[f"TR{chain}V"]
-        cdr1 = None if isna(v_gene) else V_CDRS[v_gene]["CDR1-IMGT"]
-        cdr2 = None if isna(v_gene) else V_CDRS[v_gene]["CDR2-IMGT"]
+
+        cdr1, cdr2 = self._get_vcdrs(v_gene)
         cdr3 = tcr.loc[f"CDR3{chain}"]
 
         # Potentially drop some cdrs
@@ -390,3 +390,20 @@ class CDRTokeniser(_AATokeniser):
                 tokenised.append([self._aa_to_index[aa], i + 1, cdr_size, cmpt_idx])
 
         return tokenised
+
+    @staticmethod
+    def _get_vcdrs(v_gene: str) -> tuple:
+        if not v_gene in V_CDRS:
+            return (None, None)
+        
+        try:
+            cdr1 = V_CDRS[v_gene]["CDR1-IMGT"]
+        except(KeyError):
+            cdr1 = None
+
+        try:
+            cdr2 = V_CDRS[v_gene]["CDR2-IMGT"]
+        except(KeyError):
+            cdr2 = None
+        
+        return (cdr1, cdr2)
