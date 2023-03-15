@@ -53,15 +53,15 @@ class TestTrainingLoop:
     @pytest.mark.parametrize(
         ('model_name', 'tokeniser', 'data_file', 'gpu'),
         (
-            ('CDR3ClsBERT_apc', {'class': 'CDR3Tokeniser', 'config': {}}, 'mock_data.csv', False),
-            ('CDR3ClsBERT_apc', {'class': 'CDR3Tokeniser', 'config':{}}, 'mock_data.csv', True),
-            ('CDR3BERT_a', {'class': 'BCDR3Tokeniser', 'config': {'p_drop_aa': 0}}, 'mock_data_beta.csv', False)
+            ('CDR3ClsBERT', {'class': 'CDR3Tokeniser', 'config': {}}, 'mock_data.csv', False),
+            ('CDR3ClsBERT', {'class': 'CDR3Tokeniser', 'config': {}}, 'mock_data.csv', True),
+            ('BCDR3BERT', {'class': 'BCDR3Tokeniser', 'config': {'p_drop_aa': 0}}, 'mock_data_beta.csv', False)
         )
     )
     def test_training_loop(
         self,
-        cdr3clsbert_apc_template,
-        cdr3bert_a_template,
+        cdr3clsbert_template,
+        bcdr3bert_template,
         tmp_path,
         model_name,
         tokeniser,
@@ -78,10 +78,10 @@ class TestTrainingLoop:
         config = get_config(tmp_path, model_name, tokeniser, data_file, gpu)
 
         # Get the correct model template
-        if model_name == 'CDR3ClsBERT_apc':
-            model_template = cdr3clsbert_apc_template
-        elif model_name == 'CDR3BERT_a':
-            model_template = cdr3bert_a_template
+        if model_name == 'CDR3ClsBERT':
+            model_template = cdr3clsbert_template
+        elif model_name == 'BCDR3BERT':
+            model_template = bcdr3bert_template
 
         # Copy toy state_dict into tmp_path
         torch.save(
