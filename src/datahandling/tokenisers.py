@@ -233,15 +233,15 @@ class BCDRTokeniser(_AATokeniser):
         include_cdr1 = include_cdr2 = include_cdr3 = True
 
         if noising:
-            include_cdr1 = random.random() < self._p_drop_cdr
-            include_cdr2 = random.random() < self._p_drop_cdr
-            include_cdr3 = random.random() < self._p_drop_cdr
+            include_cdr1 = random.random() >= self._p_drop_cdr
+            include_cdr2 = random.random() >= self._p_drop_cdr
+            include_cdr3 = random.random() >= self._p_drop_cdr
 
             # Make sure filter doesn't cause the whole TCR to be censored
             if not (
                 (cdr1b and include_cdr1)
                 or (cdr2b and include_cdr2)
-                or (cdr3b and include_cdr3)
+                or (notna(cdr3b) and include_cdr3)
             ):
                 include_cdr1 = include_cdr2 = include_cdr3 = True
 
@@ -253,7 +253,7 @@ class BCDRTokeniser(_AATokeniser):
         if cdr2b and include_cdr2:
             tokenised.extend(self._tokenise_cdr(cdr2b, 2, noising))
 
-        if cdr3b and include_cdr3:
+        if notna(cdr3b) and include_cdr3:
             tokenised.extend(self._tokenise_cdr(cdr3b, 3, noising))
 
         return torch.tensor(tokenised, dtype=torch.long)
@@ -314,11 +314,11 @@ class CDRTokeniser(_AATokeniser):
         has_b_data = tcr.loc[["TRBV", "CDR3B"]].notna().any()
 
         if noising:
-            include_a = random.random() < self._p_drop_chain
-            include_b = random.random() < self._p_drop_chain
+            include_a = random.random() >= self._p_drop_chain
+            include_b = random.random() >= self._p_drop_chain
 
             # prevent censoring both chains
-            if (has_a_data and include_a) or (has_b_data and include_b):
+            if not ((has_a_data and include_a) or (has_b_data and include_b)):
                 include_a = include_b = True
 
         # Tokenise chains
@@ -349,9 +349,9 @@ class CDRTokeniser(_AATokeniser):
         include_cdr1 = include_cdr2 = include_cdr3 = True
 
         if noising:
-            include_cdr1 = random.random() < self._p_drop_cdr
-            include_cdr2 = random.random() < self._p_drop_cdr
-            include_cdr3 = random.random() < self._p_drop_cdr
+            include_cdr1 = random.random() >= self._p_drop_cdr
+            include_cdr2 = random.random() >= self._p_drop_cdr
+            include_cdr3 = random.random() >= self._p_drop_cdr
 
             # Make sure filter doesn't cause the whole TCR to be censored
             if not (
@@ -395,15 +395,15 @@ class CDRTokeniser(_AATokeniser):
     def _get_vcdrs(v_gene: str) -> tuple:
         if not v_gene in V_CDRS:
             return (None, None)
-        
+
         try:
             cdr1 = V_CDRS[v_gene]["CDR1-IMGT"]
-        except(KeyError):
+        except KeyError:
             cdr1 = None
 
         try:
             cdr2 = V_CDRS[v_gene]["CDR2-IMGT"]
-        except(KeyError):
+        except KeyError:
             cdr2 = None
-        
+
         return (cdr1, cdr2)
