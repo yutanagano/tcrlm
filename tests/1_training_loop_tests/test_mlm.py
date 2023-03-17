@@ -1,4 +1,4 @@
-from mlm import main
+from mlm import mlmpipeline
 import multiprocessing as mp
 import pytest
 from tests.resources.helper_functions import *
@@ -6,7 +6,7 @@ import torch
 from warnings import warn
 
 
-def get_config(model_class: str, tokeniser: str, data_file: str, gpu: bool) -> dict:
+def get_config(model_class: str, tokeniser: str, data_file: str) -> dict:
     config = {
         "model": {
             "class": model_class,
@@ -22,38 +22,35 @@ def get_config(model_class: str, tokeniser: str, data_file: str, gpu: bool) -> d
             "train_path": f"tests/resources/{data_file}",
             "valid_path": f"tests/resources/{data_file}",
             "tokeniser": tokeniser,
-            "dataloader": {"config": {}},
+            "dataloader": {"config": {"batch_size": torch.cuda.device_count()}},
         },
         "optim": {
             "optimiser": {"config": {"n_warmup_steps": 10000}},
         },
         "n_epochs": 3,
-        "gpu": gpu,
+        "n_gpu": torch.cuda.device_count(),
     }
     return config
 
 
 class TestTrainingLoop:
     @pytest.mark.parametrize(
-        ("model_class", "tokeniser", "data_file", "gpu"),
+        ("model_class", "tokeniser", "data_file"),
         (
             (
                 "BCDR3BERT",
                 {"class": "CDR3Tokeniser", "config": {}},
                 "mock_data.csv",
-                False,
             ),
             (
                 "BCDR3BERT",
                 {"class": "CDR3Tokeniser", "config": {}},
                 "mock_data.csv",
-                True,
             ),
             (
                 "BVCDR3BERT",
                 {"class": "BVCDR3Tokeniser", "config": {}},
                 "mock_data_beta.csv",
-                False,
             ),
             (
                 "CDRBERT",
@@ -62,7 +59,6 @@ class TestTrainingLoop:
                     "config": {"p_drop_aa": 0, "p_drop_cdr": 0, "p_drop_chain": 0},
                 },
                 "mock_data.csv",
-                False,
             ),
         ),
     )
@@ -72,21 +68,21 @@ class TestTrainingLoop:
         model_class,
         tokeniser,
         data_file,
-        gpu,
     ):
-        if gpu and not torch.cuda.is_available():
-            warn("MLM GPU test skipped due to hardware limitations.")
+        if not torch.cuda.is_available():
+            warn("MLM test skipped due to hardware limitations.")
             return
 
         # Set up config
-        config = get_config(model_class, tokeniser, data_file, gpu)
+        config = get_config(model_class, tokeniser, data_file)
 
         # Get the correct model template
         model_template = get_model_template(model_class)
 
         # Run MLM training loop in separate process
         p = mp.Process(
-            target=main, kwargs={"wd": tmp_path, "name": "test", "config": config}
+            target=mlmpipeline.main,
+            kwargs={"wd": tmp_path, "name": "test", "config": config},
         )
         p.start()
         p.join()
@@ -110,7 +106,7 @@ class TestTrainingLoop:
                 "valid_acc",
                 "valid_top5_acc",
             ],
-            expected_len=3,
+            expected_len=4,
         )
 
         # Check that config json is saved correctly
