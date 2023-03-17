@@ -6,7 +6,7 @@ from src.model_loader import ModelLoader
 
 @pytest.fixture
 def model():
-    return ModelLoader(Path("tests")/"resources"/"BCDR3BERT")
+    return ModelLoader(Path("tests") / "resources" / "BCDR3BERT")
 
 
 class TestModelLoader:

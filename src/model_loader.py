@@ -22,13 +22,13 @@ class ModelLoader:
 
     def __init__(self, save_dir: Path) -> None:
         # Instantiate model
-        with open(save_dir/"config.json", "r") as f:
+        with open(save_dir / "config.json", "r") as f:
             config = json.load(f)
 
         model = getattr(models, config["model"]["class"])(**config["model"]["config"])
 
         # Load weights
-        model.load_state_dict(torch.load(save_dir/"state_dict.pt"))
+        model.load_state_dict(torch.load(save_dir / "state_dict.pt"))
 
         # Transfer to GPU if possible
         if torch.cuda.is_available():
