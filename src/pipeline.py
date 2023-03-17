@@ -122,7 +122,7 @@ class TrainingPipeline:
 
     def ddp_setup(self, rank: int) -> None:
         os.environ["MASTER_ADDR"] = "localhost"
-        os.environ["MASTER_PORT"] = "12355"
+        os.environ["MASTER_PORT"] = "7777"
         init_process_group(backend="nccl", rank=rank, world_size=self.world_size)
 
     def ddp_cleanup(self) -> None:
