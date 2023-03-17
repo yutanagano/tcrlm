@@ -3,46 +3,73 @@ An executable script to conduct masked-language modelling on TCR models.
 """
 
 
-import argparse
-from datetime import datetime
-import json
-from pathlib import Path
-from src import models
-from src.models.embedder import _MLMEmbedder
 from src.datahandling import tokenisers
 from src.datahandling.dataloaders import MLMDataLoader
 from src.datahandling.datasets import TCRDataset
 from src.metrics import AdjustedCELoss, mlm_acc, mlm_topk_acc
+from src import models
+from src.models.embedder import _MLMEmbedder
 from src.optim import AdamWithScheduling
-from src.utils import save
+from src.pipeline import TrainingPipeline
 import torch
-from torch.utils.data import DataLoader
+from torch import Tensor
+from torch.nn import Module
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm
-from typing import Union
 
 
-def parse_command_line_arguments() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Masked-language modelling training loop."
+class MLMModelWrapper(Module):
+    def __init__(self, embedder: _MLMEmbedder) -> None:
+        super().__init__()
+        self.embedder = embedder
+
+    def forward(self, masked: Tensor) -> Tensor:
+        return self.embedder.mlm(masked)
+
+
+def training_obj_factory(config: dict, rank: int) -> tuple:
+    # Instantiate model
+    model = getattr(models, config["model"]["class"])(**config["model"]["config"])
+    model.to(rank)
+    model = DDP(MLMModelWrapper(model), device_ids=[rank])
+
+    # Load train/valid data
+    tokeniser = getattr(tokenisers, config["data"]["tokeniser"]["class"])(
+        **config["data"]["tokeniser"]["config"]
     )
-    parser.add_argument(
-        "-d",
-        "--working-directory",
-        help="Path to tcr_embedder project working directory.",
+    train_ds = TCRDataset(data=config["data"]["train_path"], tokeniser=tokeniser)
+    valid_ds = TCRDataset(data=config["data"]["valid_path"], tokeniser=tokeniser)
+    train_dl = MLMDataLoader(
+        dataset=train_ds,
+        sampler=DistributedSampler(train_ds),
+        **config["data"]["dataloader"]["config"],
     )
-    parser.add_argument("-n", "--name", help="Name of the training run.")
-    parser.add_argument(
-        "config_path", help="Path to the training run config json file."
+    valid_dl = MLMDataLoader(
+        dataset=valid_ds,
+        p_mask_random=0,
+        p_mask_keep=0,
+        **config["data"]["dataloader"]["config"],
     )
-    return parser.parse_args()
+
+    # Loss functions
+    loss_fn = AdjustedCELoss(label_smoothing=0.1)
+
+    # Optimiser
+    optimiser = AdamWithScheduling(
+        params=model.parameters(),
+        d_model=config["model"]["config"]["d_model"],
+        **config["optim"]["optimiser"]["config"],
+    )
+
+    return model, train_dl, valid_dl, (loss_fn,), optimiser
 
 
-def metric_feedback(metrics: dict) -> None:
-    for metric in metrics:
-        print(f"{metric}: {metrics[metric]}")
+def train_func(
+    model: DDP, dl: MLMDataLoader, loss_fns: tuple, optimiser, rank: int
+) -> dict:
+    loss_fn = loss_fns[0]
 
-
-def train(model: _MLMEmbedder, dl: DataLoader, loss_fn, optimiser, device) -> dict:
     model.train()
 
     total_loss = 0
@@ -52,9 +79,9 @@ def train(model: _MLMEmbedder, dl: DataLoader, loss_fn, optimiser, device) -> di
     for x, y in tqdm(dl):
         num_samples = len(x)
 
-        x = x.to(device)
-        y = y.to(device)
-        logits = model.mlm(x)
+        x = x.to(rank)
+        y = y.to(rank)
+        logits = model(x)
 
         optimiser.zero_grad()
         loss = loss_fn(logits.flatten(0, 1), y.view(-1))
@@ -69,7 +96,9 @@ def train(model: _MLMEmbedder, dl: DataLoader, loss_fn, optimiser, device) -> di
 
 
 @torch.no_grad()
-def validate(model: _MLMEmbedder, dl: DataLoader, loss_fn, device) -> dict:
+def valid_func(model: DDP, dl: MLMDataLoader, loss_fns: tuple, rank: int) -> dict:
+    loss_fn = loss_fns[0]
+
     model.eval()
 
     total_loss = 0
@@ -80,10 +109,10 @@ def validate(model: _MLMEmbedder, dl: DataLoader, loss_fn, device) -> dict:
     for x, y in tqdm(dl):
         num_samples = len(x)
 
-        x = x.to(device)
-        y = y.to(device)
+        x = x.to(rank)
+        y = y.to(rank)
 
-        logits = model.mlm(x)
+        logits = model(x)
 
         loss = loss_fn(logits.flatten(0, 1), y.view(-1))
 
@@ -99,87 +128,12 @@ def validate(model: _MLMEmbedder, dl: DataLoader, loss_fn, device) -> dict:
     }
 
 
-def mlm(device: Union[str, int], wd: Path, name: str, config: dict):
-    device = torch.device(device)
-
-    # Load training data
-    print("Loading data...")
-    tokeniser = getattr(tokenisers, config["data"]["tokeniser"]["class"])(
-        **config["data"]["tokeniser"]["config"]
-    )
-    train_dl = MLMDataLoader(
-        dataset=TCRDataset(data=config["data"]["train_path"], tokeniser=tokeniser),
-        **config["data"]["dataloader"]["config"],
-    )
-    valid_dl = MLMDataLoader(
-        dataset=TCRDataset(data=config["data"]["valid_path"], tokeniser=tokeniser),
-        p_mask_random=0,
-        p_mask_keep=0,
-        **config["data"]["dataloader"]["config"],
-    )
-
-    # Instantiate model
-    print("Instantiating model...")
-    model = getattr(models, config["model"]["class"])(**config["model"]["config"])
-    model.to(device)
-
-    # Instantiate loss function and optimiser
-    loss_fn = AdjustedCELoss(label_smoothing=0.1)
-    optimiser = AdamWithScheduling(
-        params=model.parameters(),
-        d_model=config["model"]["config"]["d_model"],
-        **config["optim"]["optimiser"]["config"],
-    )
-
-    metric_log = dict()
-
-    # Go through epochs of training
-    for epoch in range(1, config["n_epochs"] + 1):
-        print(f"Starting epoch {epoch}...")
-
-        print("Training...")
-        train_metrics = train(model, train_dl, loss_fn, optimiser, device)
-        metric_feedback(train_metrics)
-
-        print("Validating...")
-        valid_metrics = validate(model, valid_dl, loss_fn, device)
-        metric_feedback(valid_metrics)
-
-        metric_log[epoch] = {**train_metrics, **valid_metrics}
-
-    # Save results
-    print("Saving results...")
-    save(wd=wd, save_name=name, model=model, log=metric_log, config=config)
-
-    print("Done!")
-
-
-def main(wd: Path, name: str, config: dict):
-    # GPU traiing
-    if config["gpu"]:
-        print("Commencing training on 1 CUDA device...")
-        mlm(device=0, wd=wd, name=name, config=config)
-        return
-
-    # CPU training
-    print("Commencing training on CPU...")
-    mlm(device="cpu", wd=wd, name=name, config=config)
-
+mlmpipeline = TrainingPipeline(
+    description="Masked language modelling pipeline",
+    training_obj_factory=training_obj_factory,
+    train_func=train_func,
+    valid_func=valid_func,
+)
 
 if __name__ == "__main__":
-    args = parse_command_line_arguments()
-
-    if args.working_directory is None:
-        wd = Path.cwd()
-    else:
-        wd = Path(args.working_directory).resolve()
-
-    if args.name is None:
-        name = datetime.now().strftime(r"%Y%m%d-%H%M%S")
-
-    assert wd.is_dir()
-
-    with open(args.config_path, "r") as f:
-        config = json.load(f)
-
-    main(wd=wd, name=name, config=config)
+    mlmpipeline.run_from_clargs()
