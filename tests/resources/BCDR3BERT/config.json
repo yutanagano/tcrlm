@@ -1,0 +1,35 @@
+{
+    "model": {
+        "class": "BCDR3BERT",
+        "config": {
+            "name": "BCDR3BERT",
+            "num_encoder_layers": 6,
+            "d_model": 128,
+            "nhead": 8,
+            "dim_feedforward": 512
+        }
+    },
+    "data": {
+        "train_path": "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/tanno/train.csv",
+        "valid_path": "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/tanno/test.csv",
+        "tokeniser": {
+            "class": "BCDR3Tokeniser",
+            "config": {
+                "p_drop_aa": 0
+            }
+        },
+        "dataloader": {
+            "config": {
+                "batch_size": 512,
+                "num_workers": 4
+            }
+        }
+    },
+    "optim": {
+        "optimiser_config": {
+            "n_warmup_steps": 10000
+        }
+    },
+    "n_epochs": 20,
+    "gpu": true
+}

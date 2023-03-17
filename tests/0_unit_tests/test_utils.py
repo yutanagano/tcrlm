@@ -124,28 +124,3 @@ class TestSave:
         assert pd.read_csv(test_dir / "log.csv").equals(toy_log_df)
         with open(test_dir / "config.json", "r") as f:
             assert json.load(f) == toy_config
-
-
-class TestPCDistModelWrapper:
-    def test_name(self):
-        model = utils.PCDistModelWrapper(RandomEmbedder(), "foobar", CDR3Tokeniser())
-
-        assert model.name == "foobar"
-
-    def test_pdist(self):
-        data = {
-            "CDR3A": np.array(["AAA", "AAA", "AAA"]),
-            "CDR3B": np.array(["AAA", "AAA", "AAA"]),
-        }
-        model = utils.PCDistModelWrapper(RandomEmbedder(), "foobar", CDR3Tokeniser())
-        pdist = model.pdist(sequence_elements=data)
-
-        assert pdist.shape == (3,)
-
-    def test_cdist(self):
-        data_1 = {"CDR3A": np.array(["AAA", "AAA", "AAA"])}
-        data_2 = {"CDR3B": np.array(["AAA", "AAA"])}
-        model = utils.PCDistModelWrapper(RandomEmbedder(), "foobar", CDR3Tokeniser())
-        cdist = model.cdist(sequence_elements_1=data_1, sequence_elements_2=data_2)
-
-        assert cdist.shape == (3, 2)
