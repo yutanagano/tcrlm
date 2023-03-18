@@ -96,7 +96,7 @@ def train_func(
     total_lr = 0
     divisor = 0
 
-    for x, x_prime, masked, target in tqdm(dl):
+    for x, x_prime, masked, target in tqdm(dl, disable=rank):
         num_samples = len(x)
 
         x = x.to(rank)
@@ -133,7 +133,7 @@ def valid_func(
     total_mlm_acc = 0
     divisor = 0
 
-    for x, x_prime, masked, target in tqdm(dl):
+    for x, x_prime, masked, target in tqdm(dl, disable=rank):
         num_samples = len(x)
 
         x = x.to(rank)
