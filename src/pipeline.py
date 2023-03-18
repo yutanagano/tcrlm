@@ -4,6 +4,7 @@ import json
 import os
 import pandas as pd
 from pathlib import Path
+from random import randint
 import torch
 from torch.distributed import init_process_group, destroy_process_group
 import torch.multiprocessing as mp
@@ -63,10 +64,12 @@ class TrainingPipeline:
         ] //= self.world_size  # Correct for DDP
 
         print(f"Commencing training on {self.world_size} CUDA device(s)...")
-        mp.spawn(self.proc, nprocs=self.world_size)
+        port = randint(10000, 60000)
+        print(f"Coordinating on port {port}...")
+        mp.spawn(self.proc, args=(port,), nprocs=self.world_size)
 
-    def proc(self, rank: int) -> None:
-        self.ddp_setup(rank)
+    def proc(self, rank: int, port: int) -> None:
+        self.ddp_setup(port, rank)
 
         # Load training objects
         TrainingPipeline.proc_print("Loading training objects...", rank)
@@ -120,10 +123,10 @@ class TrainingPipeline:
         self.ddp_cleanup(rank)
         TrainingPipeline.proc_print("Done!", rank)
 
-    def ddp_setup(self, rank: int) -> None:
+    def ddp_setup(self, port: int, rank: int) -> None:
         TrainingPipeline.proc_print("Setting up DDP process...", rank)
-        os.environ["MASTER_ADDR"] = "127.0.0.1"
-        os.environ["MASTER_PORT"] = "12355"
+        os.environ["MASTER_ADDR"] = "localhost"
+        os.environ["MASTER_PORT"] = str(port)
         init_process_group(backend="nccl", rank=rank, world_size=self.world_size)
         TrainingPipeline.proc_print("DDP process started.", rank)
 
