@@ -39,6 +39,9 @@ class TCRDataLoader(DataLoader):
 
         return pad_sequence(sequences=batch, batch_first=True, padding_value=0)
 
+    def set_epoch(self, epoch: int) -> None:
+        self.sampler.set_epoch(epoch)
+
 
 class MLMDataLoader(TCRDataLoader):
     """

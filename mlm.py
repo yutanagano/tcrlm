@@ -76,7 +76,7 @@ def train_func(
     total_lr = 0
     divisor = 0
 
-    for x, y in tqdm(dl):
+    for x, y in tqdm(dl, disable=rank):
         num_samples = len(x)
 
         x = x.to(rank)
@@ -106,7 +106,7 @@ def valid_func(model: DDP, dl: MLMDataLoader, loss_fns: tuple, rank: int) -> dic
     total_top5_acc = 0
     divisor = 0
 
-    for x, y in tqdm(dl):
+    for x, y in tqdm(dl, disable=rank):
         num_samples = len(x)
 
         x = x.to(rank)

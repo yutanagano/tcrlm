@@ -69,29 +69,29 @@ class TrainingPipeline:
         self.ddp_setup(rank)
 
         # Load training objects
-        print("Loading training objects...")
+        TrainingPipeline.proc_print("Loading training objects...", rank)
         model, train_dl, valid_dl, loss_fns, optimiser = self.training_obj_factory(
             self.config, rank
         )
 
         # Evaluate model at pre-SimC learning state
-        print("Evaluating pre-trained model state...")
+        TrainingPipeline.proc_print("Evaluating pre-trained model state...", rank)
         valid_metrics = self.valid_func(
             model=model,
             dl=valid_dl,
             loss_fns=loss_fns,
             rank=rank,
         )
-        TrainingPipeline.metric_feedback(valid_metrics)
+        TrainingPipeline.metric_feedback(valid_metrics, rank)
 
         metric_log = {0: {"loss": None, "lr": None, **valid_metrics}}
 
         # Go through epochs of training
         for epoch in range(1, self.config["n_epochs"] + 1):
-            print(f"Starting epoch {epoch}...")
-            train_dl.sampler.set_epoch(epoch)
+            TrainingPipeline.proc_print(f"Starting epoch {epoch}...", rank)
+            train_dl.set_epoch(epoch)
 
-            print("Training...")
+            TrainingPipeline.proc_print("Training...", rank)
             train_metrics = self.train_func(
                 model=model,
                 dl=train_dl,
@@ -99,16 +99,16 @@ class TrainingPipeline:
                 optimiser=optimiser,
                 rank=rank,
             )
-            TrainingPipeline.metric_feedback(train_metrics)
+            TrainingPipeline.metric_feedback(train_metrics, rank)
 
-            print("Validating...")
+            TrainingPipeline.proc_print("Validating...", rank)
             valid_metrics = self.valid_func(
                 model=model,
                 dl=valid_dl,
                 loss_fns=loss_fns,
                 rank=rank,
             )
-            TrainingPipeline.metric_feedback(valid_metrics)
+            TrainingPipeline.metric_feedback(valid_metrics, rank)
 
             metric_log[epoch] = {**train_metrics, **valid_metrics}
 
@@ -117,16 +117,20 @@ class TrainingPipeline:
             print("Saving results...")
             self.save(model=model.module.embedder, log=metric_log)
 
-        self.ddp_cleanup()
-        print("Done!")
+        self.ddp_cleanup(rank)
+        TrainingPipeline.proc_print("Done!", rank)
 
     def ddp_setup(self, rank: int) -> None:
-        os.environ["MASTER_ADDR"] = "localhost"
-        os.environ["MASTER_PORT"] = "7777"
+        TrainingPipeline.proc_print("Setting up DDP process...", rank)
+        os.environ["MASTER_ADDR"] = "127.0.0.1"
+        os.environ["MASTER_PORT"] = "12355"
         init_process_group(backend="nccl", rank=rank, world_size=self.world_size)
+        TrainingPipeline.proc_print("DDP process started.", rank)
 
-    def ddp_cleanup(self) -> None:
+    def ddp_cleanup(self, rank: int) -> None:
+        TrainingPipeline.proc_print("Closing DDP process...", rank)
         destroy_process_group()
+        TrainingPipeline.proc_print("DDP process closed.", rank)
 
     def save(self, model: Module, log: dict) -> None:
         model_saves_dir = self.wd / "model_saves"
@@ -165,6 +169,10 @@ class TrainingPipeline:
             json.dump(self.config, f, indent=4)
 
     @staticmethod
-    def metric_feedback(metrics: dict) -> None:
+    def proc_print(msg: str, rank: int) -> None:
+        print(f"[{rank}] {msg}")
+
+    @staticmethod
+    def metric_feedback(metrics: dict, rank: int) -> None:
         for metric in metrics:
-            print(f"{metric}: {metrics[metric]}")
+            TrainingPipeline.proc_print(f"{metric}: {metrics[metric]}", rank)
