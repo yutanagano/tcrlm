@@ -139,9 +139,7 @@ class AutoContrastiveDataLoader(MLMDataLoader):
 
 class EpitopeAutoContrastiveSuperDataLoader:
     def __init__(
-        self,
-        dataloader_ac: AutoContrastiveDataLoader,
-        dataloader_ec: TCRDataLoader
+        self, dataloader_ac: AutoContrastiveDataLoader, dataloader_ec: TCRDataLoader
     ) -> None:
         self._dataloader_ac = dataloader_ac
         self._dataloader_ec = dataloader_ec
