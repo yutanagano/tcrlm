@@ -10,6 +10,8 @@ import numpy as np
 from numpy import ndarray
 import pandas as pd
 from pathlib import Path
+from rapidfuzz import process
+from rapidfuzz.distance import Levenshtein
 from scipy.spatial.distance import squareform
 from scipy.stats import mode
 import seaborn
@@ -32,36 +34,30 @@ class BenchmarkingPipeline:
         vdjdb_data = pd.read_csv(VDJDB_DATA_PATH)
         dash_data = pd.read_csv(DASH_DATA_PATH)
 
-        vdjdb_data = vdjdb_data.rename(
-            columns={
-                "TRBV": "v_b_gene",
-                "CDR3B": "cdr3_b_aa"
-            }
-        )
-        vdjdb_data = vdjdb_data[["v_b_gene", "cdr3_b_aa", "Epitope"]]
-        vdjdb_data["count"] = 1
+        vdjdb_data = vdjdb_data[["TRBV", "CDR3B", "Epitope"]]
 
-        dash_data = dash_data[["v_b_gene", "cdr3_b_aa", "epitope", "count"]]
+        dash_data = dash_data[["v_b_gene", "cdr3_b_aa", "epitope"]]
         dash_data = dash_data.rename(
             columns={
+                "v_b_gene": "TRBV",
+                "cdr3_b_aa": "CDR3B",
                 "epitope": "Epitope"
             }
         )
         dash_data = dash_data.drop_duplicates(
-            subset=["v_b_gene", "cdr3_b_aa"], ignore_index=True
+            subset=["TRBV", "CDR3B"], ignore_index=True
         )
-        dash_data["count"] = 1
 
         self.ep_data = {"vdjdb": vdjdb_data, "dash": dash_data}
 
-        self.benchmark_dir = PROJECT_DIR / "benchmarks_beta" / "tcrdist"
+        self.benchmark_dir = PROJECT_DIR / "benchmarks_beta" / "BCDR3Levenshtein"
 
         if not self.benchmark_dir.is_dir():
             self.benchmark_dir.mkdir()
 
     def main(self) -> None:
         summary_dict = {
-            "model_name": "tcrdist"
+            "model_name": "BCDR3Levenshtein"
         }
         data = dict()
         plots = dict()
@@ -69,13 +65,8 @@ class BenchmarkingPipeline:
         # Benchmarking on epitope data
         print("Benchmarking on Epitope-labelled data...")
         for ds_name, ds_df in self.ep_data.items():
-            tr = TCRrep(
-                cell_df=ds_df,
-                organism="human",
-                chains=["beta"]
-            )
-            cdist = tr.pw_beta.astype(np.float32)
-            ds_df = tr.clone_df
+            cdist = process.cdist(ds_df["CDR3B"], ds_df["CDR3B"], scorer=Levenshtein.distance)
+            cdist = cdist.astype(np.float32)
             epitopes = ds_df["Epitope"].astype("category").cat.codes.to_numpy()
 
             knn_scores = BenchmarkingPipeline.knn(cdist, epitopes)
