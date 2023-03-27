@@ -9,7 +9,6 @@ from matplotlib.figure import Figure
 import numpy as np
 from numpy import ndarray
 import pandas as pd
-from pandas import DataFrame
 from pathlib import Path
 from scipy.spatial.distance import squareform
 from scipy.stats import mode
