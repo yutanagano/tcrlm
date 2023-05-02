@@ -93,7 +93,7 @@ class EpitopeContrastiveDataset(AutoContrastiveDataset):
         data: Union[Path, str, pd.DataFrame],
         tokeniser: tokenisers._Tokeniser,
         censoring_lhs: bool,
-        censoring_rhs: bool
+        censoring_rhs: bool,
     ):
         super().__init__(data, tokeniser, censoring_lhs, censoring_rhs)
 
