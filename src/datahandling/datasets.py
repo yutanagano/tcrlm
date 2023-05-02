@@ -5,6 +5,8 @@ Custom dataset classes.
 
 import pandas as pd
 from pathlib import Path
+
+from src.datahandling import tokenisers
 from . import tokenisers
 from torch.utils.data import Dataset
 from typing import Union
@@ -81,15 +83,19 @@ class AutoContrastiveDataset(TCRDataset):
         return (x, x_lhs, x_rhs)
 
 
-class EpitopeContrastiveDataset(TCRDataset):
+class EpitopeContrastiveDataset(AutoContrastiveDataset):
     """
     Dataset for fetching epitope-matched TCR pairs from labelled data.
     """
 
     def __init__(
-        self, data: Union[Path, str, pd.DataFrame], tokeniser: tokenisers._Tokeniser
+        self,
+        data: Union[Path, str, pd.DataFrame],
+        tokeniser: tokenisers._Tokeniser,
+        censoring_lhs: bool,
+        censoring_rhs: bool
     ):
-        super().__init__(data, tokeniser)
+        super().__init__(data, tokeniser, censoring_lhs, censoring_rhs)
 
         self._ep_groupby = self._data.groupby("Epitope")
 
@@ -98,6 +104,7 @@ class EpitopeContrastiveDataset(TCRDataset):
         x_prime_row = self._ep_groupby.get_group(x_row["Epitope"]).sample().iloc[0]
 
         x = self._tokeniser.tokenise(x_row)
-        x_prime = self._tokeniser.tokenise(x_prime_row)
+        x_lhs = self._tokeniser.tokenise(x_row, noising=self.censoring_lhs)
+        x_rhs = self._tokeniser.tokenise(x_prime_row, noising=self.censoring_rhs)
 
-        return (x, x_prime)
+        return (x, x_lhs, x_rhs)

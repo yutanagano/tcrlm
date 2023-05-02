@@ -7,7 +7,7 @@ unlabelled TCR data.
 from src import models
 from src.models.embedder import _MLMEmbedder
 from src.datahandling import tokenisers
-from src.datahandling.dataloaders import AutoContrastiveDataLoader
+from src.datahandling.dataloaders import ContrastiveDataLoader
 from src.datahandling.datasets import AutoContrastiveDataset
 from src import metrics
 from src.metrics import AdjustedCELoss, alignment_paired, mlm_acc, uniformity
@@ -57,12 +57,12 @@ def training_obj_factory(config: dict, rank: int) -> tuple:
         censoring_lhs=False,
         censoring_rhs=False,
     )
-    train_dl = AutoContrastiveDataLoader(
+    train_dl = ContrastiveDataLoader(
         dataset=train_ds,
         sampler=DistributedSampler(train_ds),
         **config["data"]["dataloader"]["config"],
     )
-    valid_dl = AutoContrastiveDataLoader(
+    valid_dl = ContrastiveDataLoader(
         dataset=valid_ds,
         p_mask_random=0,
         p_mask_keep=0,
@@ -86,7 +86,7 @@ def training_obj_factory(config: dict, rank: int) -> tuple:
 
 
 def train_func(
-    model: DDP, dl: AutoContrastiveDataLoader, loss_fns: tuple, optimiser, rank: int
+    model: DDP, dl: ContrastiveDataLoader, loss_fns: tuple, optimiser, rank: int
 ) -> dict:
     mlm_loss_fn, cont_loss_fn = loss_fns
 
@@ -122,7 +122,7 @@ def train_func(
 
 @torch.no_grad()
 def valid_func(
-    model: DDP, dl: AutoContrastiveDataLoader, loss_fns: tuple, rank: int
+    model: DDP, dl: ContrastiveDataLoader, loss_fns: tuple, rank: int
 ) -> dict:
     mlm_loss_fn, cont_loss_fn = loss_fns
 
