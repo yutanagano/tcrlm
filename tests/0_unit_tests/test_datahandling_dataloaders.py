@@ -93,7 +93,7 @@ class TestMLMDataLoader:
 
 class TestAutoContrastiveDataLoader:
     def test_shapes(self, abcdr3t_auto_contrastive_dataset):
-        dataloader = dataloaders.AutoContrastiveDataLoader(
+        dataloader = dataloaders.ContrastiveDataLoader(
             dataset=abcdr3t_auto_contrastive_dataset, batch_size=3
         )
 

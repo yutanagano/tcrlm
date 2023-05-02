@@ -46,6 +46,8 @@ class TrainingPipeline:
 
         if args.name is None:
             name = datetime.now().strftime(r"%Y%m%d-%H%M%S")
+        else:
+            name = args.name
 
         assert wd.is_dir()
 
