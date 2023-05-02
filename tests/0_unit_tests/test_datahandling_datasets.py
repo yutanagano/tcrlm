@@ -73,26 +73,26 @@ class TestAutoContrastiveDataset:
 class TestEpitopeContrastiveDataset:
     def test_len(self, mock_data_df, dummy_tokeniser):
         dataset = datasets.EpitopeContrastiveDataset(
-            data=mock_data_df, tokeniser=dummy_tokeniser
+            data=mock_data_df, tokeniser=dummy_tokeniser, censoring_lhs=False, censoring_rhs=False
         )
         assert len(dataset) == 3
 
     def test_getitem(self, mock_data_df, dummy_tokeniser):
         dataset = datasets.EpitopeContrastiveDataset(
-            data=mock_data_df, tokeniser=dummy_tokeniser
+            data=mock_data_df, tokeniser=dummy_tokeniser, censoring_lhs=False, censoring_rhs=False
         )
 
-        x, x_prime = dataset[0]
-        assert x == (0, False)
-        assert x_prime[0] in (0, 1)
-        assert x_prime[1] == False
+        x, x_lhs, x_rhs = dataset[0]
+        assert x == x_lhs == (0, False)
+        assert x_rhs[0] in (0, 1)
+        assert x_rhs[1] == False
 
-        x, x_prime = dataset[1]
-        assert x == (1, False)
-        assert x_prime[0] in (0, 1)
-        assert x_prime[1] == False
+        x, x_lhs, x_rhs = dataset[1]
+        assert x == x_lhs == (1, False)
+        assert x_rhs[0] in (0, 1)
+        assert x_rhs[1] == False
 
-        x, x_prime = dataset[2]
-        assert x == (2, False)
-        assert x_prime[0] == 2
-        assert x_prime[1] == False
+        x, x_lhs, x_rhs = dataset[2]
+        assert x == x_lhs == (2, False)
+        assert x_rhs[0] == 2
+        assert x_rhs[1] == False

@@ -8,24 +8,13 @@ from src.datahandling.dataloaders import MLMDataLoader
 from src.datahandling.datasets import TCRDataset
 from src.metrics import AdjustedCELoss, mlm_acc, mlm_topk_acc
 from src import models
-from src.models.embedder import _MLMEmbedder
+from src.models.wrappers import MLMModelWrapper
 from src.optim import AdamWithScheduling
 from src.pipeline import TrainingPipeline
 import torch
-from torch import Tensor
-from torch.nn import Module
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm
-
-
-class MLMModelWrapper(Module):
-    def __init__(self, embedder: _MLMEmbedder) -> None:
-        super().__init__()
-        self.embedder = embedder
-
-    def forward(self, masked: Tensor) -> Tensor:
-        return self.embedder.mlm(masked)
 
 
 def training_obj_factory(config: dict, rank: int) -> tuple:
