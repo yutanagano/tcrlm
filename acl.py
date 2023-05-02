@@ -5,34 +5,18 @@ unlabelled TCR data.
 
 
 from src import models
-from src.models.embedder import _MLMEmbedder
 from src.datahandling import tokenisers
 from src.datahandling.dataloaders import ContrastiveDataLoader
 from src.datahandling.datasets import AutoContrastiveDataset
 from src import metrics
+from src.models.wrappers import CLModelWrapper
 from src.metrics import AdjustedCELoss, alignment_paired, mlm_acc, uniformity
-from src.models.embedder import _MLMEmbedder
 from src.optim import AdamWithScheduling
 from src.pipeline import TrainingPipeline
 import torch
-from torch import Tensor
-from torch.nn import Module
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm
-
-
-class ACLModelWrapper(Module):
-    def __init__(self, embedder: _MLMEmbedder) -> None:
-        super().__init__()
-        self.embedder = embedder
-
-    def forward(self, x: Tensor, x_prime: Tensor, masked: Tensor) -> tuple:
-        z = self.embedder.embed(x)
-        z_prime = self.embedder.embed(x_prime)
-        mlm_logits = self.embedder.mlm(masked)
-
-        return z, z_prime, mlm_logits
 
 
 def training_obj_factory(config: dict, rank: int) -> tuple:
@@ -40,7 +24,7 @@ def training_obj_factory(config: dict, rank: int) -> tuple:
     model = getattr(models, config["model"]["class"])(**config["model"]["config"])
     model.load_state_dict(torch.load(config["model"]["pretrain_state_dict_path"]))
     model.to(rank)
-    model = DDP(ACLModelWrapper(model), device_ids=[rank])
+    model = DDP(CLModelWrapper(model), device_ids=[rank])
 
     # Load train/valid data
     tokeniser = getattr(tokenisers, config["data"]["tokeniser"]["class"])(
