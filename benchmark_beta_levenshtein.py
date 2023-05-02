@@ -38,11 +38,7 @@ class BenchmarkingPipeline:
 
         dash_data = dash_data[["v_b_gene", "cdr3_b_aa", "epitope"]]
         dash_data = dash_data.rename(
-            columns={
-                "v_b_gene": "TRBV",
-                "cdr3_b_aa": "CDR3B",
-                "epitope": "Epitope"
-            }
+            columns={"v_b_gene": "TRBV", "cdr3_b_aa": "CDR3B", "epitope": "Epitope"}
         )
         dash_data = dash_data.drop_duplicates(
             subset=["TRBV", "CDR3B"], ignore_index=True
@@ -56,21 +52,23 @@ class BenchmarkingPipeline:
             self.benchmark_dir.mkdir()
 
     def main(self) -> None:
-        summary_dict = {
-            "model_name": "BCDR3Levenshtein"
-        }
+        summary_dict = {"model_name": "BCDR3Levenshtein"}
         data = dict()
         plots = dict()
 
         # Benchmarking on epitope data
         print("Benchmarking on Epitope-labelled data...")
         for ds_name, ds_df in self.ep_data.items():
-            cdist = process.cdist(ds_df["CDR3B"], ds_df["CDR3B"], scorer=Levenshtein.distance)
+            cdist = process.cdist(
+                ds_df["CDR3B"], ds_df["CDR3B"], scorer=Levenshtein.distance
+            )
             cdist = cdist.astype(np.float32)
             epitopes = ds_df["Epitope"].astype("category").cat.codes.to_numpy()
 
             knn_scores = BenchmarkingPipeline.knn(cdist, epitopes)
-            avg_precision, precisions, recalls = BenchmarkingPipeline.precision_recall(cdist, epitopes)
+            avg_precision, precisions, recalls = BenchmarkingPipeline.precision_recall(
+                cdist, epitopes
+            )
 
             fig, ax = plt.subplots()
             ax.step(recalls, precisions)
@@ -120,7 +118,7 @@ class BenchmarkingPipeline:
     @staticmethod
     def precision_recall(cdist: ndarray, epitopes: ndarray) -> Tuple[float, ndarray]:
         pdist = squareform(cdist)
-        probs = np.exp(-pdist/50)
+        probs = np.exp(-pdist / 50)
         positive_pair = (epitopes[:, None] == epitopes[None, :]) & (
             np.eye(len(epitopes)) != 1
         )

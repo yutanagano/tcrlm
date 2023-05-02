@@ -15,7 +15,7 @@ class MLMModelWrapper(Module):
 
     def forward(self, masked: Tensor) -> Tensor:
         return self.embedder.mlm(masked)
-    
+
 
 class CLModelWrapper(Module):
     def __init__(self, embedder: _MLMEmbedder) -> None:
