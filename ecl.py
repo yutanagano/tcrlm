@@ -125,7 +125,7 @@ def valid_func(
         masked = masked.to(rank)
         target = target.to(rank)
 
-        model.train() # turn dropout on for contrastive eval, as it adds noise
+        model.train()  # turn dropout on for contrastive eval, as it adds noise
         z = model.module.embedder.embed(x)
         z_prime = model.module.embedder.embed(x_prime)
 
