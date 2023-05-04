@@ -5,8 +5,6 @@ Custom dataset classes.
 
 import pandas as pd
 from pathlib import Path
-
-from src.datahandling import tokenisers
 from . import tokenisers
 from torch.utils.data import Dataset
 from typing import Union
