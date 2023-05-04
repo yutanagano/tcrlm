@@ -4,13 +4,11 @@ Custom dataloader classes.
 
 
 import random
-from . import datasets
 import torch
 from torch import Tensor
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
-from typing import Optional, Tuple, Union
+from typing import Tuple, Union
 
 
 class TCRDataLoader(DataLoader):
