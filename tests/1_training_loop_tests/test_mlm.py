@@ -1,4 +1,4 @@
-from mlm import mlmpipeline
+from src.pipelines import MLMPipeline
 import multiprocessing as mp
 import pytest
 from tests.resources.helper_functions import *
@@ -81,7 +81,7 @@ class TestTrainingLoop:
 
         # Run MLM training loop in separate process
         p = mp.Process(
-            target=mlmpipeline.main,
+            target=MLMPipeline().main,
             kwargs={"wd": tmp_path, "name": "test", "config": config},
         )
         p.start()
