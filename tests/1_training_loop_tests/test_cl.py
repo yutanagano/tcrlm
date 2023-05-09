@@ -1,4 +1,4 @@
-from src.pipelines import ACLPipeline
+from src.pipelines import ACLPipeline, ECLPipeline
 import multiprocessing as mp
 from pathlib import Path
 import pytest
@@ -38,17 +38,25 @@ def get_config(tmp_path: Path, model_name: str, tokeniser: str, data_file: str) 
 
 
 @pytest.mark.parametrize(
-    ("model_class", "tokeniser", "data_file"),
+    ("pipeline", "model_class", "tokeniser", "data_file"),
     (
         (
+            ACLPipeline(),
             "CDR3ClsBERT",
             {"class": "CDR3Tokeniser", "config": {}},
             "mock_data.csv",
         ),
+        (
+            ECLPipeline(),
+            "CDR3ClsBERT",
+            {"class": "CDR3Tokeniser", "config": {}},
+            "mock_data.csv"
+        )
     ),
 )
 def test_training_loop(
     tmp_path,
+    pipeline,
     model_class,
     tokeniser,
     data_file,
@@ -68,7 +76,7 @@ def test_training_loop(
 
     # Run MLM training loop in separate process
     p = mp.Process(
-        target=ACLPipeline().main,
+        target=pipeline.main,
         kwargs={"wd": tmp_path, "name": "test", "config": config},
     )
     p.start()
