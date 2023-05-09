@@ -1,4 +1,4 @@
-from acl import aclpipeline
+from src.pipelines import ACLPipeline
 import multiprocessing as mp
 from pathlib import Path
 import pytest
@@ -68,7 +68,7 @@ def test_training_loop(
 
     # Run MLM training loop in separate process
     p = mp.Process(
-        target=aclpipeline.main,
+        target=ACLPipeline().main,
         kwargs={"wd": tmp_path, "name": "test", "config": config},
     )
     p.start()
