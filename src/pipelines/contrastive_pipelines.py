@@ -2,7 +2,7 @@ from .. import models
 from .. import metrics
 from ..datahandling import tokenisers
 from ..datahandling.dataloaders import ContrastiveDataLoader
-from ..datahandling.datasets import AutoContrastiveDataset
+from ..datahandling.datasets import AutoContrastiveDataset, EpitopeContrastiveDataset
 from ..models.wrappers import CLModelWrapper
 from ..metrics import AdjustedCELoss, alignment_paired, mlm_acc, uniformity
 from ..optim import AdamWithScheduling
@@ -117,6 +117,58 @@ class ACLPipeline(CLPipeline):
             **config["data"]["dataset"]["config"],
         )
         valid_ds = AutoContrastiveDataset(
+            data=config["data"]["valid_path"],
+            tokeniser=tokeniser,
+            censoring_lhs=False,
+            censoring_rhs=False,
+        )
+        train_dl = ContrastiveDataLoader(
+            dataset=train_ds,
+            sampler=DistributedSampler(train_ds),
+            **config["data"]["dataloader"]["config"],
+        )
+        valid_dl = ContrastiveDataLoader(
+            dataset=valid_ds,
+            p_mask_random=0,
+            p_mask_keep=0,
+            **config["data"]["dataloader"]["config"],
+        )
+
+        # Loss functions
+        mlm_loss_fn = AdjustedCELoss(label_smoothing=0.1)
+        cont_loss_fn = getattr(metrics, config["optim"]["contrastive_loss"]["class"])(
+            **config["optim"]["contrastive_loss"]["config"]
+        )
+
+        # Optimiser
+        optimiser = AdamWithScheduling(
+            params=model.parameters(),
+            d_model=config["model"]["config"]["d_model"],
+            **config["optim"]["optimiser"]["config"],
+        )
+
+        return model, train_dl, valid_dl, (mlm_loss_fn, cont_loss_fn), optimiser
+    
+
+class ECLPipeline(ACLPipeline):
+    @staticmethod
+    def training_obj_factory(config: dict, rank: int) -> tuple:
+        # Instantiate model
+        model = getattr(models, config["model"]["class"])(**config["model"]["config"])
+        model.load_state_dict(torch.load(config["model"]["pretrain_state_dict_path"]))
+        model.to(rank)
+        model = DDP(CLModelWrapper(model), device_ids=[rank])
+
+        # Load train/valid data
+        tokeniser = getattr(tokenisers, config["data"]["tokeniser"]["class"])(
+            **config["data"]["tokeniser"]["config"]
+        )
+        train_ds = EpitopeContrastiveDataset(
+            data=config["data"]["train_path"],
+            tokeniser=tokeniser,
+            **config["data"]["dataset"]["config"],
+        )
+        valid_ds = EpitopeContrastiveDataset(
             data=config["data"]["valid_path"],
             tokeniser=tokeniser,
             censoring_lhs=False,
