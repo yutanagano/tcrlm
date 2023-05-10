@@ -26,7 +26,6 @@ class TrainingPipeline(ABC):
             "--working-directory",
             help="Path to tcr_embedder project working directory.",
         )
-        parser.add_argument("-n", "--name", help="Name of the training run.")
         parser.add_argument(
             "config_path", help="Path to the training run config json file."
         )
@@ -37,21 +36,15 @@ class TrainingPipeline(ABC):
         else:
             wd = Path(args.working_directory).resolve()
 
-        if args.name is None:
-            name = datetime.now().strftime(r"%Y%m%d-%H%M%S")
-        else:
-            name = args.name
-
         assert wd.is_dir()
 
         with open(args.config_path, "r") as f:
             config = json.load(f)
 
-        self.main(wd=wd, name=name, config=config)
+        self.main(wd=wd, config=config)
 
-    def main(self, wd: Path, name: str, config: dict) -> None:
+    def main(self, wd: Path, config: dict) -> None:
         self.wd = wd
-        self.name = name
         self.config = config
 
         config["data"]["dataloader"]["config"][
@@ -137,21 +130,24 @@ class TrainingPipeline(ABC):
         except FileExistsError:
             pass
 
+        save_name = self.config["model"]["config"]["name"]
+
         try:
-            (model_saves_dir / self.name).mkdir()
+            (model_saves_dir / save_name).mkdir()
         except FileExistsError:
             suffix_int = 1
-            new_save_name = f"{self.name}_{suffix_int}"
+            new_save_name = f"{save_name}_{suffix_int}"
             done = False
             while not done:
                 try:
                     (model_saves_dir / new_save_name).mkdir()
-                    self.name = new_save_name
+                    save_name = new_save_name
                     done = True
                 except FileExistsError:
                     suffix_int += 1
-                    new_save_name = f"{self.name}_{suffix_int}"
-        save_dir = model_saves_dir / self.name
+                    new_save_name = f"{save_name}_{suffix_int}"
+        
+        save_dir = model_saves_dir / save_name
 
         # Save model
         model.cpu()
