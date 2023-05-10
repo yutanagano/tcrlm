@@ -7,7 +7,7 @@ import pandas as pd
 from pathlib import Path
 from . import tokenisers
 from torch.utils.data import Dataset
-from typing import Union
+from typing import Optional, Union
 
 
 class TCRDataset(Dataset):
@@ -92,14 +92,39 @@ class EpitopeContrastiveDataset(AutoContrastiveDataset):
         tokeniser: tokenisers._Tokeniser,
         censoring_lhs: bool,
         censoring_rhs: bool,
+        background_data: Optional[Union[Path, str, pd.DataFrame]] = None,
     ):
         super().__init__(data, tokeniser, censoring_lhs, censoring_rhs)
+
+        if background_data:
+            if type(background_data) != pd.DataFrame:
+                background_data = pd.read_csv(
+                    background_data,
+                    dtype={
+                        "TRAV": "string",
+                        "CDR3A": "string",
+                        "TRAJ": "string",
+                        "TRBV": "string",
+                        "CDR3B": "string",
+                        "TRBJ": "string",
+                        "Epitope": "string",
+                        "MHCA": "string",
+                        "MHCB": "string",
+                        "duplicate_count": "UInt32",
+                    },
+                )
+            
+            self._data = pd.concat((self._data, background_data), ignore_index=True)
 
         self._ep_groupby = self._data.groupby("Epitope")
 
     def __getitem__(self, index) -> any:
         x_row = self._data.iloc[index]
-        x_prime_row = self._ep_groupby.get_group(x_row["Epitope"]).sample().iloc[0]
+
+        if pd.isna(x_row["Epitope"]):
+            x_prime_row = x_row
+        else:
+            x_prime_row = self._ep_groupby.get_group(x_row["Epitope"]).sample().iloc[0]
 
         x = self._tokeniser.tokenise(x_row)
         x_lhs = self._tokeniser.tokenise(x_row, noising=self.censoring_lhs)
