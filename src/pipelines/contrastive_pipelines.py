@@ -165,6 +165,7 @@ class ECLPipeline(ACLPipeline):
         )
         train_ds = EpitopeContrastiveDataset(
             data=config["data"]["train_path"],
+            background_data=config["data"]["train_background_path"],
             tokeniser=tokeniser,
             **config["data"]["dataset"]["config"],
         )

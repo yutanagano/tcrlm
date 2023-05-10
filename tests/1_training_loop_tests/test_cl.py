@@ -22,6 +22,7 @@ def get_config(tmp_path: Path, model_name: str, tokeniser: str, data_file: str) 
         },
         "data": {
             "train_path": f"tests/resources/{data_file}",
+            "train_background_path": f"tests/resources/{data_file}",
             "valid_path": f"tests/resources/{data_file}",
             "tokeniser": tokeniser,
             "dataset": {"config": {"censoring_lhs": True, "censoring_rhs": True}},
