@@ -78,12 +78,12 @@ def test_training_loop(
     # Run MLM training loop in separate process
     p = mp.Process(
         target=pipeline.main,
-        kwargs={"wd": tmp_path, "name": "test", "config": config},
+        kwargs={"wd": tmp_path, "config": config},
     )
     p.start()
     p.join()
 
-    expected_save_dir = tmp_path / "model_saves" / "test"
+    expected_save_dir = tmp_path / "model_saves" / "foobar"
     assert expected_save_dir.is_dir()
 
     # Check that model is saved correctly
