@@ -222,14 +222,16 @@ class BCDRTokeniser(_AATokeniser):
         # Get the CDRs
         trbv = tcr.loc["TRBV"]
         cdr3b = tcr.loc["CDR3B"]
-        
-        if type(trbv) == str and '*' not in trbv: # Add a 'fake' allele designation if necessary
-            trbv += '*01'
+
+        if (
+            type(trbv) == str and "*" not in trbv
+        ):  # Add a 'fake' allele designation if necessary
+            trbv += "*01"
 
         cdr1b = None if isna(trbv) else V_CDRS[trbv]["CDR1-IMGT"]
         cdr2b = None if isna(trbv) else V_CDRS[trbv]["CDR2-IMGT"]
-        
-        if isna(cdr3b): # Make cdr3b explicitly None if missing
+
+        if isna(cdr3b):  # Make cdr3b explicitly None if missing
             cdr3b = None
 
         if not (cdr1b or cdr2b or cdr3b):

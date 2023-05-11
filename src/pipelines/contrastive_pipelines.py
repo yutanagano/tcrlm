@@ -1,7 +1,7 @@
 from .. import models
 from .. import metrics
 from ..datahandling import tokenisers
-from ..datahandling.dataloaders import ContrastiveDataLoader
+from ..datahandling.dataloaders import AutoContrastiveDataLoader
 from ..datahandling.datasets import AutoContrastiveDataset, EpitopeContrastiveDataset
 from ..models.wrappers import CLModelWrapper
 from ..metrics import AdjustedCELoss, alignment_paired, mlm_acc, uniformity
@@ -16,7 +16,7 @@ from tqdm import tqdm
 class CLPipeline(TrainingPipeline):
     @staticmethod
     def train_func(
-        model: DDP, dl: ContrastiveDataLoader, loss_fns: tuple, optimiser, rank: int
+        model: DDP, dl: AutoContrastiveDataLoader, loss_fns: tuple, optimiser, rank: int
     ) -> dict:
         mlm_loss_fn, cont_loss_fn = loss_fns
 
@@ -52,7 +52,7 @@ class CLPipeline(TrainingPipeline):
     @staticmethod
     @torch.no_grad()
     def valid_func(
-        model: DDP, dl: ContrastiveDataLoader, loss_fns: tuple, rank: int
+        model: DDP, dl: AutoContrastiveDataLoader, loss_fns: tuple, rank: int
     ) -> dict:
         mlm_loss_fn, cont_loss_fn = loss_fns
 
@@ -95,7 +95,6 @@ class CLPipeline(TrainingPipeline):
             "valid_unf": total_unf / divisor,
             "valid_mlm_acc": total_mlm_acc / divisor,
         }
-    
 
 
 class ACLPipeline(CLPipeline):
@@ -122,12 +121,12 @@ class ACLPipeline(CLPipeline):
             censoring_lhs=False,
             censoring_rhs=False,
         )
-        train_dl = ContrastiveDataLoader(
+        train_dl = AutoContrastiveDataLoader(
             dataset=train_ds,
             sampler=DistributedSampler(train_ds),
             **config["data"]["dataloader"]["config"],
         )
-        valid_dl = ContrastiveDataLoader(
+        valid_dl = AutoContrastiveDataLoader(
             dataset=valid_ds,
             p_mask_random=0,
             p_mask_keep=0,
@@ -148,7 +147,7 @@ class ACLPipeline(CLPipeline):
         )
 
         return model, train_dl, valid_dl, (mlm_loss_fn, cont_loss_fn), optimiser
-    
+
 
 class ECLPipeline(ACLPipeline):
     @staticmethod
@@ -175,12 +174,12 @@ class ECLPipeline(ACLPipeline):
             censoring_lhs=False,
             censoring_rhs=False,
         )
-        train_dl = ContrastiveDataLoader(
+        train_dl = AutoContrastiveDataLoader(
             dataset=train_ds,
             sampler=DistributedSampler(train_ds),
             **config["data"]["dataloader"]["config"],
         )
-        valid_dl = ContrastiveDataLoader(
+        valid_dl = AutoContrastiveDataLoader(
             dataset=valid_ds,
             p_mask_random=0,
             p_mask_keep=0,

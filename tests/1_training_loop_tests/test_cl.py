@@ -51,8 +51,8 @@ def get_config(tmp_path: Path, model_name: str, tokeniser: str, data_file: str) 
             ECLPipeline(),
             "CDR3ClsBERT",
             {"class": "CDR3Tokeniser", "config": {}},
-            "mock_data.csv"
-        )
+            "mock_data.csv",
+        ),
     ),
 )
 def test_training_loop(
@@ -63,7 +63,7 @@ def test_training_loop(
     data_file,
 ):
     if not torch.cuda.is_available():
-        warn("ACL test skipped due to hardware limitations.")
+        warn("CL test skipped due to hardware limitations.")
         return
 
     # Set up config

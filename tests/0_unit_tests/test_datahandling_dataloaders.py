@@ -1,5 +1,3 @@
-import pandas as pd
-import pytest
 from src.datahandling import dataloaders
 import torch
 from torch.utils.data import BatchSampler, SequentialSampler
@@ -93,7 +91,7 @@ class TestMLMDataLoader:
 
 class TestAutoContrastiveDataLoader:
     def test_shapes(self, abcdr3t_auto_contrastive_dataset):
-        dataloader = dataloaders.ContrastiveDataLoader(
+        dataloader = dataloaders.AutoContrastiveDataLoader(
             dataset=abcdr3t_auto_contrastive_dataset, batch_size=3
         )
 
@@ -103,6 +101,25 @@ class TestAutoContrastiveDataLoader:
         assert x.dim() == x_prime.dim() == masked.dim() == 3
         assert target.dim() == 2
         assert x.size(0) == x_prime.size(0) == masked.size(0) == target.size(0) == 3
+        assert x.size(1) == masked.size(1) == target.size(1) == 12
+        assert x_prime.size(1) in (6, 7, 12)
+        assert x.size(2) == x_prime.size(2) == masked.size(2) == 4
+
+
+class TestEpitopeContrastiveDataLoader:
+    def test_shapes(self, abcdr3t_epitope_contrastive_dataset):
+        dataloader = dataloaders.EpitopeContrastiveDataLoader(
+            dataset=abcdr3t_epitope_contrastive_dataset, batch_size=2
+        )
+
+        assert len(dataloader) == 1
+
+        x, x_prime, masked, target = next(iter(dataloader))
+
+        assert type(x) == type(x_prime) == type(masked) == type(target) == torch.Tensor
+        assert x.dim() == x_prime.dim() == masked.dim() == 3
+        assert target.dim() == 2
+        assert x.size(0) == x_prime.size(0) == masked.size(0) == target.size(0) == 4
         assert x.size(1) == masked.size(1) == target.size(1) == 12
         assert x_prime.size(1) in (6, 7, 12)
         assert x.size(2) == x_prime.size(2) == masked.size(2) == 4
