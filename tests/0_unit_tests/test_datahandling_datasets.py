@@ -78,7 +78,7 @@ class TestEpitopeContrastiveDataset:
             censoring_lhs=False,
             censoring_rhs=False,
         )
-        assert len(dataset) == 3
+        assert len(dataset) == 2
 
     def test_getitem(self, mock_data_df, dummy_tokeniser):
         dataset = datasets.EpitopeContrastiveDataset(
@@ -88,17 +88,26 @@ class TestEpitopeContrastiveDataset:
             censoring_rhs=False,
         )
 
-        x, x_lhs, x_rhs = dataset[0]
-        assert x == x_lhs == (0, False)
-        assert x_rhs[0] in (0, 1)
-        assert x_rhs[1] == False
+        sample = dataset[0]
+        assert len(sample) == 2
+        assert sample[0][0] == (0, False)
+        assert sample[1][0] == (2, False)
 
-        x, x_lhs, x_rhs = dataset[1]
-        assert x == x_lhs == (1, False)
-        assert x_rhs[0] in (0, 1)
-        assert x_rhs[1] == False
+        sample = dataset[1]
+        assert len(sample) == 2
+        assert sample[0][0] == (1, False)
+        assert sample[1][0] == (2, False)
 
-        x, x_lhs, x_rhs = dataset[2]
-        assert x == x_lhs == (2, False)
-        assert x_rhs[0] == 2
-        assert x_rhs[1] == False
+    def test_internal_shuffle(self, mock_data_df, dummy_tokeniser):
+        dataset = datasets.EpitopeContrastiveDataset(
+            data=mock_data_df,
+            tokeniser=dummy_tokeniser,
+            censoring_lhs=False,
+            censoring_rhs=False,
+        )
+
+        dataset._internal_shuffle(0)
+
+        sample = dataset[0]
+        assert sample[0][0] == (1, False)
+        assert sample[1][0] == (2, False)

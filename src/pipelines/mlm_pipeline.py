@@ -49,7 +49,7 @@ class MLMPipeline(TrainingPipeline):
         )
 
         return model, train_dl, valid_dl, (loss_fn,), optimiser
-    
+
     @staticmethod
     def train_func(
         model: DDP, dl: MLMDataLoader, loss_fns: tuple, optimiser, rank: int
@@ -79,7 +79,7 @@ class MLMPipeline(TrainingPipeline):
             divisor += num_samples
 
         return {"loss": total_loss / divisor, "lr": total_lr / divisor}
-    
+
     @staticmethod
     @torch.no_grad()
     def valid_func(model: DDP, dl: MLMDataLoader, loss_fns: tuple, rank: int) -> dict:

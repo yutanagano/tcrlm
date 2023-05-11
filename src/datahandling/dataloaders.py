@@ -3,6 +3,7 @@ Custom dataloader classes.
 """
 
 
+import itertools
 import random
 import torch
 from torch import Tensor
@@ -124,9 +125,9 @@ class MLMDataLoader(TCRDataLoader):
         return super().collate_fn(batch)
 
 
-class ContrastiveDataLoader(MLMDataLoader):
+class AutoContrastiveDataLoader(MLMDataLoader):
     """
-    Dataloader for contrastive loss training.
+    Dataloader for auto-contrastive loss training.
     """
 
     def collate_fn(self, batch) -> Union[Tuple[Tensor], Tensor]:
@@ -135,48 +136,16 @@ class ContrastiveDataLoader(MLMDataLoader):
         return super(MLMDataLoader, self).collate_fn(batch)
 
 
-class EpitopeAutoContrastiveSuperDataLoader:
-    def __init__(
-        self, dataloader_ac: ContrastiveDataLoader, dataloader_ec: TCRDataLoader
-    ) -> None:
-        self._dataloader_ac = dataloader_ac
-        self._dataloader_ec = dataloader_ec
+class EpitopeContrastiveDataLoader(AutoContrastiveDataLoader):
+    """
+    Dataloader for epitope-contrastive loss training.
+    """
 
-        self._len = max(len(self._dataloader_ac), len(self._dataloader_ec))
+    def collate_fn(self, batch) -> Union[Tuple[Tensor], Tensor]:
+        batch = list(itertools.chain.from_iterable(batch))
 
-    def __len__(self) -> int:
-        return self._len
+        return super().collate_fn(batch)
 
-    def __iter__(self) -> "EpitopeAutoContrastiveSuperDataLoader":
-        # To begin iterating, instantiate an iterator for both constituent
-        # dataloaders, and keep track of how many iterations have been made
-        self._iter_ac = iter(self._dataloader_ac)
-        self._iter_ec = iter(self._dataloader_ec)
-        self._iterations = 0
-        return self
-
-    def __next__(self) -> Tensor:
-        # Beginning a new iteration
-        self._iterations += 1
-
-        # If we're about to loop around on the longer of the two constituent
-        # dataloaders, that means we are done- raise StopIteration
-        if self._iterations > len(self):
-            raise StopIteration
-
-        # Get a batch from the autocontrastive dataloader, loop back if needed
-        try:
-            data_ac = next(self._iter_ac)
-        except StopIteration:
-            self._iter_ac = iter(self._dataloader_ac)
-            data_ac = next(self._iter_ac)
-
-        # Get a batch from the epitope-labelled dataloader, loop back if needed
-        try:
-            data_ec = next(self._iter_ec)
-        except StopIteration:
-            self._iter_ec = iter(self._dataloader_ec)
-            data_ec = next(self._iter_ec)
-
-        # Return combined batch
-        return (*data_ac, *data_ec)
+    def set_epoch(self, epoch: int) -> None:
+        self.sampler.set_epoch(epoch)
+        self.dataset._internal_shuffle(epoch)
