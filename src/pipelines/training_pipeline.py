@@ -17,7 +17,7 @@ class TrainingPipeline(ABC):
 
     def __init__(self) -> None:
         self.world_size = torch.cuda.device_count()
-    
+
     def run_from_clargs(self) -> None:
         parser = argparse.ArgumentParser(description=self.description)
         parser.add_argument(
@@ -129,7 +129,7 @@ class TrainingPipeline(ABC):
         except FileExistsError:
             pass
 
-        save_name = self.config["model"]["config"]["name"]
+        save_name = self.config["model"]["config"]["name"].replace(" ", "_")
 
         try:
             (model_saves_dir / save_name).mkdir()
@@ -145,7 +145,7 @@ class TrainingPipeline(ABC):
                 except FileExistsError:
                     suffix_int += 1
                     new_save_name = f"{save_name}_{suffix_int}"
-        
+
         save_dir = model_saves_dir / save_name
 
         # Save model
@@ -187,11 +187,7 @@ class TrainingPipeline(ABC):
     @staticmethod
     @abstractmethod
     def train_func(
-        model: Module,
-        dl: DataLoader,
-        loss_fns: tuple,
-        optimiser,
-        rank: int
+        model: Module, dl: DataLoader, loss_fns: tuple, optimiser, rank: int
     ) -> dict:
         """
         Run a training epoch, and return a dictionary containing the average
