@@ -1,7 +1,7 @@
 from .. import models
 from .. import metrics
 from ..datahandling import tokenisers
-from ..datahandling.dataloaders import AutoContrastiveDataLoader
+from ..datahandling.dataloaders import AutoContrastiveDataLoader, EpitopeContrastiveDataLoader
 from ..datahandling.datasets import AutoContrastiveDataset, EpitopeContrastiveDataset
 from ..models.wrappers import CLModelWrapper
 from ..metrics import AdjustedCELoss, alignment_paired, mlm_acc, uniformity
@@ -164,7 +164,6 @@ class ECLPipeline(ACLPipeline):
         )
         train_ds = EpitopeContrastiveDataset(
             data=config["data"]["train_path"],
-            background_data=config["data"]["train_background_path"],
             tokeniser=tokeniser,
             **config["data"]["dataset"]["config"],
         )
@@ -174,12 +173,12 @@ class ECLPipeline(ACLPipeline):
             censoring_lhs=False,
             censoring_rhs=False,
         )
-        train_dl = AutoContrastiveDataLoader(
+        train_dl = EpitopeContrastiveDataLoader(
             dataset=train_ds,
             sampler=DistributedSampler(train_ds),
             **config["data"]["dataloader"]["config"],
         )
-        valid_dl = AutoContrastiveDataLoader(
+        valid_dl = EpitopeContrastiveDataLoader(
             dataset=valid_ds,
             p_mask_random=0,
             p_mask_keep=0,
