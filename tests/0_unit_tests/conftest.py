@@ -73,7 +73,10 @@ def abcdr3t_auto_contrastive_dataset(mock_data_df):
 @pytest.fixture
 def abcdr3t_epitope_contrastive_dataset(mock_data_df):
     dataset = datasets.EpitopeContrastiveDataset(
-        data=mock_data_df, tokeniser=CDR3Tokeniser()
+        data=mock_data_df,
+        tokeniser=CDR3Tokeniser(),
+        censoring_lhs=False,
+        censoring_rhs=False,
     )
 
     return dataset
