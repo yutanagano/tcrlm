@@ -2,6 +2,7 @@ import torch
 from torch import Tensor
 from torch.nn import CrossEntropyLoss, Module
 from torch.nn import functional as F
+from typing import Optional
 
 
 def alignment(z: Tensor, labels: Tensor, alpha: int = 1) -> Tensor:
@@ -39,7 +40,7 @@ def uniformity(z: Tensor, alpha: int = 1, t: float = 1) -> Tensor:
 
 
 @torch.no_grad()
-def mlm_acc(logits: Tensor, y: Tensor, mask: Tensor = None) -> float:
+def mlm_acc(logits: Tensor, y: Tensor, mask: Optional[Tensor] = None) -> float:
     """
     Calculate the accuracy of model mlm predictions ignoring any padding
     tokens. If a mask is supplied, then only those residues that fall within
