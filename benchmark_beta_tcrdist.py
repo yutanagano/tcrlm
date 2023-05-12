@@ -25,18 +25,26 @@ PROJECT_DIR = Path(__file__).parent.resolve()
 TANNO_DATA_PATH = "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/tanno/test.csv"
 VDJDB_DATA_PATH = "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/vdjdb/evaluation_beta.csv"
 DASH_DATA_PATH = "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/tcrdist/dash_human.csv"
+MIRA_DATA_PATH = "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/mira/valid.csv"
 
 
 class BenchmarkingPipeline:
     def __init__(self) -> None:
         vdjdb_data = pd.read_csv(VDJDB_DATA_PATH)
         dash_data = pd.read_csv(DASH_DATA_PATH)
+        mira_data = pd.read_csv(MIRA_DATA_PATH)
 
-        vdjdb_data = vdjdb_data.rename(
-            columns={"TRBV": "v_b_gene", "CDR3B": "cdr3_b_aa"}
-        )
-        vdjdb_data = vdjdb_data[["v_b_gene", "cdr3_b_aa", "Epitope"]]
-        vdjdb_data["count"] = 1
+        def transform_df(df):
+            df = df.rename(
+                columns={"TRBV": "v_b_gene", "CDR3B": "cdr3_b_aa"}
+            )
+            df = df[["v_b_gene", "cdr3_b_aa", "Epitope"]]
+            df["v_b_gene"] = df["v_b_gene"].map(lambda x: x if type(x) != str or "*" in x else x+"*01")
+            df["count"] = 1
+
+            return df
+
+        vdjdb_data = transform_df(vdjdb_data)
 
         dash_data = dash_data[["v_b_gene", "cdr3_b_aa", "epitope", "count"]]
         dash_data = dash_data.rename(columns={"epitope": "Epitope"})
@@ -45,7 +53,9 @@ class BenchmarkingPipeline:
         )
         dash_data["count"] = 1
 
-        self.ep_data = {"vdjdb": vdjdb_data, "dash": dash_data}
+        mira_data = transform_df(mira_data)
+
+        self.ep_data = {"vdjdb": vdjdb_data, "dash": dash_data, "mira": mira_data}
 
         self.benchmark_dir = PROJECT_DIR / "benchmarks_beta" / "tcrdist"
 
