@@ -90,8 +90,9 @@ class BenchmarkingPipeline:
 
         # Benchmarking MLM performance
         print("Benchmarking MLM performance...")
-        mlm_summary = self.benchmark_mlm()
+        mlm_summary, mlm_figures = self.benchmark_mlm()
         summary_dict["mlm_summary"] = mlm_summary
+        plots = {**plots, **mlm_figures}
 
         # Benchmarking on background data
         print("Exploring embedding space using background data...")
@@ -125,6 +126,78 @@ class BenchmarkingPipeline:
             p_mask_keep=0
         )
 
+        if re.search("CDR3(Cls)?BERT", model_class_name):
+            # Quantify MLM performance
+            total_acc = 0
+            divisor = 0
+
+            for x, y in tqdm(dataloader):
+                num_samples = len(x)
+
+                x = x.to(self.device)
+                y = y.to(self.device)
+
+                logits = self.model.model.mlm(x)
+
+                total_acc += mlm_acc(logits, y) * num_samples
+                divisor += num_samples
+
+            mlm_summary = {
+                "acc": total_acc / divisor
+            }
+
+            # Generate exemplar plots
+            exemplars = self.bg_data.sample(5, random_state=420, ignore_index=True)
+            exemplar_figures = dict()
+
+            for row_idx, exemplar in exemplars.iterrows():
+                # Tokenise
+                tokenised = self.model._tokeniser.tokenise(exemplar).to(self.device)
+
+                # Mask each residue and note mlm predictions
+                preds_collection = dict()
+                for residue_idx in range(1, len(tokenised)):
+                    masked = tokenised.detach().clone()
+                    masked[residue_idx,0] = 0
+                    logits = self.model.model.mlm(masked.unsqueeze(0))[0,residue_idx]
+                    scores = softmax(logits, dim=0)
+                    pred_scores, preds_indices = topk(scores, 5, dim=0)
+                    preds = [AMINO_ACIDS[idx] for idx in preds_indices]
+                    preds_collection[residue_idx] = (preds, pred_scores.detach().cpu())
+
+                # Visualise as a figure
+                figure = plt.figure(figsize=(len(tokenised)-1, 5))
+                # For each token in sequence
+                for i, token in enumerate(tokenised[1:]):
+                    # Write out the correct token
+                    symbol = figure.add_subplot(4, len(tokenised)-1, i+1)
+                    symbol.axis("off")
+                    symbol.text(
+                        0.5,
+                        0,
+                        AMINO_ACIDS[token[0]-3],
+                        fontsize=36,
+                        horizontalalignment="center"
+                    )
+                    # Draw the bar graph of predictions underneath
+                    top5_preds = figure.add_subplot(4, len(tokenised)-1, (i+len(tokenised), i+1+3*(len(tokenised)-1)))
+                    colors = ["red" if aa == AMINO_ACIDS[token[0]-3] else "C0" for aa in reversed(preds_collection[i+1][0])]
+                    top5_preds.barh(
+                        range(5),
+                        reversed(preds_collection[i+1][1]),
+                        color=colors
+                    )
+                    top5_preds.set_yticks(range(5))
+                    top5_preds.set_yticklabels(
+                        reversed(preds_collection[i+1][0])
+                    )
+                    top5_preds.set_xlim(0,1)
+                figure.tight_layout()
+                
+                exemplar_figures[f"exemplar_{row_idx}.png"] = figure
+
+            return mlm_summary, exemplar_figures
+            
         if re.search("CDR(Cls)?BERT", model_class_name):
             # Quantify MLM performance
             total_acc = 0
@@ -156,26 +229,62 @@ class BenchmarkingPipeline:
             }
 
             # Generate exemplar plots
-            exemplars = self.bg_data.sample(1, random_state=420)
+            exemplars = self.bg_data.sample(5, random_state=420, ignore_index=True)
+            exemplar_figures = dict()
+            color_scheme = {
+                "cdr1_symbol": "red",
+                "cdr2_symbol": "blue",
+                "cdr3_symbol": "green"
+            }
 
-            for _, exemplar in exemplars.iterrows():
+            for row_idx, exemplar in exemplars.iterrows():
                 # Tokenise
-                tokenised = self.model._tokeniser.tokenise(exemplar)
+                tokenised = self.model._tokeniser.tokenise(exemplar).to(self.device)
 
                 # Mask each residue and note mlm predictions
                 preds_collection = dict()
-                for residue_idx in range(len(tokenised)):
-                    tokenised[residue_idx,0] = 0
-                    logits = self.model.model.mlm(tokenised.unsqueeze(0))[0,residue_idx]
+                for residue_idx in range(1, len(tokenised)):
+                    masked = tokenised.detach().clone()
+                    masked[residue_idx,0] = 0
+                    logits = self.model.model.mlm(masked.unsqueeze(0))[0,residue_idx]
                     scores = softmax(logits, dim=0)
                     pred_scores, preds_indices = topk(scores, 5, dim=0)
-                    preds = [AMINO_ACIDS[aa_idx-3] for aa_idx in preds_indices]
-                    preds_collection[residue_idx] = (preds, pred_scores)
+                    preds = [AMINO_ACIDS[idx] for idx in preds_indices]
+                    preds_collection[residue_idx] = (preds, pred_scores.detach().cpu())
 
                 # Visualise as a figure
-                figure = plt.figure(figsize=(len(tokenised), 5))
+                figure = plt.figure(figsize=(len(tokenised)-1, 5))
+                # For each token in sequence
+                for i, token in enumerate(tokenised[1:]):
+                    # Write out the correct token
+                    symbol = figure.add_subplot(4, len(tokenised)-1, i+1)
+                    symbol.axis("off")
+                    symbol.text(
+                        0.5,
+                        0,
+                        AMINO_ACIDS[token[0]-3],
+                        color=color_scheme[f"cdr{token[3]}_symbol"],
+                        fontsize=36,
+                        horizontalalignment="center"
+                    )
+                    # Draw the bar graph of predictions underneath
+                    top5_preds = figure.add_subplot(4, len(tokenised)-1, (i+len(tokenised), i+1+3*(len(tokenised)-1)))
+                    colors = ["red" if aa == AMINO_ACIDS[token[0]-3] else "C0" for aa in reversed(preds_collection[i+1][0])]
+                    top5_preds.barh(
+                        range(5),
+                        reversed(preds_collection[i+1][1]),
+                        color=colors
+                    )
+                    top5_preds.set_yticks(range(5))
+                    top5_preds.set_yticklabels(
+                        reversed(preds_collection[i+1][0])
+                    )
+                    top5_preds.set_xlim(0,1)
+                figure.tight_layout()
+                
+                exemplar_figures[f"exemplar_{row_idx}.png"] = figure
 
-            return mlm_summary
+            return mlm_summary, exemplar_figures
 
     def explore_embspace(self) -> Tuple[Figure]:
         embs = self.get_embs("tanno", self.bg_data)
