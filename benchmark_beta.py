@@ -103,7 +103,12 @@ class BenchmarkingPipeline:
         # Benchmarking on epitope data
         print("Benchmarking on Epitope-labelled data...")
         for ds_name, ds_df in self.ep_data.items():
-            performance_summary, precisions, recalls, pr_curve = self.benchmark_epitopes(ds_name, ds_df)
+            (
+                performance_summary,
+                precisions,
+                recalls,
+                pr_curve,
+            ) = self.benchmark_epitopes(ds_name, ds_df)
 
             summary_dict[ds_name] = performance_summary
             data[f"{ds_name}_precisions.npy"] = precisions
@@ -123,7 +128,7 @@ class BenchmarkingPipeline:
             shuffle=False,
             p_mask=0.01,
             p_mask_random=0,
-            p_mask_keep=0
+            p_mask_keep=0,
         )
 
         if re.search("CDR3(Cls)?BERT", model_class_name):
@@ -142,9 +147,7 @@ class BenchmarkingPipeline:
                 total_acc += mlm_acc(logits, y) * num_samples
                 divisor += num_samples
 
-            mlm_summary = {
-                "acc": total_acc / divisor
-            }
+            mlm_summary = {"acc": total_acc / divisor}
 
             # Generate exemplar plots
             exemplars = self.bg_data.sample(5, random_state=420, ignore_index=True)
@@ -158,46 +161,49 @@ class BenchmarkingPipeline:
                 preds_collection = dict()
                 for residue_idx in range(1, len(tokenised)):
                     masked = tokenised.detach().clone()
-                    masked[residue_idx,0] = 0
-                    logits = self.model.model.mlm(masked.unsqueeze(0))[0,residue_idx]
+                    masked[residue_idx, 0] = 0
+                    logits = self.model.model.mlm(masked.unsqueeze(0))[0, residue_idx]
                     scores = softmax(logits, dim=0)
                     pred_scores, preds_indices = topk(scores, 5, dim=0)
                     preds = [AMINO_ACIDS[idx] for idx in preds_indices]
                     preds_collection[residue_idx] = (preds, pred_scores.detach().cpu())
 
                 # Visualise as a figure
-                figure = plt.figure(figsize=(len(tokenised)-1, 5))
+                figure = plt.figure(figsize=(len(tokenised) - 1, 5))
                 # For each token in sequence
                 for i, token in enumerate(tokenised[1:]):
                     # Write out the correct token
-                    symbol = figure.add_subplot(4, len(tokenised)-1, i+1)
+                    symbol = figure.add_subplot(4, len(tokenised) - 1, i + 1)
                     symbol.axis("off")
                     symbol.text(
                         0.5,
                         0,
-                        AMINO_ACIDS[token[0]-3],
+                        AMINO_ACIDS[token[0] - 3],
                         fontsize=36,
-                        horizontalalignment="center"
+                        horizontalalignment="center",
                     )
                     # Draw the bar graph of predictions underneath
-                    top5_preds = figure.add_subplot(4, len(tokenised)-1, (i+len(tokenised), i+1+3*(len(tokenised)-1)))
-                    colors = ["red" if aa == AMINO_ACIDS[token[0]-3] else "C0" for aa in reversed(preds_collection[i+1][0])]
+                    top5_preds = figure.add_subplot(
+                        4,
+                        len(tokenised) - 1,
+                        (i + len(tokenised), i + 1 + 3 * (len(tokenised) - 1)),
+                    )
+                    colors = [
+                        "red" if aa == AMINO_ACIDS[token[0] - 3] else "C0"
+                        for aa in reversed(preds_collection[i + 1][0])
+                    ]
                     top5_preds.barh(
-                        range(5),
-                        reversed(preds_collection[i+1][1]),
-                        color=colors
+                        range(5), reversed(preds_collection[i + 1][1]), color=colors
                     )
                     top5_preds.set_yticks(range(5))
-                    top5_preds.set_yticklabels(
-                        reversed(preds_collection[i+1][0])
-                    )
-                    top5_preds.set_xlim(0,1)
+                    top5_preds.set_yticklabels(reversed(preds_collection[i + 1][0]))
+                    top5_preds.set_xlim(0, 1)
                 figure.tight_layout()
-                
+
                 exemplar_figures[f"exemplar_{row_idx}.png"] = figure
 
             return mlm_summary, exemplar_figures
-            
+
         if re.search("CDR(Cls)?BERT", model_class_name):
             # Quantify MLM performance
             total_acc = 0
@@ -215,9 +221,9 @@ class BenchmarkingPipeline:
                 logits = self.model.model.mlm(x)
 
                 total_acc += mlm_acc(logits, y) * num_samples
-                total_cdr1_acc += mlm_acc(logits, y, x[:,:,3] == 1) * num_samples
-                total_cdr2_acc += mlm_acc(logits, y, x[:,:,3] == 2) * num_samples
-                total_cdr3_acc += mlm_acc(logits, y, x[:,:,3] == 3) * num_samples
+                total_cdr1_acc += mlm_acc(logits, y, x[:, :, 3] == 1) * num_samples
+                total_cdr2_acc += mlm_acc(logits, y, x[:, :, 3] == 2) * num_samples
+                total_cdr3_acc += mlm_acc(logits, y, x[:, :, 3] == 3) * num_samples
 
                 divisor += num_samples
 
@@ -225,7 +231,7 @@ class BenchmarkingPipeline:
                 "acc": total_acc / divisor,
                 "cdr1_acc": total_cdr1_acc / divisor,
                 "cdr2_acc": total_cdr2_acc / divisor,
-                "cdr3_acc": total_cdr3_acc / divisor
+                "cdr3_acc": total_cdr3_acc / divisor,
             }
 
             # Generate exemplar plots
@@ -234,7 +240,7 @@ class BenchmarkingPipeline:
             color_scheme = {
                 "cdr1_symbol": "red",
                 "cdr2_symbol": "blue",
-                "cdr3_symbol": "green"
+                "cdr3_symbol": "green",
             }
 
             for row_idx, exemplar in exemplars.iterrows():
@@ -245,43 +251,46 @@ class BenchmarkingPipeline:
                 preds_collection = dict()
                 for residue_idx in range(1, len(tokenised)):
                     masked = tokenised.detach().clone()
-                    masked[residue_idx,0] = 0
-                    logits = self.model.model.mlm(masked.unsqueeze(0))[0,residue_idx]
+                    masked[residue_idx, 0] = 0
+                    logits = self.model.model.mlm(masked.unsqueeze(0))[0, residue_idx]
                     scores = softmax(logits, dim=0)
                     pred_scores, preds_indices = topk(scores, 5, dim=0)
                     preds = [AMINO_ACIDS[idx] for idx in preds_indices]
                     preds_collection[residue_idx] = (preds, pred_scores.detach().cpu())
 
                 # Visualise as a figure
-                figure = plt.figure(figsize=(len(tokenised)-1, 5))
+                figure = plt.figure(figsize=(len(tokenised) - 1, 5))
                 # For each token in sequence
                 for i, token in enumerate(tokenised[1:]):
                     # Write out the correct token
-                    symbol = figure.add_subplot(4, len(tokenised)-1, i+1)
+                    symbol = figure.add_subplot(4, len(tokenised) - 1, i + 1)
                     symbol.axis("off")
                     symbol.text(
                         0.5,
                         0,
-                        AMINO_ACIDS[token[0]-3],
+                        AMINO_ACIDS[token[0] - 3],
                         color=color_scheme[f"cdr{token[3]}_symbol"],
                         fontsize=36,
-                        horizontalalignment="center"
+                        horizontalalignment="center",
                     )
                     # Draw the bar graph of predictions underneath
-                    top5_preds = figure.add_subplot(4, len(tokenised)-1, (i+len(tokenised), i+1+3*(len(tokenised)-1)))
-                    colors = ["red" if aa == AMINO_ACIDS[token[0]-3] else "C0" for aa in reversed(preds_collection[i+1][0])]
+                    top5_preds = figure.add_subplot(
+                        4,
+                        len(tokenised) - 1,
+                        (i + len(tokenised), i + 1 + 3 * (len(tokenised) - 1)),
+                    )
+                    colors = [
+                        "red" if aa == AMINO_ACIDS[token[0] - 3] else "C0"
+                        for aa in reversed(preds_collection[i + 1][0])
+                    ]
                     top5_preds.barh(
-                        range(5),
-                        reversed(preds_collection[i+1][1]),
-                        color=colors
+                        range(5), reversed(preds_collection[i + 1][1]), color=colors
                     )
                     top5_preds.set_yticks(range(5))
-                    top5_preds.set_yticklabels(
-                        reversed(preds_collection[i+1][0])
-                    )
-                    top5_preds.set_xlim(0,1)
+                    top5_preds.set_yticklabels(reversed(preds_collection[i + 1][0]))
+                    top5_preds.set_xlim(0, 1)
                 figure.tight_layout()
-                
+
                 exemplar_figures[f"exemplar_{row_idx}.png"] = figure
 
             return mlm_summary, exemplar_figures
@@ -330,10 +339,7 @@ class BenchmarkingPipeline:
         ax.set_ylabel("Precision")
         ax.set_xlabel("Recall")
 
-        performance_summary = {
-            "knn_scores": knn_scores,
-            "avg_precision": avg_precision
-        }
+        performance_summary = {"knn_scores": knn_scores, "avg_precision": avg_precision}
 
         return performance_summary, precisions, recalls, pr_curve
 
