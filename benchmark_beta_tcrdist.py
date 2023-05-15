@@ -35,11 +35,11 @@ class BenchmarkingPipeline:
         mira_data = pd.read_csv(MIRA_DATA_PATH)
 
         def transform_df(df):
-            df = df.rename(
-                columns={"TRBV": "v_b_gene", "CDR3B": "cdr3_b_aa"}
-            )
+            df = df.rename(columns={"TRBV": "v_b_gene", "CDR3B": "cdr3_b_aa"})
             df = df[["v_b_gene", "cdr3_b_aa", "Epitope"]]
-            df["v_b_gene"] = df["v_b_gene"].map(lambda x: x if type(x) != str or "*" in x else x+"*01")
+            df["v_b_gene"] = df["v_b_gene"].map(
+                lambda x: x if type(x) != str or "*" in x else x + "*01"
+            )
             df["count"] = 1
 
             return df
