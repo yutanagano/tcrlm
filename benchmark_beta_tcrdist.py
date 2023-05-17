@@ -48,14 +48,11 @@ class BenchmarkingPipeline:
 
         dash_data = dash_data[["v_b_gene", "cdr3_b_aa", "epitope", "count"]]
         dash_data = dash_data.rename(columns={"epitope": "Epitope"})
-        dash_data = dash_data.drop_duplicates(
-            subset=["v_b_gene", "cdr3_b_aa"], ignore_index=True
-        )
         dash_data["count"] = 1
 
         mira_data = transform_df(mira_data)
 
-        self.ep_data = {"vdjdb": vdjdb_data, "dash": dash_data, "mira": mira_data}
+        self.ep_data = {"vdjdb": vdjdb_data, "dash": dash_data}
 
         self.benchmark_dir = PROJECT_DIR / "benchmarks_beta" / "tcrdist"
 
@@ -70,9 +67,8 @@ class BenchmarkingPipeline:
         # Benchmarking on epitope data
         print("Benchmarking on Epitope-labelled data...")
         for ds_name, ds_df in self.ep_data.items():
-            tr = TCRrep(cell_df=ds_df, organism="human", chains=["beta"])
+            tr = TCRrep(cell_df=ds_df, organism="human", chains=["beta"], deduplicate=False)
             cdist = tr.pw_beta.astype(np.float32)
-            ds_df = tr.clone_df
             epitopes = ds_df["Epitope"].astype("category").cat.codes.to_numpy()
 
             knn_scores = BenchmarkingPipeline.knn(cdist, epitopes)
