@@ -64,9 +64,6 @@ class BenchmarkingPipeline:
                 "count": "duplicate_count",
             }
         )
-        dash_data = dash_data.drop_duplicates(
-            subset=["TRBV", "CDR3B"], ignore_index=True
-        )
 
         self.bg_data = tanno_data
         self.ep_data = {"vdjdb": vdjdb_data, "dash": dash_data, "mira": mira_data}
