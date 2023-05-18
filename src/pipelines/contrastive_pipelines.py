@@ -1,10 +1,7 @@
 from .. import models
 from .. import metrics
 from ..datahandling import tokenisers
-from ..datahandling.dataloaders import (
-    AutoContrastiveDataLoader,
-    EpitopeContrastiveDataLoader,
-)
+from ..datahandling.dataloaders import *
 from ..datahandling.datasets import AutoContrastiveDataset, EpitopeContrastiveDataset
 from ..models.wrappers import CLModelWrapper
 from ..metrics import AdjustedCELoss, alignment_paired, mlm_acc, uniformity
@@ -152,7 +149,7 @@ class ACLPipeline(CLPipeline):
         return model, train_dl, valid_dl, (mlm_loss_fn, cont_loss_fn), optimiser
 
 
-class ECLPipeline(ACLPipeline):
+class ECLPipeline(CLPipeline):
     @staticmethod
     def training_obj_factory(config: dict, rank: int) -> tuple:
         # Instantiate model
@@ -202,3 +199,121 @@ class ECLPipeline(ACLPipeline):
         )
 
         return model, train_dl, valid_dl, (mlm_loss_fn, cont_loss_fn), optimiser
+    
+
+class CCLPipeline(CLPipeline):
+    @staticmethod
+    def train_func(
+        model: DDP, dl: CombinedContrastiveIterator, loss_fns: tuple, optimiser, rank: int
+    ) -> dict:
+        mlm_loss_fn, cont_loss_fn_train, _ = loss_fns
+
+        model.train()
+
+        total_loss = 0
+        total_lr = 0
+        divisor = 0
+
+        for bg, bg_prime, masked, target, ep, ep_prime, _, _ in tqdm(dl, disable=rank):
+            num_samples = bg.size(0) + ep.size(0)
+
+            bg = bg.to(rank)
+            bg_prime = bg_prime.to(rank)
+            ep = ep.to(rank)
+            ep_prime = ep_prime.to(rank)
+            masked = masked.to(rank)
+            target = target.to(rank)
+
+            bg_z, bg_prime_z, ep_z, ep_prime_z, mlm_logits = model(bg, bg_prime, ep, ep_prime, masked)
+
+            optimiser.zero_grad()
+            loss = cont_loss_fn_train(bg_z, bg_prime_z, ep_z, ep_prime_z) + mlm_loss_fn(
+                mlm_logits.flatten(0, 1), target.view(-1)
+            )
+            loss.backward()
+            optimiser.step()
+
+            total_loss += loss.item() * num_samples
+            total_lr += optimiser.lr * num_samples
+            divisor += num_samples
+
+        return {"loss": total_loss / divisor, "lr": total_lr / divisor}
+
+    @staticmethod
+    @torch.no_grad()
+    def valid_func(
+        model: DDP, dl: EpitopeContrastiveDataLoader, loss_fns: tuple, rank: int
+    ) -> dict:
+        mlm_loss_fn, _, cont_loss_fn_valid = loss_fns
+
+        super().valid_func(model, dl, (mlm_loss_fn, cont_loss_fn_valid), rank)
+
+    @staticmethod
+    def training_obj_factory(config: dict, rank: int) -> tuple:
+        # Instantiate model
+        model = getattr(models, config["model"]["class"])(**config["model"]["config"])
+        model.load_state_dict(torch.load(config["model"]["pretrain_state_dict_path"]))
+        model.to(rank)
+        model = DDP(CLModelWrapper(model), device_ids=[rank])
+
+        # Load train/valid data
+        tokeniser = getattr(tokenisers, config["data"]["tokeniser"]["class"])(
+            **config["data"]["tokeniser"]["config"]
+        )
+        train_ds_ac = AutoContrastiveDataset(
+            data=config["data"]["dataset"]["train_ac"]["source_path"],
+            tokeniser=tokeniser,
+            **config["data"]["dataset"]["train_ac"]["config"],
+        )
+        train_ds_ec = EpitopeContrastiveDataset(
+            data=config["data"]["dataset"]["train_ec"]["source_path"],
+            tokeniser=tokeniser,
+            **config["data"]["dataset"]["train_ec"]["config"]
+        )
+
+        valid_ds = EpitopeContrastiveDataset(
+            data=config["data"]["dataset"]["valid"]["source_path"],
+            tokeniser=tokeniser,
+            censoring_lhs=False,
+            censoring_rhs=False,
+        )
+
+        train_dl_ac = AutoContrastiveDataLoader(
+            dataset=train_ds_ac,
+            sampler=DistributedSampler(train_ds_ac),
+            **config["data"]["dataloader"]["train_ac"]["config"]
+        )
+        train_dl_ec = EpitopeContrastiveDataLoader(
+            dataset=train_ds_ec,
+            sampler=DistributedSampler(train_ds_ec),
+            **config["data"]["dataloader"]["train_ec"]["config"]
+        )
+        combined_train_iterator = CombinedContrastiveIterator(
+            dataloader_ac=train_dl_ac,
+            dataloader_ec=train_dl_ec
+        )
+
+        valid_dl = EpitopeContrastiveDataLoader(
+            dataset=valid_ds,
+            p_mask_random=0,
+            p_mask_keep=0,
+            **config["data"]["dataloader"]["valid"]["config"],
+        )
+
+        # Loss functions
+        mlm_loss_fn = AdjustedCELoss(label_smoothing=0.1)
+        cont_loss_fn_train = getattr(metrics, config["optim"]["contrastive_loss_training"]["class"])(
+            **config["optim"]["contrastive_loss_training"]["config"]
+        )
+        cont_loss_fn_valid = getattr(metrics, config["optim"]["contrastive_loss_validation"]["class"])(
+            **config["optim"]["contrastive_loss_validation"]["config"]
+        )
+
+        # Optimiser
+        optimiser = AdamWithScheduling(
+            params=model.parameters(),
+            d_model=config["model"]["config"]["d_model"],
+            **config["optim"]["optimiser"]["config"],
+        )
+
+        return model, combined_train_iterator, valid_dl, (mlm_loss_fn, cont_loss_fn_train, cont_loss_fn_valid), optimiser

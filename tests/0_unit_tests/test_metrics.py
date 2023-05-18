@@ -1,5 +1,5 @@
 import pytest
-from src import metrics
+from src.metrics import *
 import torch
 from torch.nn.functional import normalize
 
@@ -10,7 +10,7 @@ class TestAlignment:
         labels = torch.tensor([0, 0, 1, 1])
 
         torch.testing.assert_close(
-            metrics.alignment(x, labels), torch.tensor(2, dtype=torch.float32).sqrt()
+            alignment(x, labels), torch.tensor(2, dtype=torch.float32).sqrt()
         )
 
     @pytest.mark.parametrize("alpha", (1, 2, 3))
@@ -19,7 +19,7 @@ class TestAlignment:
         labels = torch.tensor([0, 0, 1, 1])
 
         torch.testing.assert_close(
-            metrics.alignment(x, labels, alpha=alpha),
+            alignment(x, labels, alpha=alpha),
             torch.tensor(2, dtype=torch.float32).sqrt().pow(alpha),
         )
 
@@ -30,7 +30,7 @@ class TestAlignmentPaired:
         z_prime = torch.tensor([[1, 0], [-1, 0]], dtype=torch.float32)
 
         torch.testing.assert_close(
-            metrics.alignment_paired(z, z_prime),
+            alignment_paired(z, z_prime),
             torch.tensor(2, dtype=torch.float32).sqrt(),
         )
 
@@ -40,7 +40,7 @@ class TestAlignmentPaired:
         z_prime = torch.tensor([[1, 0], [-1, 0]], dtype=torch.float32)
 
         torch.testing.assert_close(
-            metrics.alignment_paired(z, z_prime, alpha=alpha),
+            alignment_paired(z, z_prime, alpha=alpha),
             torch.tensor(2, dtype=torch.float32).sqrt().pow(alpha),
         )
 
@@ -50,7 +50,7 @@ class TestUniformity:
         x = torch.tensor([[0, 1], [1, 0], [0, -1], [-1, 0]], dtype=torch.float32)
 
         torch.testing.assert_close(
-            metrics.uniformity(x),
+            uniformity(x),
             torch.log(2 * torch.tensor(2).sqrt().neg().exp() + torch.tensor(-2).exp())
             - torch.tensor(3).log(),
         )
@@ -65,7 +65,7 @@ class TestUniformity:
             - torch.tensor(3).log()
         )
 
-        torch.testing.assert_close(metrics.uniformity(x, alpha=alpha), expected)
+        torch.testing.assert_close(uniformity(x, alpha=alpha), expected)
 
     @pytest.mark.parametrize("t", (1, 2, 3))
     def test_t(self, t):
@@ -77,12 +77,12 @@ class TestUniformity:
             - torch.tensor(3).log()
         )
 
-        torch.testing.assert_close(metrics.uniformity(x, t=t), expected)
+        torch.testing.assert_close(uniformity(x, t=t), expected)
 
 
 class TestAdjustedCELoss:
     def test_init(self):
-        loss_fn = metrics.AdjustedCELoss(label_smoothing=0.5)
+        loss_fn = AdjustedCELoss(label_smoothing=0.5)
 
         assert loss_fn.label_smoothing == 0.5
         assert loss_fn.ignore_index == -3
@@ -96,7 +96,7 @@ class TestAdjustedCELoss:
         ),
     )
     def test_forward(self, y, expected):
-        loss_fn = metrics.AdjustedCELoss()
+        loss_fn = AdjustedCELoss()
         x = torch.tensor([[0.5, 0.2, 0.3], [0.3, 0.3, 0.4]])
 
         result = loss_fn(x, y)
@@ -105,7 +105,7 @@ class TestAdjustedCELoss:
 
     @pytest.mark.parametrize("token", (1, 6, -100))
     def test_error_padding_tokens(self, token):
-        loss_fn = metrics.AdjustedCELoss()
+        loss_fn = AdjustedCELoss()
         x = torch.tensor([[0.5, 0.2, 0.3]])
 
         with pytest.raises(IndexError):
@@ -141,7 +141,7 @@ class TestMLMAccuracy:
         ),
     )
     def test_mlm_accuracy(self, logits, y, expected):
-        calculated = metrics.mlm_acc(logits, y)
+        calculated = mlm_acc(logits, y)
         torch.testing.assert_close(calculated, expected)
 
 
@@ -192,13 +192,13 @@ class TestMLMTopkAccuracy:
         ),
     )
     def test_mlm_topk_accuracy(self, logits, y, k, expected):
-        calculated = metrics.mlm_topk_acc(logits, y, k)
+        calculated = mlm_topk_acc(logits, y, k)
         torch.testing.assert_close(calculated, expected)
 
 
 class TestSimCLoss:
     def test_simcloss(self):
-        loss_fn = metrics.SimCLoss(temp=0.05)
+        loss_fn = SimCLoss(temp=0.05)
         z = torch.eye(3)
         z_prime = normalize(
             torch.tensor([[3, 2, 1], [1, 2, 3], [2, 1, 3]], dtype=torch.float32),
@@ -214,7 +214,7 @@ class TestSimCLoss:
 
 class TestSimCLoss2:
     def test_simcloss2(self):
-        loss_fn = metrics.SimCLoss2(temp=0.05)
+        loss_fn = SimCLoss2(temp=0.05)
         z = torch.eye(3)
         z_prime = normalize(
             torch.tensor([[3, 2, 1], [1, 2, 3], [2, 1, 3]], dtype=torch.float32),
@@ -230,7 +230,7 @@ class TestSimCLoss2:
 
 class TestAULoss:
     def test_auloss(self):
-        loss_fn = metrics.AULoss()
+        loss_fn = AULoss()
         z = torch.eye(3)
         z_prime = normalize(
             torch.tensor([[3, 2, 1], [1, 2, 3], [2, 1, 3]], dtype=torch.float32),
@@ -244,7 +244,7 @@ class TestAULoss:
         torch.testing.assert_close(result, expected, rtol=0, atol=5e-5)
 
     def test_alpha_t(self):
-        loss_fn = metrics.AULoss(alpha=2, t=2)
+        loss_fn = AULoss(alpha=2, t=2)
         z = torch.eye(3)
         z_prime = normalize(
             torch.tensor([[3, 2, 1], [1, 2, 3], [2, 1, 3]], dtype=torch.float32),
@@ -260,7 +260,7 @@ class TestAULoss:
 
 class TestPosBackSimCLoss:
     def test_simcloss(self):
-        loss_fn = metrics.PosBackSimCLoss(temp=0.05)
+        loss_fn = PosBackSimCLoss(temp=0.05)
         z = torch.tensor([[1, 0, 0], [-1, 0, 0]], dtype=torch.float32)
         z_pos = normalize(
             torch.tensor([[2, 1, 1], [-1, 1, 1]], dtype=torch.float32), p=2, dim=1
@@ -273,3 +273,24 @@ class TestPosBackSimCLoss:
         expected = torch.tensor(1.9491e-5)
 
         torch.testing.assert_close(result, expected, rtol=0, atol=5e-10)
+
+
+class TestTCRContrastiveLoss:
+    def test_loss(self):
+        loss_fn = TCRContrastiveLoss(temp=0.05)
+
+        bg = torch.eye(3)
+        bg_prime = normalize(
+            torch.tensor([[3, 2, 1], [1, 2, 3], [2, 1, 3]], dtype=torch.float32),
+            p=2,
+            dim=1,
+        )
+        ep = torch.tensor([[1, 0, 0], [-1, 0, 0]], dtype=torch.float32)
+        ep_prime = normalize(
+            torch.tensor([[2, 1, 1], [-1, 1, 1]], dtype=torch.float32), p=2, dim=1
+        )
+
+        result = loss_fn(bg, bg_prime, ep, ep_prime)
+        expected = torch.tensor(0.3905)
+
+        torch.testing.assert_close(result, expected, rtol=0, atol=5e-5)
