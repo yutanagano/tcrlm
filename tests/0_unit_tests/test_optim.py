@@ -33,7 +33,7 @@ class TestAdamWithScheduling:
             d_model=4,
             n_warmup_steps=5,
             lr=0.001,
-            decay=False
+            decay=False,
         )
 
         for i in range(1, 1 + 10):

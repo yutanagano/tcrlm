@@ -1,11 +1,11 @@
-from src.datahandling import dataloaders
+from src.datahandling.dataloaders import *
 import torch
 from torch.utils.data import BatchSampler, SequentialSampler
 
 
 class TestTCRDataLoader:
     def test_init(self, abcdr3t_dataset):
-        dataloader = dataloaders.TCRDataLoader(
+        dataloader = TCRDataLoader(
             dataset=abcdr3t_dataset, batch_size=3, num_workers=3
         )
 
@@ -19,7 +19,7 @@ class TestTCRDataLoader:
         assert dataloader.num_workers == 3
 
     def test_padding_collation(self, abcdr3t_dataset):
-        dataloader = dataloaders.TCRDataLoader(
+        dataloader = TCRDataLoader(
             dataset=abcdr3t_dataset, batch_size=3, shuffle=False
         )
 
@@ -77,7 +77,7 @@ class TestTCRDataLoader:
 
 class TestMLMDataLoader:
     def test_shapes(self, abcdr3t_dataset):
-        dataloader = dataloaders.MLMDataLoader(dataset=abcdr3t_dataset, batch_size=3)
+        dataloader = MLMDataLoader(dataset=abcdr3t_dataset, batch_size=3)
 
         masked, target = next(iter(dataloader))
 
@@ -91,7 +91,7 @@ class TestMLMDataLoader:
 
 class TestAutoContrastiveDataLoader:
     def test_shapes(self, abcdr3t_auto_contrastive_dataset):
-        dataloader = dataloaders.AutoContrastiveDataLoader(
+        dataloader = AutoContrastiveDataLoader(
             dataset=abcdr3t_auto_contrastive_dataset, batch_size=3
         )
 
@@ -108,7 +108,7 @@ class TestAutoContrastiveDataLoader:
 
 class TestEpitopeContrastiveDataLoader:
     def test_shapes(self, abcdr3t_epitope_contrastive_dataset):
-        dataloader = dataloaders.EpitopeContrastiveDataLoader(
+        dataloader = EpitopeContrastiveDataLoader(
             dataset=abcdr3t_epitope_contrastive_dataset, batch_size=2
         )
 
@@ -123,3 +123,43 @@ class TestEpitopeContrastiveDataLoader:
         assert x.size(1) == masked.size(1) == target.size(1) == 12
         assert x_prime.size(1) in (6, 7, 12)
         assert x.size(2) == x_prime.size(2) == masked.size(2) == 4
+
+
+class TestCombinedContrastiveIterator:
+    def test_batching(self, abcdr3t_auto_contrastive_dataset, abcdr3t_epitope_contrastive_dataset):
+        dataloader_ac = AutoContrastiveDataLoader(
+            dataset=abcdr3t_auto_contrastive_dataset, batch_size=1
+        )
+        dataloader_ec = EpitopeContrastiveDataLoader(
+            dataset=abcdr3t_epitope_contrastive_dataset, batch_size=1
+        )
+
+        combined_iterator = CombinedContrastiveIterator(
+            dataloader_ac=dataloader_ac,
+            dataloader_ec=dataloader_ec
+        )
+
+        bg, bg_prime, masked, target, ep, ep_prime, _, _ = next(iter(combined_iterator))
+
+        assert type(bg) == type(bg_prime) == type(masked) == type(target) == type(ep) == type(ep_prime) == torch.Tensor
+
+    def test_iteration(self, abcdr3t_auto_contrastive_dataset, abcdr3t_epitope_contrastive_dataset):
+        dataloader_ac = AutoContrastiveDataLoader(
+            dataset=abcdr3t_auto_contrastive_dataset, batch_size=1
+        )
+        dataloader_ec = EpitopeContrastiveDataLoader(
+            dataset=abcdr3t_epitope_contrastive_dataset, batch_size=1
+        )
+
+        combined_iterator = CombinedContrastiveIterator(
+            dataloader_ac=dataloader_ac,
+            dataloader_ec=dataloader_ec
+        )
+
+        assert len(combined_iterator) == 3
+        batches = 0
+
+        for _ in combined_iterator:
+            batches += 1
+
+        assert batches == 3
