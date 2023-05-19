@@ -31,10 +31,12 @@ class CLModelWrapper(ModelWrapper):
         mlm_logits = self.embedder.mlm(masked)
 
         return z, z_prime, mlm_logits
-    
+
 
 class CombinedCLModelWrapper(ModelWrapper):
-    def forward(self, bg: Tensor, bg_prime: Tensor, ep: Tensor, ep_prime: Tensor, masked: Tensor) -> tuple:
+    def forward(
+        self, bg: Tensor, bg_prime: Tensor, ep: Tensor, ep_prime: Tensor, masked: Tensor
+    ) -> tuple:
         bg_z = self.embedder.embed(bg)
         bg_prime_z = self.embedder.embed(bg_prime)
 

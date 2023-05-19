@@ -216,7 +216,9 @@ class TCRContrastiveLoss(Module):
         super().__init__()
         self._temp = temp
 
-    def forward(self, bg: Tensor, bg_prime: Tensor, ep: Tensor, ep_prime: Tensor) -> Tensor:
+    def forward(
+        self, bg: Tensor, bg_prime: Tensor, ep: Tensor, ep_prime: Tensor
+    ) -> Tensor:
         """
         Assumes that all embeddings are all already l2-normalised.
         """
@@ -228,11 +230,14 @@ class TCRContrastiveLoss(Module):
         bg_sim = torch.exp(torch.matmul(bg, bg_prime.T) / self._temp)  # (N,N)
         bg_pos_sim = torch.diag(bg_sim)  # (N,)
         bg_back_sim = torch.sum(bg_sim, dim=1)  # (N,)
-        bg_closs = torch.sum(-torch.log(bg_pos_sim / bg_back_sim)) # (1,)
+        bg_closs = torch.sum(-torch.log(bg_pos_sim / bg_back_sim))  # (1,)
 
         # then calculate contrastive loss over labelled + background
-        ep_pos_sim = torch.exp(torch.sum(ep * ep_prime, dim=1) / self._temp) # (M,)
-        ep_back_sim = torch.sum(torch.exp(torch.matmul(ep, bg_prime.T) / self._temp), dim=1) + ep_pos_sim # (M,)
-        ep_closs = torch.sum(-torch.log(ep_pos_sim / ep_back_sim)) # (1,)
+        ep_pos_sim = torch.exp(torch.sum(ep * ep_prime, dim=1) / self._temp)  # (M,)
+        ep_back_sim = (
+            torch.sum(torch.exp(torch.matmul(ep, bg_prime.T) / self._temp), dim=1)
+            + ep_pos_sim
+        )  # (M,)
+        ep_closs = torch.sum(-torch.log(ep_pos_sim / ep_back_sim))  # (1,)
 
         return (bg_closs + ep_closs) / (N + M)
