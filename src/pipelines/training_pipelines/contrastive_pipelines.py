@@ -199,12 +199,16 @@ class ECLPipeline(CLPipeline):
         )
 
         return model, train_dl, valid_dl, (mlm_loss_fn, cont_loss_fn), optimiser
-    
+
 
 class CCLPipeline(CLPipeline):
     @staticmethod
     def train_func(
-        model: DDP, dl: CombinedContrastiveIterator, loss_fns: tuple, optimiser, rank: int
+        model: DDP,
+        dl: CombinedContrastiveIterator,
+        loss_fns: tuple,
+        optimiser,
+        rank: int,
     ) -> dict:
         mlm_loss_fn, cont_loss_fn_train, _ = loss_fns
 
@@ -224,7 +228,9 @@ class CCLPipeline(CLPipeline):
             masked = masked.to(rank)
             target = target.to(rank)
 
-            bg_z, bg_prime_z, ep_z, ep_prime_z, mlm_logits = model(bg, bg_prime, ep, ep_prime, masked)
+            bg_z, bg_prime_z, ep_z, ep_prime_z, mlm_logits = model(
+                bg, bg_prime, ep, ep_prime, masked
+            )
 
             optimiser.zero_grad()
             loss = cont_loss_fn_train(bg_z, bg_prime_z, ep_z, ep_prime_z) + mlm_loss_fn(
@@ -268,7 +274,7 @@ class CCLPipeline(CLPipeline):
         train_ds_ec = EpitopeContrastiveDataset(
             data=config["data"]["dataset"]["train_ec"]["source_path"],
             tokeniser=tokeniser,
-            **config["data"]["dataset"]["train_ec"]["config"]
+            **config["data"]["dataset"]["train_ec"]["config"],
         )
 
         valid_ds = EpitopeContrastiveDataset(
@@ -281,16 +287,15 @@ class CCLPipeline(CLPipeline):
         train_dl_ac = AutoContrastiveDataLoader(
             dataset=train_ds_ac,
             sampler=DistributedSampler(train_ds_ac),
-            **config["data"]["dataloader"]["train_ac"]["config"]
+            **config["data"]["dataloader"]["train_ac"]["config"],
         )
         train_dl_ec = EpitopeContrastiveDataLoader(
             dataset=train_ds_ec,
             sampler=DistributedSampler(train_ds_ec),
-            **config["data"]["dataloader"]["train_ec"]["config"]
+            **config["data"]["dataloader"]["train_ec"]["config"],
         )
         combined_train_iterator = CombinedContrastiveIterator(
-            dataloader_ac=train_dl_ac,
-            dataloader_ec=train_dl_ec
+            dataloader_ac=train_dl_ac, dataloader_ec=train_dl_ec
         )
 
         valid_dl = EpitopeContrastiveDataLoader(
@@ -302,12 +307,12 @@ class CCLPipeline(CLPipeline):
 
         # Loss functions
         mlm_loss_fn = AdjustedCELoss(label_smoothing=0.1)
-        cont_loss_fn_train = getattr(metrics, config["optim"]["contrastive_loss_training"]["class"])(
-            **config["optim"]["contrastive_loss_training"]["config"]
-        )
-        cont_loss_fn_valid = getattr(metrics, config["optim"]["contrastive_loss_validation"]["class"])(
-            **config["optim"]["contrastive_loss_validation"]["config"]
-        )
+        cont_loss_fn_train = getattr(
+            metrics, config["optim"]["contrastive_loss_training"]["class"]
+        )(**config["optim"]["contrastive_loss_training"]["config"])
+        cont_loss_fn_valid = getattr(
+            metrics, config["optim"]["contrastive_loss_validation"]["class"]
+        )(**config["optim"]["contrastive_loss_validation"]["config"])
 
         # Optimiser
         optimiser = AdamWithScheduling(
@@ -316,4 +321,10 @@ class CCLPipeline(CLPipeline):
             **config["optim"]["optimiser"]["config"],
         )
 
-        return model, combined_train_iterator, valid_dl, (mlm_loss_fn, cont_loss_fn_train, cont_loss_fn_valid), optimiser
+        return (
+            model,
+            combined_train_iterator,
+            valid_dl,
+            (mlm_loss_fn, cont_loss_fn_train, cont_loss_fn_valid),
+            optimiser,
+        )
