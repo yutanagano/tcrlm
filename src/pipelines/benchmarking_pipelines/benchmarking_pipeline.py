@@ -1,5 +1,5 @@
 """
-Benchmark models using beta-chain only data.
+Base benchmarking pipelines.
 """
 
 
@@ -9,6 +9,7 @@ from ...metrics import mlm_acc
 from ...model_loader import ModelLoader
 from ...resources import AMINO_ACIDS
 from ..class_method_metaclass import ClassMethodMeta
+from argparse import ArgumentParser
 import json
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
@@ -45,6 +46,13 @@ class BenchmarkingPipeline(metaclass=ClassMethodMeta):
     summary_dict: Dict
     figures: Dict[str, Figure]
     save_dir: Path
+
+    def run_from_clargs(cls) -> None:
+        parser = ArgumentParser(description="Benchmarking pipeline.")
+        parser.add_argument("model_save_dir", help="Path to model save directory.")
+        args = parser.parse_args()
+
+        cls.main(Path(args.model_save_dir))
 
     def main(cls, model_save_dir: Path) -> None:
         cls.setup(model_save_dir)
@@ -376,10 +384,11 @@ class BenchmarkingPipeline(metaclass=ClassMethodMeta):
 
         return fig
 
-    def becnhmark_on_labelled_data(cls, ds_name: str, ds: DataFrame) -> None:
+    def becnhmark_on_labelled_data(cls, ds_name: str, ds_df: DataFrame) -> None:
         print(f"Benchmarking on {ds_name}...")
 
-        cdist_matrix, epitope_cat_codes = cls.get_cdist_matrix(ds_name, ds)
+        cdist_matrix = cls.get_cdist_matrix(ds_name, ds_df)
+        epitope_cat_codes = cls.get_epitope_cat_codes(ds_df)
 
         knn_scores = cls.evaluate_knn_performance(cdist_matrix, epitope_cat_codes)
         avg_precision, precisions, recalls = cls.evaluate_precision_recall_curve(
@@ -394,14 +403,16 @@ class BenchmarkingPipeline(metaclass=ClassMethodMeta):
         }
         cls.figures[f"{ds_name}_pr_curve"] = pr_figure
 
-    def get_cdist_matrix(cls, ds_name: str, ds: DataFrame) -> tuple:
-        embs = cls.get_embeddings(ds_name, ds)
+    def get_cdist_matrix(cls, ds_name: str, ds_df: DataFrame) -> tuple:
+        embs = cls.get_embeddings(ds_name, ds_df)
         pdist_array = torch.pdist(embs, p=2).detach().cpu()
         cdist_matrix = squareform(pdist_array)
 
-        epitope_cat_codes = ds["Epitope"].astype("category").cat.codes.to_numpy()
-
-        return cdist_matrix, epitope_cat_codes
+        return cdist_matrix
+    
+    @staticmethod
+    def get_epitope_cat_codes(df: DataFrame) -> ndarray:
+        return df["Epitope"].astype("category").cat.codes.to_numpy()
 
     @staticmethod
     def evaluate_knn_performance(
@@ -468,3 +479,11 @@ class BenchmarkingPipeline(metaclass=ClassMethodMeta):
 
         for filename, plot in cls.figures.items():
             plot.savefig(cls.save_dir / filename)
+
+
+class BetaBenchmarkingPipeline(BenchmarkingPipeline):
+    @staticmethod
+    def load_csv(path: Path) -> DataFrame:
+        df = pd.read_csv(path)
+        df[["TRAV", "CDR3A", "TRAJ"]] = pd.NA
+        return df
