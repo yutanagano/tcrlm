@@ -46,14 +46,17 @@ class TrainingPipeline(ABC):
         self.wd = wd
         self.config = config
 
-        config["data"]["dataloader"]["config"][
-            "batch_size"
-        ] //= self.world_size  # Correct for DDP
+        self.correct_batch_size()
 
         print(f"Commencing training on {self.world_size} CUDA device(s)...")
         port = randint(10000, 60000)
         print(f"Coordinating on port {port}...")
         mp.spawn(self.proc, args=(port,), nprocs=self.world_size)
+
+    def correct_batch_size(self) -> None:
+        self.config["data"]["dataloader"]["config"][
+            "batch_size"
+        ] //= self.world_size  # Correct for DDP
 
     def proc(self, rank: int, port: int) -> None:
         self.ddp_setup(port, rank)
