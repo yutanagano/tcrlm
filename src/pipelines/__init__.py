@@ -5,5 +5,5 @@ from .benchmarking_pipelines.tcrdist_benchmarking_pipeline import (
 )
 from .benchmarking_pipelines.levenshtein_benchmarking_pipeline import CDR3BLevenshteinBenchmarkingPipeline
 
-from .training_pipelines.contrastive_pipelines import ACLPipeline, ECLPipeline
+from .training_pipelines.contrastive_pipelines import ACLPipeline, CCLPipeline, ECLPipeline
 from .training_pipelines.mlm_pipeline import MLMPipeline

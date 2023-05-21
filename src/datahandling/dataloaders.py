@@ -198,3 +198,7 @@ class CombinedContrastiveIterator:
 
         # Return combined batch
         return (*data_ac, *data_ec)
+
+    def set_epoch(self, epoch: int) -> None:
+        self._dataloader_ac.set_epoch(epoch)
+        self._dataloader_ec.set_epoch(epoch)

@@ -3,7 +3,7 @@ from ... import metrics
 from ...datahandling import tokenisers
 from ...datahandling.dataloaders import *
 from ...datahandling.datasets import AutoContrastiveDataset, EpitopeContrastiveDataset
-from ...models.wrappers import CLModelWrapper
+from ...models.wrappers import CLModelWrapper, CombinedCLModelWrapper
 from ...metrics import AdjustedCELoss, alignment_paired, mlm_acc, uniformity
 from ...optim import AdamWithScheduling
 from .training_pipeline import TrainingPipeline
@@ -202,6 +202,17 @@ class ECLPipeline(CLPipeline):
 
 
 class CCLPipeline(CLPipeline):
+    def correct_batch_size(self) -> None:
+        self.config["data"]["dataloader"]["train_ac"]["config"][
+            "batch_size"
+        ] //= self.world_size  # Correct for DDP
+        self.config["data"]["dataloader"]["train_ec"]["config"][
+            "batch_size"
+        ] //= self.world_size
+        self.config["data"]["dataloader"]["valid"]["config"][
+            "batch_size"
+        ] //= self.world_size
+
     @staticmethod
     def train_func(
         model: DDP,
@@ -245,14 +256,14 @@ class CCLPipeline(CLPipeline):
 
         return {"loss": total_loss / divisor, "lr": total_lr / divisor}
 
-    @staticmethod
+    @classmethod
     @torch.no_grad()
-    def valid_func(
+    def valid_func(cls,
         model: DDP, dl: EpitopeContrastiveDataLoader, loss_fns: tuple, rank: int
     ) -> dict:
         mlm_loss_fn, _, cont_loss_fn_valid = loss_fns
 
-        super().valid_func(model, dl, (mlm_loss_fn, cont_loss_fn_valid), rank)
+        return super().valid_func(model, dl, (mlm_loss_fn, cont_loss_fn_valid), rank)
 
     @staticmethod
     def training_obj_factory(config: dict, rank: int) -> tuple:
@@ -260,7 +271,7 @@ class CCLPipeline(CLPipeline):
         model = getattr(models, config["model"]["class"])(**config["model"]["config"])
         model.load_state_dict(torch.load(config["model"]["pretrain_state_dict_path"]))
         model.to(rank)
-        model = DDP(CLModelWrapper(model), device_ids=[rank])
+        model = DDP(CombinedCLModelWrapper(model), device_ids=[rank])
 
         # Load train/valid data
         tokeniser = getattr(tokenisers, config["data"]["tokeniser"]["class"])(
