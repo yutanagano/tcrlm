@@ -1,4 +1,4 @@
-from src.pipelines import ACLPipeline, ECLPipeline
+from src.pipelines import ACLPipeline, CCLPipeline, ECLPipeline
 import multiprocessing as mp
 from pathlib import Path
 import pytest
@@ -38,21 +38,86 @@ def get_config(tmp_path: Path, model_name: str, tokeniser: str, data_file: str) 
     return config
 
 
+def get_ccl_config(tmp_path: Path, model_name: str, tokeniser: dict, data_file: str):
+    config = {
+        "model": {
+            "class": model_name,
+            "config": {
+                "name": "foo bar",
+                "num_encoder_layers": 2,
+                "d_model": 4,
+                "nhead": 2,
+                "dim_feedforward": 16,
+            },
+            "pretrain_state_dict_path": str(tmp_path / "state_dict.pt"),
+        },
+        "data": {
+            "train_path": f"tests/resources/{data_file}",
+            "train_background_path": f"tests/resources/{data_file}",
+            "valid_path": f"tests/resources/{data_file}",
+            "tokeniser": tokeniser,
+            "dataset": {
+                "train_ac": {
+                    "source_path": f"tests/resources/{data_file}",
+                    "config": {"censoring_lhs": True, "censoring_rhs": True},
+                },
+                "train_ec": {
+                    "source_path": f"tests/resources/{data_file}",
+                    "config": {"censoring_lhs": True, "censoring_rhs": True},
+                },
+                "valid": {
+                    "source_path": f"tests/resources/{data_file}",
+                    "config": {"censoring_lhs": True, "censoring_rhs": True},
+                },
+                
+            },
+            "dataloader": {
+                "train_ac": {
+                    "config": {"batch_size": torch.cuda.device_count()}
+                },
+                "train_ec": {
+                    "config": {"batch_size": torch.cuda.device_count()}
+                },
+                "valid": {
+                    "config": {"batch_size": torch.cuda.device_count()}
+                }
+            },
+        },
+        "optim": {
+            "contrastive_loss_training": {"class": "TCRContrastiveLoss", "config": {"temp": 0.05}},
+            "contrastive_loss_validation": {"class": "SimCLoss", "config": {"temp": 0.05}},
+            "optimiser": {"config": {"n_warmup_steps": 10000}},
+        },
+        "n_epochs": 3,
+        "n_gpus": torch.cuda.device_count(),
+    }
+    return config
+
+
 @pytest.mark.parametrize(
-    ("pipeline", "model_class", "tokeniser", "data_file"),
+    ("pipeline", "model_class", "tokeniser", "data_file", "config_generator"),
     (
         (
             ACLPipeline(),
             "CDR3ClsBERT",
             {"class": "CDR3Tokeniser", "config": {}},
             "mock_data.csv",
+            get_config
         ),
         (
             ECLPipeline(),
             "CDR3ClsBERT",
             {"class": "CDR3Tokeniser", "config": {}},
             "mock_data.csv",
+            get_config
         ),
+        (
+            CCLPipeline(),
+            "CDR3ClsBERT",
+            {"class": "CDR3Tokeniser", "config": {}},
+            "mock_data.csv",
+            get_ccl_config
+        )
     ),
 )
 def test_training_loop(
@@ -61,13 +126,14 @@ def test_training_loop(
     model_class,
     tokeniser,
     data_file,
+    config_generator
 ):
     if not torch.cuda.is_available():
         warn("CL test skipped due to hardware limitations.")
         return
 
     # Set up config
-    config = get_config(tmp_path, model_class, tokeniser, data_file)
+    config = config_generator(tmp_path, model_class, tokeniser, data_file)
 
     # Get the correct model template
     model_template = get_model_template(model_class)
