@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from ..class_method_metaclass import ClassMethodMeta
 import argparse
 import json
 import os
@@ -12,14 +12,11 @@ from torch.nn import Module
 from torch.utils.data import DataLoader
 
 
-class TrainingPipeline(ABC):
-    description = "Abstract base class for training pipelines."
+class TrainingPipeline(metaclass=ClassMethodMeta):
+    DESCRIPTION = "Abstract base class for training pipelines."
 
-    def __init__(self) -> None:
-        self.world_size = torch.cuda.device_count()
-
-    def run_from_clargs(self) -> None:
-        parser = argparse.ArgumentParser(description=self.description)
+    def run_from_clargs(cls) -> None:
+        parser = argparse.ArgumentParser(description=cls.DESCRIPTION)
         parser.add_argument(
             "-d",
             "--working-directory",
@@ -40,99 +37,101 @@ class TrainingPipeline(ABC):
         with open(args.config_path, "r") as f:
             config = json.load(f)
 
-        self.main(wd=wd, config=config)
+        cls.main(wd=wd, config=config)
 
-    def main(self, wd: Path, config: dict) -> None:
-        self.wd = wd
-        self.config = config
+    def main(cls, wd: Path, config: dict) -> None:
+        world_size = torch.cuda.device_count()
+        config = cls.correct_batch_size(config, world_size)
 
-        self.correct_batch_size()
+        print(f"Commencing training on {world_size} CUDA device(s)...")
+        cls.launch_training_processes(wd, config, world_size)
 
-        print(f"Commencing training on {self.world_size} CUDA device(s)...")
+    @staticmethod
+    def correct_batch_size(config: dict, world_size: int) -> dict:
+        config["data"]["dataloader"]["config"][
+            "batch_size"
+        ] //= world_size  # Correct for DDP
+        return config
+
+    def launch_training_processes(cls, wd: Path, config: dict, world_size: int) -> None:
         port = randint(10000, 60000)
         print(f"Coordinating on port {port}...")
-        mp.spawn(self.proc, args=(port,), nprocs=self.world_size)
+        mp.spawn(cls.proc, args=(port, wd, config, world_size), nprocs=world_size)
 
-    def correct_batch_size(self) -> None:
-        self.config["data"]["dataloader"]["config"][
-            "batch_size"
-        ] //= self.world_size  # Correct for DDP
+    def proc(cls, rank: int, port: int, wd: Path, config: dict, world_size: int) -> None:
+        cls.ddp_setup(port, rank, world_size)
 
-    def proc(self, rank: int, port: int) -> None:
-        self.ddp_setup(port, rank)
-
-        # Load training objects
-        TrainingPipeline.proc_print("Loading training objects...", rank)
-        model, train_dl, valid_dl, loss_fns, optimiser = self.training_obj_factory(
-            self.config, rank
+        cls.proc_print("Loading training objects...", rank)
+        model, train_dl, valid_dl, loss_fns, optimiser = cls.training_obj_factory(
+            config, rank
         )
 
-        # Evaluate model at pre-SimC learning state
-        TrainingPipeline.proc_print("Evaluating pre-trained model state...", rank)
-        valid_metrics = self.valid_func(
+        cls.proc_print("Evaluating pre-trained model state...", rank)
+        valid_metrics = cls.valid_func(
             model=model,
             dl=valid_dl,
             loss_fns=loss_fns,
             rank=rank,
         )
-        TrainingPipeline.metric_feedback(valid_metrics, rank)
+        cls.metric_feedback(valid_metrics, rank)
 
         metric_log = {0: {"loss": None, "lr": None, **valid_metrics}}
 
         # Go through epochs of training
-        for epoch in range(1, self.config["n_epochs"] + 1):
-            TrainingPipeline.proc_print(f"Starting epoch {epoch}...", rank)
+        for epoch in range(1, config["n_epochs"] + 1):
+            cls.proc_print(f"Starting epoch {epoch}...", rank)
             train_dl.set_epoch(epoch)
 
-            TrainingPipeline.proc_print("Training...", rank)
-            train_metrics = self.train_func(
+            cls.proc_print("Training...", rank)
+            train_metrics = cls.train_func(
                 model=model,
                 dl=train_dl,
                 loss_fns=loss_fns,
                 optimiser=optimiser,
                 rank=rank,
             )
-            TrainingPipeline.metric_feedback(train_metrics, rank)
+            cls.metric_feedback(train_metrics, rank)
 
-            TrainingPipeline.proc_print("Validating...", rank)
-            valid_metrics = self.valid_func(
+            cls.proc_print("Validating...", rank)
+            valid_metrics = cls.valid_func(
                 model=model,
                 dl=valid_dl,
                 loss_fns=loss_fns,
                 rank=rank,
             )
-            TrainingPipeline.metric_feedback(valid_metrics, rank)
+            cls.metric_feedback(valid_metrics, rank)
 
             metric_log[epoch] = {**train_metrics, **valid_metrics}
 
         # Save results
         if rank == 0:
             print("Saving results...")
-            self.save(model=model.module.embedder, log=metric_log)
+            cls.save(wd=wd, config=config, model=model.module.embedder, log=metric_log)
 
-        self.ddp_cleanup(rank)
-        TrainingPipeline.proc_print("Done!", rank)
+        cls.ddp_cleanup(rank)
+        cls.proc_print("Done!", rank)
 
-    def ddp_setup(self, port: int, rank: int) -> None:
-        TrainingPipeline.proc_print("Setting up DDP process...", rank)
+    def ddp_setup(cls, port: int, rank: int, world_size: int) -> None:
+        cls.proc_print("Setting up DDP process...", rank)
         os.environ["MASTER_ADDR"] = "localhost"
         os.environ["MASTER_PORT"] = str(port)
-        init_process_group(backend="nccl", rank=rank, world_size=self.world_size)
-        TrainingPipeline.proc_print("DDP process started.", rank)
+        init_process_group(backend="nccl", rank=rank, world_size=world_size)
+        cls.proc_print("DDP process started.", rank)
 
-    def ddp_cleanup(self, rank: int) -> None:
-        TrainingPipeline.proc_print("Closing DDP process...", rank)
+    def ddp_cleanup(cls, rank: int) -> None:
+        cls.proc_print("Closing DDP process...", rank)
         destroy_process_group()
-        TrainingPipeline.proc_print("DDP process closed.", rank)
+        cls.proc_print("DDP process closed.", rank)
 
-    def save(self, model: Module, log: dict) -> None:
-        model_saves_dir = self.wd / "model_saves"
+    @staticmethod
+    def save(wd: Path, config: dict, model: Module, log: dict) -> None:
+        model_saves_dir = wd / "model_saves"
         try:
             model_saves_dir.mkdir()
         except FileExistsError:
             pass
 
-        save_name = self.config["model"]["config"]["name"].replace(" ", "_")
+        save_name = config["model"]["config"]["name"].replace(" ", "_")
 
         try:
             (model_saves_dir / save_name).mkdir()
@@ -162,7 +161,7 @@ class TrainingPipeline(ABC):
 
         # Save config
         with open(save_dir / "config.json", "w") as f:
-            json.dump(self.config, f, indent=4)
+            json.dump(config, f, indent=4)
 
     @staticmethod
     def proc_print(msg: str, rank: int) -> None:
@@ -174,7 +173,6 @@ class TrainingPipeline(ABC):
             TrainingPipeline.proc_print(f"{metric}: {metrics[metric]}", rank)
 
     @staticmethod
-    @abstractmethod
     def training_obj_factory(config: dict, rank: int) -> tuple:
         """
         Factory function that should use the config file and the current
@@ -186,9 +184,9 @@ class TrainingPipeline(ABC):
         - Loss function(s)
         - Optimiser
         """
+        raise NotImplementedError()
 
     @staticmethod
-    @abstractmethod
     def train_func(
         model: Module, dl: DataLoader, loss_fns: tuple, optimiser, rank: int
     ) -> dict:
@@ -196,11 +194,12 @@ class TrainingPipeline(ABC):
         Run a training epoch, and return a dictionary containing the average
         epoch loss and learning rate.
         """
+        raise NotImplementedError()
 
     @staticmethod
-    @abstractmethod
     def valid_func(model: Module, dl: DataLoader, loss_fns: tuple, rank: int) -> dict:
         """
         Run a validation epoch, and return some summary statistics as a
         dictionary.
         """
+        raise NotImplementedError()
