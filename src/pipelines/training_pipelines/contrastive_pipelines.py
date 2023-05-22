@@ -202,16 +202,15 @@ class ECLPipeline(CLPipeline):
 
 
 class CCLPipeline(CLPipeline):
-    def correct_batch_size(self) -> None:
-        self.config["data"]["dataloader"]["train_ac"]["config"][
+    @staticmethod
+    def correct_batch_size(config: dict, world_size: int) -> None:
+        config["data"]["dataloader"]["ac_config"][
             "batch_size"
-        ] //= self.world_size  # Correct for DDP
-        self.config["data"]["dataloader"]["train_ec"]["config"][
+        ] //= world_size
+        config["data"]["dataloader"]["ec_config"][
             "batch_size"
-        ] //= self.world_size
-        self.config["data"]["dataloader"]["valid"]["config"][
-            "batch_size"
-        ] //= self.world_size
+        ] //= world_size
+        return config
 
     @staticmethod
     def train_func(
@@ -278,18 +277,18 @@ class CCLPipeline(CLPipeline):
             **config["data"]["tokeniser"]["config"]
         )
         train_ds_ac = AutoContrastiveDataset(
-            data=config["data"]["dataset"]["train_ac"]["source_path"],
+            data=config["data"]["train_ac_path"],
             tokeniser=tokeniser,
-            **config["data"]["dataset"]["train_ac"]["config"],
+            **config["data"]["dataset"]["ac_config"],
         )
         train_ds_ec = EpitopeContrastiveDataset(
-            data=config["data"]["dataset"]["train_ec"]["source_path"],
+            data=config["data"]["train_ec_path"],
             tokeniser=tokeniser,
-            **config["data"]["dataset"]["train_ec"]["config"],
+            **config["data"]["dataset"]["ec_config"],
         )
 
         valid_ds = EpitopeContrastiveDataset(
-            data=config["data"]["dataset"]["valid"]["source_path"],
+            data=config["data"]["valid_ec_path"],
             tokeniser=tokeniser,
             censoring_lhs=False,
             censoring_rhs=False,
@@ -298,12 +297,12 @@ class CCLPipeline(CLPipeline):
         train_dl_ac = AutoContrastiveDataLoader(
             dataset=train_ds_ac,
             sampler=DistributedSampler(train_ds_ac),
-            **config["data"]["dataloader"]["train_ac"]["config"],
+            **config["data"]["dataloader"]["ac_config"],
         )
         train_dl_ec = EpitopeContrastiveDataLoader(
             dataset=train_ds_ec,
             sampler=DistributedSampler(train_ds_ec),
-            **config["data"]["dataloader"]["train_ec"]["config"],
+            **config["data"]["dataloader"]["ec_config"],
         )
         combined_train_iterator = CombinedContrastiveIterator(
             dataloader_ac=train_dl_ac, dataloader_ec=train_dl_ec
@@ -313,7 +312,7 @@ class CCLPipeline(CLPipeline):
             dataset=valid_ds,
             p_mask_random=0,
             p_mask_keep=0,
-            **config["data"]["dataloader"]["valid"]["config"],
+            **config["data"]["dataloader"]["ec_config"],
         )
 
         # Loss functions

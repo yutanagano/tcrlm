@@ -52,35 +52,17 @@ def get_ccl_config(tmp_path: Path, model_name: str, tokeniser: dict, data_file: 
             "pretrain_state_dict_path": str(tmp_path / "state_dict.pt"),
         },
         "data": {
-            "train_path": f"tests/resources/{data_file}",
-            "train_background_path": f"tests/resources/{data_file}",
-            "valid_path": f"tests/resources/{data_file}",
+            "train_ac_path": f"tests/resources/{data_file}",
+            "train_ec_path": f"tests/resources/{data_file}",
+            "valid_ec_path": f"tests/resources/{data_file}",
             "tokeniser": tokeniser,
             "dataset": {
-                "train_ac": {
-                    "source_path": f"tests/resources/{data_file}",
-                    "config": {"censoring_lhs": True, "censoring_rhs": True},
-                },
-                "train_ec": {
-                    "source_path": f"tests/resources/{data_file}",
-                    "config": {"censoring_lhs": True, "censoring_rhs": True},
-                },
-                "valid": {
-                    "source_path": f"tests/resources/{data_file}",
-                    "config": {"censoring_lhs": True, "censoring_rhs": True},
-                },
-                
+                "ac_config": {"censoring_lhs": True, "censoring_rhs": True},
+                "ec_config": {"censoring_lhs": True, "censoring_rhs": True}
             },
             "dataloader": {
-                "train_ac": {
-                    "config": {"batch_size": torch.cuda.device_count()}
-                },
-                "train_ec": {
-                    "config": {"batch_size": torch.cuda.device_count()}
-                },
-                "valid": {
-                    "config": {"batch_size": torch.cuda.device_count()}
-                }
+                "ac_config": {"batch_size": torch.cuda.device_count()},
+                "ec_config": {"batch_size": torch.cuda.device_count()}
             },
         },
         "optim": {
@@ -98,21 +80,21 @@ def get_ccl_config(tmp_path: Path, model_name: str, tokeniser: dict, data_file: 
     ("pipeline", "model_class", "tokeniser", "data_file", "config_generator"),
     (
         (
-            ACLPipeline(),
+            ACLPipeline,
             "CDR3ClsBERT",
             {"class": "CDR3Tokeniser", "config": {}},
             "mock_data.csv",
             get_config
         ),
         (
-            ECLPipeline(),
+            ECLPipeline,
             "CDR3ClsBERT",
             {"class": "CDR3Tokeniser", "config": {}},
             "mock_data.csv",
             get_config
         ),
         (
-            CCLPipeline(),
+            CCLPipeline,
             "CDR3ClsBERT",
             {"class": "CDR3Tokeniser", "config": {}},
             "mock_data.csv",
