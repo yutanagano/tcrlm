@@ -81,7 +81,7 @@ class TestTrainingLoop:
 
         # Run MLM training loop in separate process
         p = mp.Process(
-            target=MLMPipeline().main,
+            target=MLMPipeline.main,
             kwargs={"wd": tmp_path, "config": config},
         )
         p.start()
