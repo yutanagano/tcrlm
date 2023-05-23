@@ -28,7 +28,7 @@ import torch
 from torch import device, Tensor, topk
 from torch.nn.functional import softmax
 from tqdm import tqdm
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 
 class BenchmarkingPipeline(metaclass=ClassMethodMeta):
@@ -340,9 +340,11 @@ class BenchmarkingPipeline(metaclass=ClassMethodMeta):
 
         pca_summary_figure = cls.generate_pca_summary_figure(pca)
         pca_projection_figure = cls.generate_pca_2d_projection(pca, background_embs)
+        pca_projection_bv = cls.generate_pca_2d_projection(pca, background_embs, cls.background_data["TRBV"])
 
         cls.figures["pca_summary"] = pca_summary_figure
         cls.figures["pca_projection"] = pca_projection_figure
+        cls.figures["pca_projection_bv"] = pca_projection_bv
 
     def get_embeddings(cls, ds_name: str, ds: DataFrame) -> Tensor:
         save_path = cls.save_dir / ".cache" / f"{ds_name}_embs.pt"
@@ -376,19 +378,24 @@ class BenchmarkingPipeline(metaclass=ClassMethodMeta):
         return fig
 
     @staticmethod
-    def generate_pca_2d_projection(pca: PCA, embs: Tensor) -> Figure:
-        with sns.axes_style("dark"):
-            projection = pca.transform(embs.cpu())[:10000, :2]
-            fig = sns.jointplot(x=projection[:, 0], y=projection[:, 1])
-            fig.set_axis_labels(xlabel="PCA 1", ylabel="PCA 2")
+    def generate_pca_2d_projection(pca: PCA, embs: Tensor, categories: Optional[ndarray] = None) -> Figure:
+        projection = pca.transform(embs.cpu())[:10000, :2]
+        if not categories is None:
+            categories = categories[:10000]
 
-        return fig
+        with sns.axes_style("dark"):
+            joint_grid = sns.jointplot(x=projection[:, 0], y=projection[:, 1], hue=categories)
+            joint_grid.set_axis_labels(xlabel="PCA 1", ylabel="PCA 2")
+            if not categories is None:
+                joint_grid.ax_joint.legend_.remove()
+
+        return joint_grid
 
     def becnhmark_on_labelled_data(cls, ds_name: str, ds_df: DataFrame) -> None:
         print(f"Benchmarking on {ds_name}...")
 
         cdist_matrix = cls.get_cdist_matrix(ds_name, ds_df)
-        epitope_cat_codes = cls.get_epitope_cat_codes(ds_df)
+        epitope_cat_codes = cls.get_column_cat_codes(ds_df, "Epitope")
 
         knn_scores = cls.evaluate_knn_performance(cdist_matrix, epitope_cat_codes)
         avg_precision, precisions, recalls = cls.evaluate_precision_recall_curve(
@@ -411,8 +418,8 @@ class BenchmarkingPipeline(metaclass=ClassMethodMeta):
         return cdist_matrix
     
     @staticmethod
-    def get_epitope_cat_codes(df: DataFrame) -> ndarray:
-        return df["Epitope"].astype("category").cat.codes.to_numpy()
+    def get_column_cat_codes(df: DataFrame, column: str) -> ndarray:
+        return df[column].astype("category").cat.codes.to_numpy()
 
     @staticmethod
     def evaluate_knn_performance(
