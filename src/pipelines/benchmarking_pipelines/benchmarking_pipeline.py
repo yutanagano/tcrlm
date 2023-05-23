@@ -124,11 +124,11 @@ class BenchmarkingPipeline(metaclass=ClassMethodMeta):
             5, random_state=420, ignore_index=True
         )
 
-        if re.search("CDR3(Cls)?BERT", model_class_name):
+        if re.search("BCDR3(Cls)?BERT", model_class_name):
             cls.benchmark_cdr3_mlm_performance(dataloader, exemplar_tcrs)
             return
 
-        if re.search("CDR(Cls)?BERT", model_class_name):
+        if re.search("BCDR(Cls)?BERT", model_class_name):
             cls.benchmark_cdr123_mlm_performance(dataloader, exemplar_tcrs)
             return
 
