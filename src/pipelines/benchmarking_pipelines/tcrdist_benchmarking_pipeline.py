@@ -40,11 +40,11 @@ class TcrdistBenchmarkingPipeline(PureMetricBenchmarkingPipeline):
             df["count"] = 1
         return df
 
-    def get_cdist_matrix(cls, ds_name: str, ds_df: DataFrame) -> tuple:
+    def get_pdist_matrix(cls, ds_name: str, ds_df: DataFrame) -> tuple:
         tr = TCRrep(cell_df=ds_df, organism="human", chains=cls.CHAINS, deduplicate=False)
-        cdist_matrix = tr.pw_beta.astype(np.float32)
+        pdist_matrix = tr.pw_beta.astype(np.float32)
 
-        return cdist_matrix
+        return pdist_matrix
 
 
 class BTcrdistBenchmarkingPipeline(TcrdistBenchmarkingPipeline):
