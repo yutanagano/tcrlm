@@ -28,11 +28,12 @@ import torch
 from torch import device, Tensor, topk
 from torch.nn.functional import softmax
 from tqdm import tqdm
-from typing import Dict, Optional, Tuple
+from typing import Callable, Dict, Optional, Tuple
 
 
 class BenchmarkingPipeline(metaclass=ClassMethodMeta):
     BACKGROUND_DATA_PATH = "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/tanno/test.csv"
+    BACKGROUND_PGEN_PATH = "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/tanno/test_pgens.npy"
     LABELLED_DATA_PATHS = {
         "vdjdb": "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/vdjdb/evaluation_beta.csv",
         "dash": "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/dash/evaluation.csv",
@@ -58,6 +59,7 @@ class BenchmarkingPipeline(metaclass=ClassMethodMeta):
         cls.setup(model_save_dir)
         cls.benchmark_mlm_performance()
         cls.explore_embedding_space()
+        cls.evaluate_pgen_vs_representation_space_density()
         for ds_name, ds_df in cls.labelled_data.items():
             cls.becnhmark_on_labelled_data(ds_name, ds_df)
         cls.save()
@@ -77,6 +79,7 @@ class BenchmarkingPipeline(metaclass=ClassMethodMeta):
 
     def load_data(cls) -> None:
         cls.background_data = cls.load_csv(cls.BACKGROUND_DATA_PATH)
+        cls.background_pgen = np.load(cls.BACKGROUND_PGEN_PATH)
         cls.labelled_data = {
             name: cls.load_csv(path) for name, path in cls.LABELLED_DATA_PATHS.items()
         }
@@ -135,7 +138,10 @@ class BenchmarkingPipeline(metaclass=ClassMethodMeta):
     def benchmark_cdr3_mlm_performance(
         cls, dataloader: MLMDataLoader, exemplar_tcrs: DataFrame
     ) -> None:
-        mlm_performance = cls.quantify_cdr3_mlm_performance(dataloader)
+        mlm_performance = cls.get_cached(
+            "mlm.json",
+            lambda: cls.quantify_cdr3_mlm_performance(dataloader)
+        )
         mlm_exemplar_figures = cls.generate_cdr3_mlm_exemplar_plots(exemplar_tcrs)
 
         cls.summary_dict["mlm_summary"] = mlm_performance
@@ -144,7 +150,10 @@ class BenchmarkingPipeline(metaclass=ClassMethodMeta):
     def benchmark_cdr123_mlm_performance(
         cls, dataloader: MLMDataLoader, exemplar_tcrs: DataFrame
     ) -> None:
-        mlm_performance = cls.quantify_cdr123_mlm_performance(dataloader)
+        mlm_performance = cls.get_cached(
+            "mlm.json",
+            lambda: cls.quantify_cdr123_mlm_performance(dataloader)
+        )
         mlm_exemplar_figures = cls.generate_cdr123_mlm_exemplar_plots(exemplar_tcrs)
 
         cls.summary_dict["mlm_summary"] = mlm_performance
@@ -153,11 +162,6 @@ class BenchmarkingPipeline(metaclass=ClassMethodMeta):
     def quantify_cdr3_mlm_performance(
         cls, dataloader: MLMDataLoader
     ) -> Dict[str, float]:
-        save_path = cls.save_dir / ".cache" / f"mlm.json"
-        if save_path.is_file():
-            with open(save_path, "r") as f:
-                return json.load(f)
-
         total_acc = 0
         divisor = 0
 
@@ -172,21 +176,11 @@ class BenchmarkingPipeline(metaclass=ClassMethodMeta):
             total_acc += mlm_acc(logits, y) * num_samples
             divisor += num_samples
 
-        mlm_performance = {"acc": total_acc / divisor}
-
-        with open(save_path, "w") as f:
-            json.dump(mlm_performance, f)
-
-        return mlm_performance
+        return {"acc": total_acc / divisor}
 
     def quantify_cdr123_mlm_performance(
         cls, dataloader: MLMDataLoader
     ) -> Dict[str, float]:
-        save_path = cls.save_dir / ".cache" / f"mlm.json"
-        if save_path.is_file():
-            with open(save_path, "r") as f:
-                return json.load(f)
-
         total_acc = 0
         total_cdr1_acc = 0
         total_cdr2_acc = 0
@@ -207,17 +201,12 @@ class BenchmarkingPipeline(metaclass=ClassMethodMeta):
             total_cdr3_acc += mlm_acc(logits, y, x[:, :, 3] == 3) * num_samples
             divisor += num_samples
 
-        mlm_performance = {
+        return {
             "acc": total_acc / divisor,
             "cdr1_acc": total_cdr1_acc / divisor,
             "cdr2_acc": total_cdr2_acc / divisor,
             "cdr3_acc": total_cdr3_acc / divisor,
         }
-
-        with open(save_path, "w") as f:
-            json.dump(mlm_performance, f)
-
-        return mlm_performance
 
     def generate_cdr3_mlm_exemplar_plots(
         cls, exemplar_tcrs: DataFrame
@@ -347,15 +336,50 @@ class BenchmarkingPipeline(metaclass=ClassMethodMeta):
         cls.figures["pca_projection_bv"] = pca_projection_bv
 
     def get_embeddings(cls, ds_name: str, ds: DataFrame) -> Tensor:
-        save_path = cls.save_dir / ".cache" / f"{ds_name}_embs.pt"
+        return cls.get_cached(
+            f"{ds_name}_embs.pt",
+            lambda: torch.tensor(cls.model.embed(ds))
+        )
+    
+    def get_cached(cls, filename: str, compute_result_fn: Callable) -> any:
+        save_path = cls.save_dir / ".cache" / filename
+        suffix = save_path.suffix
 
+        if suffix == ".pt":
+            return cls.get_cached_torch_tensor(save_path, compute_result_fn)
+        if suffix == ".npy":
+            return cls.get_cached_numpy_ndarray(save_path, compute_result_fn)
+        if suffix == ".json":
+            return cls.get_cached_json(save_path, compute_result_fn)
+    
+    def get_cached_torch_tensor(cls, save_path: Path, compute_result_fn: Callable) -> Tensor:
         if save_path.is_file():
             return torch.load(save_path).to(cls.torch_device)
+        
+        computed_result = compute_result_fn()
+        torch.save(computed_result.cpu(), save_path)
 
-        embs = torch.tensor(cls.model.embed(ds))
-        torch.save(embs, save_path)
+        return computed_result.to(cls.torch_device)
+    
+    def get_cached_numpy_ndarray(cls, save_path: Path, compute_result_fn: Callable) -> ndarray:
+        if save_path.is_file():
+            return np.load(save_path)
+        
+        computed_result = compute_result_fn()
+        np.save(save_path, computed_result)
 
-        return embs.to(cls.torch_device)
+        return computed_result
+    
+    def get_cached_json(cls, save_path: Path, compute_result_fn: Callable) -> dict:
+        if save_path.is_file():
+            with open(save_path, "r") as f:
+                return json.load(f)
+            
+        computed_result = compute_result_fn()
+        with open(save_path, "w") as f:
+            json.dump(computed_result, f)
+        
+        return computed_result
 
     def generate_pca_summary_figure(cls, pca: PCA) -> Figure:
         cumulative_variance = np.cumsum(pca.explained_variance_ratio_)
@@ -390,16 +414,60 @@ class BenchmarkingPipeline(metaclass=ClassMethodMeta):
                 joint_grid.ax_joint.legend_.remove()
 
         return joint_grid
+    
+    def evaluate_pgen_vs_representation_space_density(cls) -> None:
+        print("Estimating representation space densities for different pGens...")
+
+        avg_dist_to_100nn = cls.get_cached(
+            "tanno_avg_dist_to_100nn.npy",
+            cls.get_avg_dist_to_100nn_over_background
+        )
+        
+        bins = range(-15, -7)
+        log10_pgens = np.log10(cls.background_pgen)
+        avg_dists_by_pgen = cls.bin_data(avg_dist_to_100nn, log10_pgens, bins)
+
+        pgen_dist_figure = cls.generate_pgen_dist_figure(avg_dists_by_pgen, bins)
+
+        cls.figures["acg_dist_vs_pgen"] = pgen_dist_figure
+
+    def get_avg_dist_to_100nn_over_background(cls) -> ndarray:
+        background_embs = cls.get_embeddings("tanno", cls.background_data)
+
+        avg_dists = []
+
+        for emb in tqdm(background_embs):
+            dists = (background_embs - emb.unsqueeze(0)).norm(dim=1)
+            dists_to_closest_100 = np.partition(dists, kth=100)[:100]
+            avg_dist = dists_to_closest_100.mean()
+            avg_dists.append(avg_dist)
+
+        return np.array(avg_dists, dtype=np.float32)
+
+    @staticmethod
+    def bin_data(values, binnables, bins) -> list:
+        binned_data = [[] for _ in range(len(bins) + 1)]
+
+        inds = np.digitize(binnables, bins)
+        for value, ind in zip(values, inds):
+            binned_data[ind].append(value)
+
+        return binned_data
+
+    def generate_pgen_dist_figure(cls, dists_by_pgen, bins) -> Figure:
+        fig, ax = plt.subplots()
+        ax.violinplot(dists_by_pgen)
+        return fig
 
     def becnhmark_on_labelled_data(cls, ds_name: str, ds_df: DataFrame) -> None:
         print(f"Benchmarking on {ds_name}...")
 
-        cdist_matrix = cls.get_cdist_matrix(ds_name, ds_df)
+        pdist_matrix = cls.get_pdist_matrix(ds_name, ds_df)
         epitope_cat_codes = cls.get_column_cat_codes(ds_df, "Epitope")
 
-        knn_scores = cls.evaluate_knn_performance(cdist_matrix, epitope_cat_codes)
+        knn_scores = cls.evaluate_knn_performance(pdist_matrix, epitope_cat_codes)
         avg_precision, precisions, recalls = cls.evaluate_precision_recall_curve(
-            cdist_matrix, epitope_cat_codes
+            pdist_matrix, epitope_cat_codes
         )
 
         pr_figure = cls.generate_precision_recall_figure(precisions, recalls, ds_name)
@@ -410,12 +478,12 @@ class BenchmarkingPipeline(metaclass=ClassMethodMeta):
         }
         cls.figures[f"{ds_name}_pr_curve"] = pr_figure
 
-    def get_cdist_matrix(cls, ds_name: str, ds_df: DataFrame) -> tuple:
+    def get_pdist_matrix(cls, ds_name: str, ds_df: DataFrame) -> tuple:
         embs = cls.get_embeddings(ds_name, ds_df)
         pdist_array = torch.pdist(embs, p=2).detach().cpu()
-        cdist_matrix = squareform(pdist_array)
+        pdist_matrix = squareform(pdist_array)
 
-        return cdist_matrix
+        return pdist_matrix
     
     @staticmethod
     def get_column_cat_codes(df: DataFrame, column: str) -> ndarray:
