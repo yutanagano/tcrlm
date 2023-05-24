@@ -29,9 +29,13 @@ class CDRBLevenshteinBenchmarkingPipeline(PureMetricBenchmarkingPipeline):
 
     def load_data(cls) -> None:
         super().load_data()
-        cls.background_data = cls.background_data.copy()[
-            cls.background_data["TRBV"].notna()
+        missing_bv_mask = cls.background_data["TRBV"].notna()
+        cls.background_data = cls.background_data[
+            missing_bv_mask
         ].reset_index(drop=True)
+        cls.background_pgen = cls.background_pgen[
+            missing_bv_mask
+        ]
 
     def get_pdist_matrix(cls, ds_name: str, ds_df: DataFrame) -> tuple:
         return cls.get_cdist(ds_df, ds_df)

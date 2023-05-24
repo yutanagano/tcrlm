@@ -438,7 +438,7 @@ class BenchmarkingPipeline(metaclass=ClassMethodMeta):
 
         for emb in tqdm(background_embs):
             dists = (background_embs - emb.unsqueeze(0)).norm(dim=1)
-            dists_to_closest_100 = np.partition(dists, kth=100)[:100]
+            dists_to_closest_100 = np.partition(dists.detach().cpu(), kth=100)[:100]
             avg_dist = dists_to_closest_100.mean()
             avg_dists.append(avg_dist)
 
