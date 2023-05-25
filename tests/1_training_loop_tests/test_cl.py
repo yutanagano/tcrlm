@@ -12,7 +12,7 @@ def get_config(tmp_path: Path, model_name: str, tokeniser: str, data_file: str) 
         "model": {
             "class": model_name,
             "config": {
-                "name": "foo bar",
+                "name": "foo (bar, baz 0.1)",
                 "num_encoder_layers": 2,
                 "d_model": 4,
                 "nhead": 2,
@@ -131,7 +131,7 @@ def test_training_loop(
     p.start()
     p.join()
 
-    expected_save_dir = tmp_path / "model_saves" / "foo_bar"
+    expected_save_dir = tmp_path / "model_saves" / "foo_bar_baz_01"
     assert expected_save_dir.is_dir()
 
     # Check that model is saved correctly
