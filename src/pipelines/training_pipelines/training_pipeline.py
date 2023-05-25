@@ -5,6 +5,7 @@ import os
 import pandas as pd
 from pathlib import Path
 from random import randint
+import re
 import torch
 from torch.distributed import init_process_group, destroy_process_group
 import torch.multiprocessing as mp
@@ -131,7 +132,8 @@ class TrainingPipeline(metaclass=ClassMethodMeta):
         except FileExistsError:
             pass
 
-        save_name = config["model"]["config"]["name"].replace(" ", "_")
+        save_name = re.sub(r"\s", "_", config["model"]["config"]["name"])
+        save_name = re.sub(r"\W", "", save_name)
 
         try:
             (model_saves_dir / save_name).mkdir()
