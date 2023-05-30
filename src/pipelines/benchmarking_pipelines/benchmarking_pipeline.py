@@ -26,7 +26,10 @@ from sklearn.decomposition import PCA
 from sklearn.metrics import average_precision_score, precision_recall_curve
 import torch
 from torch import device, Tensor, topk
+from torch.nn import Linear, Module, SoftMarginLoss
 from torch.nn.functional import softmax
+from torch.optim import Adam
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 from typing import Callable, Dict, Optional, Tuple
 
@@ -79,6 +82,7 @@ class BenchmarkingPipeline(metaclass=ClassMethodMeta):
 
     def load_data(cls) -> None:
         cls.background_data = cls.load_csv(cls.BACKGROUND_DATA_PATH)
+        cls.background_data["Epitope"] = "BG"
         cls.background_pgen = np.load(cls.BACKGROUND_PGEN_PATH)
         cls.labelled_data = {
             name: cls.load_csv(path) for name, path in cls.LABELLED_DATA_PATHS.items()
@@ -456,7 +460,19 @@ class BenchmarkingPipeline(metaclass=ClassMethodMeta):
 
     def generate_pgen_dist_figure(cls, dists_by_pgen, bins) -> Figure:
         fig, ax = plt.subplots()
-        ax.violinplot(dists_by_pgen)
+        ax.violinplot(dists_by_pgen, positions=range(len(bins) + 1))
+
+        bin_labels = ["$<10^{" + str(bins[0]) + "}$"]
+        bin_labels += [
+            "$10^{" + str(bins[i]) + "}-10^{" + str(bins[i+1]) + "}$" for i in range(len(bins)-1)
+        ]
+        bin_labels += ["$>10^{" + str(bins[-1]) + "}$"]
+
+        ax.set_xticks(range(len(bins) + 1))
+        ax.set_xticklabels(bin_labels, rotation=45, ha="right")
+
+        fig.tight_layout()
+
         return fig
 
     def becnhmark_on_labelled_data(cls, ds_name: str, ds_df: DataFrame) -> None:
@@ -472,9 +488,12 @@ class BenchmarkingPipeline(metaclass=ClassMethodMeta):
 
         pr_figure = cls.generate_precision_recall_figure(precisions, recalls, ds_name)
 
+        svm_dict = cls.evaluate_svm_performance(ds_df)
+
         cls.summary_dict[ds_name] = {
             "knn_scores": knn_scores,
             "avg_precision": avg_precision,
+            "svm_performance": svm_dict
         }
         cls.figures[f"{ds_name}_pr_curve"] = pr_figure
 
@@ -545,6 +564,74 @@ class BenchmarkingPipeline(metaclass=ClassMethodMeta):
         fig.tight_layout()
 
         return fig
+    
+    def evaluate_svm_performance(cls, ds_df: DataFrame) -> dict:
+        epitopes = ds_df["Epitope"].unique()
+
+        results_dict = dict()
+
+        for epitope in epitopes:
+            ep_train = ds_df[ds_df["Epitope"] == epitope][:50]
+            ep_valid = ds_df[ds_df["Epitope"] == epitope][50:]
+            bg_train = cls.background_data.sample(n=50, random_state=420)
+            bg_valid = cls.background_data.sample(n=50, random_state=421)
+
+            train = pd.concat([ep_train, bg_train], ignore_index=True)
+            train = train[["TRBV", "CDR3B", "TRBJ", "Epitope"]]
+
+            valid = pd.concat([ep_valid, bg_valid], ignore_index=True)
+            valid = valid[["TRBV", "CDR3B", "TRBJ", "Epitope"]]
+
+            train_labels = train.Epitope.map({epitope: 1, "BG": -1})
+            valid_labels = valid.Epitope.map({epitope: 1, "BG": -1})
+
+            train_tcrs = cls.model.embed(train)
+            valid_tcrs = cls.model.embed(valid)
+
+            model = SVM(cls.model.d_model)
+            loss_fn = SoftMarginLoss()
+            optimiser = Adam(params=model.parameters())
+
+            train_dl = DataLoader(dataset=list(zip(train_tcrs, train_labels)), batch_size=100, shuffle=True)
+            valid_dl = DataLoader(dataset=list(zip(valid_tcrs, valid_labels)), batch_size=100, shuffle=True)
+
+            valid_acc_tracker = []
+            train_acc_tracker = []
+
+            for epoch in range(1000):
+                valid_accuracies = []
+
+                for tcrs, labels in valid_dl:
+                    preds = model(tcrs)
+                    labels = labels.unsqueeze(-1)
+
+                    accuracy = ((preds * labels) > 0).to(float).mean()
+                    valid_accuracies.append(accuracy.item())
+
+                valid_acc_tracker.append(torch.tensor(valid_accuracies).mean().item())
+
+                train_accuracies = []
+
+                for tcrs, labels in train_dl:
+                    preds = model(tcrs)
+                    labels = labels.unsqueeze(-1)
+
+                    optimiser.zero_grad()
+                    loss = loss_fn(preds, labels)
+                    loss.backward()
+                    optimiser.step()
+
+                    accuracy = ((preds * labels) > 0).to(float).mean()
+                    train_accuracies.append(accuracy.item())
+
+                train_acc_tracker.append(torch.tensor(train_accuracies).mean().item())
+
+            results_dict[epitope] = {
+                "max_acc": max(train_acc_tracker),
+                "max_valid_acc": max(valid_acc_tracker)
+            }
+        
+        return results_dict
 
     def save(cls) -> None:
         print("Saving...")
@@ -554,6 +641,15 @@ class BenchmarkingPipeline(metaclass=ClassMethodMeta):
 
         for filename, plot in cls.figures.items():
             plot.savefig(cls.save_dir / filename)
+
+
+class SVM(Module):
+    def __init__(self, d_model: int) -> None:
+        super().__init__()
+        self.linear = Linear(d_model, 1, bias=True)
+
+    def forward(self, x: Tensor) -> Tensor:
+        return self.linear(x)
 
 
 class BetaBenchmarkingPipeline(BenchmarkingPipeline):

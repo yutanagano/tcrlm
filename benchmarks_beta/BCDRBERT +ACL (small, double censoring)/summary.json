@@ -13,7 +13,125 @@
             "50": 0.23655171692371368,
             "100": 0.21413792669773102
         },
-        "avg_precision": 0.06917701044330671
+        "avg_precision": 0.06917701044330671,
+        "svm_performance": {
+            "ATDALMTGY": {
+                "max_acc": 0.8500000238418579,
+                "max_valid_acc": 0.6299999952316284
+            },
+            "AVFDRKSDAK": {
+                "max_acc": 0.8399999737739563,
+                "max_valid_acc": 0.5799999833106995
+            },
+            "CINGVCWTV": {
+                "max_acc": 0.8500000238418579,
+                "max_valid_acc": 0.7099999785423279
+            },
+            "EIYKRWII": {
+                "max_acc": 0.8799999952316284,
+                "max_valid_acc": 0.6899999976158142
+            },
+            "ELAGIGILTV": {
+                "max_acc": 0.8700000047683716,
+                "max_valid_acc": 0.6399999856948853
+            },
+            "FLKEKGGL": {
+                "max_acc": 0.800000011920929,
+                "max_valid_acc": 0.6399999856948853
+            },
+            "FRDYVDRFYKTLRAEQASQE": {
+                "max_acc": 0.9599999785423279,
+                "max_valid_acc": 0.9800000190734863
+            },
+            "GILGFVFTL": {
+                "max_acc": 0.8899999856948853,
+                "max_valid_acc": 0.75
+            },
+            "GLCTLVAML": {
+                "max_acc": 0.800000011920929,
+                "max_valid_acc": 0.5899999737739563
+            },
+            "GLIYNRMGAVTTEV": {
+                "max_acc": 0.7900000214576721,
+                "max_valid_acc": 0.6499999761581421
+            },
+            "IVTDFSVIK": {
+                "max_acc": 0.800000011920929,
+                "max_valid_acc": 0.6000000238418579
+            },
+            "KAFSPEVIPMF": {
+                "max_acc": 0.8999999761581421,
+                "max_valid_acc": 0.699999988079071
+            },
+            "KLGGALQAK": {
+                "max_acc": 0.7900000214576721,
+                "max_valid_acc": 0.550000011920929
+            },
+            "KRWIILGLNK": {
+                "max_acc": 0.8399999737739563,
+                "max_valid_acc": 0.699999988079071
+            },
+            "LLLGIGILV": {
+                "max_acc": 0.8399999737739563,
+                "max_valid_acc": 0.6899999976158142
+            },
+            "LLQTGIHVRVSQPSL": {
+                "max_acc": 0.8299999833106995,
+                "max_valid_acc": 0.6800000071525574
+            },
+            "LLWNGPMAV": {
+                "max_acc": 0.8299999833106995,
+                "max_valid_acc": 0.6299999952316284
+            },
+            "LPRRSGAAGA": {
+                "max_acc": 0.7599999904632568,
+                "max_valid_acc": 0.6100000143051147
+            },
+            "NEGVKAAW": {
+                "max_acc": 0.800000011920929,
+                "max_valid_acc": 0.6100000143051147
+            },
+            "NLSALGIFST": {
+                "max_acc": 0.8100000023841858,
+                "max_valid_acc": 0.6299999952316284
+            },
+            "NLVPMVATV": {
+                "max_acc": 0.8500000238418579,
+                "max_valid_acc": 0.5799999833106995
+            },
+            "PKYVKQNTLKLAT": {
+                "max_acc": 0.8299999833106995,
+                "max_valid_acc": 0.6399999856948853
+            },
+            "QARQMVQAMRTIGTHP": {
+                "max_acc": 0.8700000047683716,
+                "max_valid_acc": 0.6499999761581421
+            },
+            "RAKFKQLL": {
+                "max_acc": 0.7799999713897705,
+                "max_valid_acc": 0.5400000214576721
+            },
+            "RLRAEAQVK": {
+                "max_acc": 0.8199999928474426,
+                "max_valid_acc": 0.6100000143051147
+            },
+            "SFHSLHLLF": {
+                "max_acc": 0.800000011920929,
+                "max_valid_acc": 0.6800000071525574
+            },
+            "TPQDLNTML": {
+                "max_acc": 0.8999999761581421,
+                "max_valid_acc": 0.7300000190734863
+            },
+            "TPRVTGGGAM": {
+                "max_acc": 0.8700000047683716,
+                "max_valid_acc": 0.8299999833106995
+            },
+            "VTEHDTLLY": {
+                "max_acc": 0.8500000238418579,
+                "max_valid_acc": 0.6600000262260437
+            }
+        }
     },
     "dash": {
         "knn_scores": {
@@ -22,7 +140,21 @@
             "50": 0.7301204800605774,
             "100": 0.6891566514968872
         },
-        "avg_precision": 0.7848845717380373
+        "avg_precision": 0.7848845717380373,
+        "svm_performance": {
+            "BMLF": {
+                "max_acc": 0.9200000166893005,
+                "max_valid_acc": 0.695652186870575
+            },
+            "M1": {
+                "max_acc": 0.8899999856948853,
+                "max_valid_acc": 0.8324691653251648
+            },
+            "pp65": {
+                "max_acc": 0.8700000047683716,
+                "max_valid_acc": 0.695652186870575
+            }
+        }
     },
     "mira": {
         "knn_scores": {
@@ -31,6 +163,84 @@
             "50": 0.2184210568666458,
             "100": 0.20947368443012238
         },
-        "avg_precision": 0.07214034275925993
+        "avg_precision": 0.07214034275925993,
+        "svm_performance": {
+            "FLNGSCGSV": {
+                "max_acc": 0.8299999833106995,
+                "max_valid_acc": 0.6899999976158142
+            },
+            "FLPRVFSAV": {
+                "max_acc": 0.8999999761581421,
+                "max_valid_acc": 0.7200000286102295
+            },
+            "FVDGVPFVV": {
+                "max_acc": 0.8100000023841858,
+                "max_valid_acc": 0.7099999785423279
+            },
+            "HTTDPSFLGRY": {
+                "max_acc": 0.8799999952316284,
+                "max_valid_acc": 0.6899999976158142
+            },
+            "KAYNVTQAF": {
+                "max_acc": 0.8399999737739563,
+                "max_valid_acc": 0.7599999904632568
+            },
+            "KLNVGDYFV": {
+                "max_acc": 0.8199999928474426,
+                "max_valid_acc": 0.6700000166893005
+            },
+            "KLPDDFTGCV": {
+                "max_acc": 0.8399999737739563,
+                "max_valid_acc": 0.7200000286102295
+            },
+            "KLSYGIATV": {
+                "max_acc": 0.8399999737739563,
+                "max_valid_acc": 0.7900000214576721
+            },
+            "KLWAQCVQL": {
+                "max_acc": 0.8500000238418579,
+                "max_valid_acc": 0.6700000166893005
+            },
+            "KPLEFGATSAAL": {
+                "max_acc": 0.8799999952316284,
+                "max_valid_acc": 0.7799999713897705
+            },
+            "LEPLVDLPI": {
+                "max_acc": 0.9200000166893005,
+                "max_valid_acc": 0.7300000190734863
+            },
+            "MPASWVMRI": {
+                "max_acc": 0.8700000047683716,
+                "max_valid_acc": 0.7200000286102295
+            },
+            "RQLLFVVEV": {
+                "max_acc": 0.8600000143051147,
+                "max_valid_acc": 0.6800000071525574
+            },
+            "TLIGDCATV": {
+                "max_acc": 0.8600000143051147,
+                "max_valid_acc": 0.6000000238418579
+            },
+            "VLWAHGFEL": {
+                "max_acc": 0.9100000262260437,
+                "max_valid_acc": 0.8100000023841858
+            },
+            "YFPLQSYGF": {
+                "max_acc": 0.8899999856948853,
+                "max_valid_acc": 0.6800000071525574
+            },
+            "YIFFASFYY": {
+                "max_acc": 0.7599999904632568,
+                "max_valid_acc": 0.6399999856948853
+            },
+            "YLDAYNMMI": {
+                "max_acc": 0.8500000238418579,
+                "max_valid_acc": 0.7200000286102295
+            },
+            "YLNTLTLAV": {
+                "max_acc": 0.8700000047683716,
+                "max_valid_acc": 0.7200000286102295
+            }
+        }
     }
 }
