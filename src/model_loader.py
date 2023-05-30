@@ -52,6 +52,10 @@ class ModelLoader:
     @property
     def name(self) -> str:
         return self.model.name
+    
+    @property
+    def d_model(self) -> int:
+        return self.model._d_model
 
     def embed(self, data: DataFrame) -> ndarray:
         dl = self._generate_dataloader(data)
