@@ -144,6 +144,24 @@ class SimCLoss(Module):
         return closs.mean()
 
 
+class SimECLoss(Module):
+    """
+    Simple Euclidean contrastive loss.
+    """
+
+    def __init__(self, temp: float=0.05) -> None:
+        super().__init__()
+        self._temp = temp
+
+    def forward(self, z: Tensor, z_prime: Tensor) -> Tensor:
+        z_sim = torch.exp(torch.cdist(z, z_prime, p=2) / self._temp)  # (N,N)
+        pos_sim = torch.diag(z_sim)  # (N,)
+        back_sim = torch.sum(z_sim, dim=1)  # (N,)
+        closs = -torch.log(pos_sim / back_sim)
+
+        return closs.mean()
+
+
 class SimCLoss2(Module):
     """
     A version of SimCLoss where the uniformity is calculated over the lhs.
