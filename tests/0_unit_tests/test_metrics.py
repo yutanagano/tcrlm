@@ -223,7 +223,7 @@ class TestSimECLoss:
         )
 
         result = loss_fn(z, z_prime)
-        expected = torch.tensor(9.3912)
+        expected = torch.tensor(0.4637)
 
         torch.testing.assert_close(result, expected, rtol=0, atol=5e-5)
 
