@@ -186,19 +186,19 @@ class SimCLoss2(Module):
 
 class AULoss(Module):
     """
-    A loss calculated as alignment + uniformity over a matched-pair batch.
+    Contrastive loss with the alignment and uniformity evaluated separately.
     """
 
-    def __init__(self, alpha: int = 1, t: float = 1) -> None:
+    def __init__(self, alpha: int = 1, temp: float = 0.05) -> None:
         super().__init__()
         self._alpha = alpha
-        self._t = t
+        self._temp = temp
 
     def forward(self, z: Tensor, z_prime: Tensor) -> Tensor:
-        return alignment_paired(z, z_prime, alpha=self._alpha) + 0.5 * (
-            uniformity(z, alpha=self._alpha, t=self._t)
-            + uniformity(z_prime, alpha=self._alpha, t=self._t)
-        )
+        aln = alignment_paired(z, z_prime, alpha=self._alpha) / self._temp
+        unf_exp = torch.exp(-torch.cdist(z, z_prime, p=2).pow(self._alpha) / self._temp)
+        
+        return aln.mean() + unf_exp.mean().log()
 
 
 class PosBackSimCLoss(Module):
