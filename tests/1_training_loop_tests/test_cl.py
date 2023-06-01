@@ -43,7 +43,7 @@ def get_ccl_config(tmp_path: Path, model_name: str, tokeniser: dict, data_file: 
         "model": {
             "class": model_name,
             "config": {
-                "name": "foo bar",
+                "name": "foo (bar, baz 0.1)",
                 "num_encoder_layers": 2,
                 "d_model": 4,
                 "nhead": 2,

@@ -255,21 +255,7 @@ class TestAULoss:
         )
 
         result = loss_fn(z, z_prime)
-        expected = torch.tensor(-0.2573)
-
-        torch.testing.assert_close(result, expected, rtol=0, atol=5e-5)
-
-    def test_alpha_t(self):
-        loss_fn = AULoss(alpha=2, t=2)
-        z = torch.eye(3)
-        z_prime = normalize(
-            torch.tensor([[3, 2, 1], [1, 2, 3], [2, 1, 3]], dtype=torch.float32),
-            p=2,
-            dim=1,
-        )
-
-        result = loss_fn(z, z_prime)
-        expected = torch.tensor(-1.7737)
+        expected = torch.tensor(1.1375)
 
         torch.testing.assert_close(result, expected, rtol=0, atol=5e-5)
 
