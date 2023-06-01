@@ -154,7 +154,7 @@ class SimECLoss(Module):
         self._temp = temp
 
     def forward(self, z: Tensor, z_prime: Tensor) -> Tensor:
-        z_sim = torch.exp(torch.cdist(z, z_prime, p=2) / self._temp)  # (N,N)
+        z_sim = torch.exp(-torch.cdist(z, z_prime, p=2) / self._temp)  # (N,N)
         pos_sim = torch.diag(z_sim)  # (N,)
         back_sim = torch.sum(z_sim, dim=1)  # (N,)
         closs = -torch.log(pos_sim / back_sim)
