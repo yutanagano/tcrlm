@@ -433,7 +433,7 @@ class BenchmarkingPipeline(metaclass=ClassMethodMeta):
 
         pgen_dist_figure = cls.generate_pgen_dist_figure(avg_dists_by_pgen, bins)
 
-        cls.figures["acg_dist_vs_pgen"] = pgen_dist_figure
+        cls.figures["avg_dist_vs_pgen"] = pgen_dist_figure
 
     def get_avg_dist_to_100nn_over_background(cls) -> ndarray:
         background_embs = cls.get_embeddings("tanno", cls.background_data)
@@ -571,10 +571,14 @@ class BenchmarkingPipeline(metaclass=ClassMethodMeta):
         results_dict = dict()
 
         for epitope in epitopes:
-            ep_train = ds_df[ds_df["Epitope"] == epitope][:50]
-            ep_valid = ds_df[ds_df["Epitope"] == epitope][50:]
-            bg_train = cls.background_data.sample(n=50, random_state=420)
-            bg_valid = cls.background_data.sample(n=50, random_state=421)
+            tcrs = ds_df[ds_df["Epitope"] == epitope]
+            num_tcrs = len(tcrs)
+
+            ep_train = tcrs.sample(n=num_tcrs//2)
+            ep_valid = tcrs[~tcrs.index.isin(ep_train.index)]
+
+            bg_train = cls.background_data.sample(n=num_tcrs//2)
+            bg_valid = cls.background_data.sample(n=num_tcrs//2)
 
             train = pd.concat([ep_train, bg_train], ignore_index=True)
             train = train[["TRBV", "CDR3B", "TRBJ", "Epitope"]]
