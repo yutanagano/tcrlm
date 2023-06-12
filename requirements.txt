@@ -82,7 +82,7 @@ sympy==1.12
 tcrdist3==0.2.2
 tcrsampler==0.1.9
 threadpoolctl==3.1.0
-tidytcells==1.8.0
+tidytcells==1.8.5
 torch==2.0.1
 tornado==6.3.2
 tqdm==4.65.0
