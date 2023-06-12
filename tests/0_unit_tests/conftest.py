@@ -51,6 +51,26 @@ def mock_data_beta_df():
     return df
 
 
+@pytest.fixture(scope="session")
+def mock_data_large_df():
+    df = pd.read_csv(
+        Path("tests") / "resources" / "mock_data_large.csv",
+        dtype={
+            "TRAV": "string",
+            "CDR3A": "string",
+            "TRAJ": "string",
+            "TRBV": "string",
+            "CDR3B": "string",
+            "TRBJ": "string",
+            "Epitope": "string",
+            "MHCA": "string",
+            "MHCB": "string",
+            "duplicate_count": "UInt32",
+        },
+    )
+    return df
+
+
 @pytest.fixture
 def abcdr3t_dataset(mock_data_df):
     dataset = datasets.TCRDataset(data=mock_data_df, tokeniser=CDR3Tokeniser())
@@ -72,7 +92,7 @@ def abcdr3t_auto_contrastive_dataset(mock_data_df):
 
 @pytest.fixture
 def abcdr3t_epitope_contrastive_dataset(mock_data_df):
-    dataset = datasets.EpitopeContrastiveDataset(
+    dataset = datasets.EpitopeContrastiveDataset_dep(
         data=mock_data_df,
         tokeniser=CDR3Tokeniser(),
         censoring_lhs=False,

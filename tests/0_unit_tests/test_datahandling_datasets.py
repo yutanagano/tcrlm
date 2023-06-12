@@ -70,9 +70,9 @@ class TestAutoContrastiveDataset:
         assert x_rhs == (random_index, noising_rhs)
 
 
-class TestEpitopeContrastiveDataset:
+class TestEpitopeContrastiveDataset_dep:
     def test_len(self, mock_data_df, dummy_tokeniser):
-        dataset = datasets.EpitopeContrastiveDataset(
+        dataset = datasets.EpitopeContrastiveDataset_dep(
             data=mock_data_df,
             tokeniser=dummy_tokeniser,
             censoring_lhs=False,
@@ -81,7 +81,7 @@ class TestEpitopeContrastiveDataset:
         assert len(dataset) == 2
 
     def test_getitem(self, mock_data_df, dummy_tokeniser):
-        dataset = datasets.EpitopeContrastiveDataset(
+        dataset = datasets.EpitopeContrastiveDataset_dep(
             data=mock_data_df,
             tokeniser=dummy_tokeniser,
             censoring_lhs=False,
@@ -99,7 +99,7 @@ class TestEpitopeContrastiveDataset:
         assert sample[1][0] == (2, False)
 
     def test_internal_shuffle(self, mock_data_df, dummy_tokeniser):
-        dataset = datasets.EpitopeContrastiveDataset(
+        dataset = datasets.EpitopeContrastiveDataset_dep(
             data=mock_data_df,
             tokeniser=dummy_tokeniser,
             censoring_lhs=False,
@@ -111,3 +111,90 @@ class TestEpitopeContrastiveDataset:
         sample = dataset[0]
         assert sample[0][0] == (1, False)
         assert sample[1][0] == (2, False)
+
+
+class TestEpitopeContrastiveDataset:
+    def test_len(self, mock_data_large_df, dummy_tokeniser):
+        dataset = datasets.EpitopeContrastiveDataset(
+            data=mock_data_large_df,
+            tokeniser=dummy_tokeniser,
+            censoring_lhs=False,
+            censoring_rhs=False,
+        )
+        assert len(dataset) == 6 + 3
+
+    def test_getitem(self, mock_data_large_df, dummy_tokeniser):
+        dataset = datasets.EpitopeContrastiveDataset(
+            data=mock_data_large_df,
+            tokeniser=dummy_tokeniser,
+            censoring_lhs=False,
+            censoring_rhs=False,
+        )
+
+        x, x_lhs, x_rhs = dataset[0]
+        assert x == x_lhs == (0, False)
+        assert x_rhs == (1, False)
+
+        x, x_lhs, x_rhs = dataset[2]
+        assert x == x_lhs == (0, False)
+        assert x_rhs == (3, False)
+
+        x, x_lhs, x_rhs = dataset[4]
+        assert x == x_lhs == (1, False)
+        assert x_rhs == (3, False)
+
+        x, x_lhs, x_rhs = dataset[6]
+        assert x == x_lhs == (4, False)
+        assert x_rhs == (5, False)
+
+        x, x_lhs, x_rhs = dataset[8]
+        assert x == x_lhs == (5, False)
+        assert x_rhs == (6, False)
+
+        x, x_lhs, x_rhs = dataset[-1]
+        assert x == x_lhs == (5, False)
+        assert x_rhs == (6, False)
+
+        x, x_lhs, x_rhs = dataset[-9]
+        assert x == x_lhs == (0, False)
+        assert x_rhs == (1, False)
+    
+    def test_out_of_range(self, mock_data_large_df, dummy_tokeniser):
+        dataset = datasets.EpitopeContrastiveDataset(
+            data=mock_data_large_df,
+            tokeniser=dummy_tokeniser,
+            censoring_lhs=False,
+            censoring_rhs=False,
+        )
+
+        with pytest.raises(IndexError):
+            dataset[9]
+        
+        with pytest.raises(IndexError):
+            dataset[-10]
+    
+    def test_iterate(self, mock_data_large_df, dummy_tokeniser):
+        dataset = datasets.EpitopeContrastiveDataset(
+            data=mock_data_large_df,
+            tokeniser=dummy_tokeniser,
+            censoring_lhs=False,
+            censoring_rhs=False,
+        )
+
+        expected_length = 9
+        expected_items = [
+            (0,1),
+            (0,2),
+            (0,3),
+            (1,2),
+            (1,3),
+            (2,3),
+            (4,5),
+            (4,6),
+            (5,6)
+        ]
+
+        for idx, (x, x_lhs, x_rhs) in enumerate(dataset):
+            assert (x_lhs[0], x_rhs[0]) == expected_items[idx]
+
+        assert idx == expected_length - 1
