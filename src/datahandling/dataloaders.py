@@ -125,7 +125,7 @@ class MLMDataLoader(TCRDataLoader):
         return super().collate_fn(batch)
 
 
-class AutoContrastiveDataLoader(MLMDataLoader):
+class ContrastiveDataLoader(MLMDataLoader):
     """
     Dataloader for auto-contrastive loss training.
     """
@@ -136,7 +136,7 @@ class AutoContrastiveDataLoader(MLMDataLoader):
         return super(MLMDataLoader, self).collate_fn(batch)
 
 
-class EpitopeContrastiveDataLoader(AutoContrastiveDataLoader):
+class EpitopeContrastiveDataLoader_dep(ContrastiveDataLoader):
     """
     Dataloader for epitope-contrastive loss training.
     """
@@ -154,8 +154,8 @@ class EpitopeContrastiveDataLoader(AutoContrastiveDataLoader):
 class CombinedContrastiveIterator:
     def __init__(
         self,
-        dataloader_ac: AutoContrastiveDataLoader,
-        dataloader_ec: EpitopeContrastiveDataLoader,
+        dataloader_ac: ContrastiveDataLoader,
+        dataloader_ec: ContrastiveDataLoader,
     ) -> None:
         self._dataloader_ac = dataloader_ac
         self._dataloader_ec = dataloader_ec
