@@ -79,7 +79,7 @@ def abcdr3t_dataset(mock_data_df):
 
 
 @pytest.fixture
-def abcdr3t_auto_contrastive_dataset(mock_data_df):
+def abcdr3t_contrastive_dataset(mock_data_df):
     dataset = datasets.AutoContrastiveDataset(
         data=mock_data_df,
         tokeniser=CDR3Tokeniser(),

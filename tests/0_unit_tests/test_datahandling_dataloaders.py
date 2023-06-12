@@ -86,9 +86,9 @@ class TestMLMDataLoader:
 
 
 class TestAutoContrastiveDataLoader:
-    def test_shapes(self, abcdr3t_auto_contrastive_dataset):
-        dataloader = AutoContrastiveDataLoader(
-            dataset=abcdr3t_auto_contrastive_dataset, batch_size=3
+    def test_shapes(self, abcdr3t_contrastive_dataset):
+        dataloader = ContrastiveDataLoader(
+            dataset=abcdr3t_contrastive_dataset, batch_size=3
         )
 
         x, x_prime, masked, target = next(iter(dataloader))
@@ -102,9 +102,9 @@ class TestAutoContrastiveDataLoader:
         assert x.size(2) == x_prime.size(2) == masked.size(2) == 4
 
 
-class TestEpitopeContrastiveDataLoader:
+class TestEpitopeContrastiveDataLoader_dep:
     def test_shapes(self, abcdr3t_epitope_contrastive_dataset):
-        dataloader = EpitopeContrastiveDataLoader(
+        dataloader = EpitopeContrastiveDataLoader_dep(
             dataset=abcdr3t_epitope_contrastive_dataset, batch_size=2
         )
 
@@ -123,13 +123,13 @@ class TestEpitopeContrastiveDataLoader:
 
 class TestCombinedContrastiveIterator:
     def test_batching(
-        self, abcdr3t_auto_contrastive_dataset, abcdr3t_epitope_contrastive_dataset
+        self, abcdr3t_contrastive_dataset
     ):
-        dataloader_ac = AutoContrastiveDataLoader(
-            dataset=abcdr3t_auto_contrastive_dataset, batch_size=1
+        dataloader_ac = ContrastiveDataLoader(
+            dataset=abcdr3t_contrastive_dataset, batch_size=1
         )
-        dataloader_ec = EpitopeContrastiveDataLoader(
-            dataset=abcdr3t_epitope_contrastive_dataset, batch_size=1
+        dataloader_ec = ContrastiveDataLoader(
+            dataset=abcdr3t_contrastive_dataset, batch_size=1
         )
 
         combined_iterator = CombinedContrastiveIterator(
@@ -149,13 +149,13 @@ class TestCombinedContrastiveIterator:
         )
 
     def test_iteration(
-        self, abcdr3t_auto_contrastive_dataset, abcdr3t_epitope_contrastive_dataset
+        self, abcdr3t_contrastive_dataset
     ):
-        dataloader_ac = AutoContrastiveDataLoader(
-            dataset=abcdr3t_auto_contrastive_dataset, batch_size=1
+        dataloader_ac = ContrastiveDataLoader(
+            dataset=abcdr3t_contrastive_dataset, batch_size=1
         )
-        dataloader_ec = EpitopeContrastiveDataLoader(
-            dataset=abcdr3t_epitope_contrastive_dataset, batch_size=1
+        dataloader_ec = ContrastiveDataLoader(
+            dataset=abcdr3t_contrastive_dataset, batch_size=1
         )
 
         combined_iterator = CombinedContrastiveIterator(

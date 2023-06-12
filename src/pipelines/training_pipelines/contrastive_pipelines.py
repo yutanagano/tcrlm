@@ -16,7 +16,7 @@ from tqdm import tqdm
 class CLPipeline(TrainingPipeline):
     @staticmethod
     def train_func(
-        model: DDP, dl: AutoContrastiveDataLoader, loss_fns: tuple, optimiser, rank: int
+        model: DDP, dl: ContrastiveDataLoader, loss_fns: tuple, optimiser, rank: int
     ) -> dict:
         mlm_loss_fn, cont_loss_fn = loss_fns
 
@@ -52,7 +52,7 @@ class CLPipeline(TrainingPipeline):
     @staticmethod
     @torch.no_grad()
     def valid_func(
-        model: DDP, dl: AutoContrastiveDataLoader, loss_fns: tuple, rank: int
+        model: DDP, dl: ContrastiveDataLoader, loss_fns: tuple, rank: int
     ) -> dict:
         mlm_loss_fn, cont_loss_fn = loss_fns
 
@@ -121,12 +121,12 @@ class ACLPipeline(CLPipeline):
             censoring_lhs=False,
             censoring_rhs=False,
         )
-        train_dl = AutoContrastiveDataLoader(
+        train_dl = ContrastiveDataLoader(
             dataset=train_ds,
             sampler=DistributedSampler(train_ds),
             **config["data"]["dataloader"]["config"],
         )
-        valid_dl = AutoContrastiveDataLoader(
+        valid_dl = ContrastiveDataLoader(
             dataset=valid_ds,
             p_mask_random=0,
             p_mask_keep=0,
@@ -173,12 +173,12 @@ class ECLPipeline(CLPipeline):
             censoring_lhs=False,
             censoring_rhs=False,
         )
-        train_dl = EpitopeContrastiveDataLoader(
+        train_dl = EpitopeContrastiveDataLoader_dep(
             dataset=train_ds,
             sampler=DistributedSampler(train_ds),
             **config["data"]["dataloader"]["config"],
         )
-        valid_dl = EpitopeContrastiveDataLoader(
+        valid_dl = EpitopeContrastiveDataLoader_dep(
             dataset=valid_ds,
             p_mask_random=0,
             p_mask_keep=0,
@@ -258,7 +258,7 @@ class CCLPipeline(CLPipeline):
     @classmethod
     @torch.no_grad()
     def valid_func(cls,
-        model: DDP, dl: EpitopeContrastiveDataLoader, loss_fns: tuple, rank: int
+        model: DDP, dl: EpitopeContrastiveDataLoader_dep, loss_fns: tuple, rank: int
     ) -> dict:
         mlm_loss_fn, _, cont_loss_fn_valid = loss_fns
 
@@ -294,12 +294,12 @@ class CCLPipeline(CLPipeline):
             censoring_rhs=False,
         )
 
-        train_dl_ac = AutoContrastiveDataLoader(
+        train_dl_ac = ContrastiveDataLoader(
             dataset=train_ds_ac,
             sampler=DistributedSampler(train_ds_ac),
             **config["data"]["dataloader"]["ac_config"],
         )
-        train_dl_ec = EpitopeContrastiveDataLoader(
+        train_dl_ec = EpitopeContrastiveDataLoader_dep(
             dataset=train_ds_ec,
             sampler=DistributedSampler(train_ds_ec),
             **config["data"]["dataloader"]["ec_config"],
@@ -308,7 +308,7 @@ class CCLPipeline(CLPipeline):
             dataloader_ac=train_dl_ac, dataloader_ec=train_dl_ec
         )
 
-        valid_dl = EpitopeContrastiveDataLoader(
+        valid_dl = EpitopeContrastiveDataLoader_dep(
             dataset=valid_ds,
             p_mask_random=0,
             p_mask_keep=0,
