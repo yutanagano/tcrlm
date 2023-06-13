@@ -13,10 +13,6 @@ from tcrdist.repertoire import TCRrep
 
 class TcrdistBenchmarkingPipeline(PureMetricBenchmarkingPipeline):
     MODEL_NAME = "tcrdist"
-    LABELLED_DATA_PATHS = {
-        "vdjdb": "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/vdjdb/evaluation_beta.csv",
-        "dash": "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/dash/evaluation.csv",
-    }
     CHAINS = ["alpha", "beta"]
 
     @staticmethod
@@ -45,12 +41,10 @@ class TcrdistBenchmarkingPipeline(PureMetricBenchmarkingPipeline):
         pdist_matrix = tr.pw_beta.astype(np.float32)
 
         return pdist_matrix
+    
+    def evaluate_pgen_vs_representation_space_density(cls) -> None:
+        pass
 
 
 class BTcrdistBenchmarkingPipeline(TcrdistBenchmarkingPipeline):
-    LABELLED_DATA_PATHS = {
-        "vdjdb": "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/vdjdb/evaluation_beta.csv",
-        "dash": "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/dash/evaluation.csv",
-        "mira": "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/mira/valid.csv",
-    }
     CHAINS = ["beta"]

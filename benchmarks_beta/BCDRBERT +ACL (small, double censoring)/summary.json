@@ -1,245 +1,99 @@
 {
     "model_name": "BCDRBERT +ACL (small, double censoring)",
     "mlm_summary": {
-        "acc": 0.8485625971128109,
-        "cdr1_acc": 0.9979319921276705,
-        "cdr2_acc": 0.9999022053472706,
-        "cdr3_acc": 0.7295452810431676
+        "acc": 0.849723270815363,
+        "cdr1_acc": 0.9975144809727783,
+        "cdr2_acc": 0.999841619105046,
+        "cdr3_acc": 0.7313951174856524
     },
-    "vdjdb": {
+    "gdb_holdout": {
         "knn_scores": {
-            "5": 0.25310343503952026,
-            "10": 0.25172412395477295,
-            "50": 0.23655171692371368,
-            "100": 0.21413792669773102
+            "5": 0.31025001406669617,
+            "10": 0.29774999618530273,
+            "50": 0.24400000274181366,
+            "100": 0.20874999463558197
         },
-        "avg_precision": 0.06917701044330671,
+        "avg_precision": 0.06998172825278862,
         "svm_performance": {
-            "ATDALMTGY": {
-                "max_acc": 0.8500000238418579,
-                "max_valid_acc": 0.6800000071525574
+            "ALRKVPTDNYITTY": {
+                "max_acc": 0.800000011920929,
+                "max_valid_acc": 0.7150000333786011
             },
-            "AVFDRKSDAK": {
+            "ALSKGVHFV": {
                 "max_acc": 0.7900000214576721,
-                "max_valid_acc": 0.550000011920929
+                "max_valid_acc": 0.6950000524520874
+            },
+            "APHGVVFLHVTYV": {
+                "max_acc": 0.7599999904632568,
+                "max_valid_acc": 0.675000011920929
             },
             "CINGVCWTV": {
-                "max_acc": 0.8500000238418579,
-                "max_valid_acc": 0.5600000023841858
+                "max_acc": 0.7150000333786011,
+                "max_valid_acc": 0.6650000214576721
             },
-            "EIYKRWII": {
-                "max_acc": 0.8600000143051147,
-                "max_valid_acc": 0.550000011920929
-            },
-            "ELAGIGILTV": {
-                "max_acc": 0.8799999952316284,
-                "max_valid_acc": 0.5899999737739563
-            },
-            "FLKEKGGL": {
-                "max_acc": 0.8799999952316284,
-                "max_valid_acc": 0.6899999976158142
-            },
-            "FRDYVDRFYKTLRAEQASQE": {
-                "max_acc": 0.9700000286102295,
-                "max_valid_acc": 0.949999988079071
-            },
-            "GILGFVFTL": {
-                "max_acc": 0.8600000143051147,
+            "DATYQRTRALVR": {
+                "max_acc": 0.8050000071525574,
                 "max_valid_acc": 0.6800000071525574
             },
-            "GLCTLVAML": {
-                "max_acc": 0.8199999928474426,
-                "max_valid_acc": 0.6100000143051147
+            "FLCLFLLPSLATV": {
+                "max_acc": 0.7250000238418579,
+                "max_valid_acc": 0.5649999976158142
             },
-            "GLIYNRMGAVTTEV": {
-                "max_acc": 0.8199999928474426,
-                "max_valid_acc": 0.6800000071525574
+            "KLNDLCFTNVYADSFVIR": {
+                "max_acc": 0.7599999904632568,
+                "max_valid_acc": 0.5950000286102295
             },
-            "IVTDFSVIK": {
-                "max_acc": 0.800000011920929,
-                "max_valid_acc": 0.6000000238418579
+            "LITGRLQSLQTYV": {
+                "max_acc": 0.7599999904632568,
+                "max_valid_acc": 0.6549999713897705
             },
-            "KAFSPEVIPMF": {
+            "LITLATCELYHYQECV": {
                 "max_acc": 0.8500000238418579,
-                "max_valid_acc": 0.7799999713897705
-            },
-            "KLGGALQAK": {
-                "max_acc": 0.8899999856948853,
-                "max_valid_acc": 0.5899999737739563
-            },
-            "KRWIILGLNK": {
-                "max_acc": 0.8299999833106995,
-                "max_valid_acc": 0.6899999976158142
-            },
-            "LLLGIGILV": {
-                "max_acc": 0.8199999928474426,
-                "max_valid_acc": 0.6200000047683716
-            },
-            "LLQTGIHVRVSQPSL": {
-                "max_acc": 0.8299999833106995,
-                "max_valid_acc": 0.6100000143051147
-            },
-            "LLWNGPMAV": {
-                "max_acc": 0.8199999928474426,
-                "max_valid_acc": 0.6000000238418579
-            },
-            "LPRRSGAAGA": {
-                "max_acc": 0.8199999928474426,
-                "max_valid_acc": 0.6600000262260437
-            },
-            "NEGVKAAW": {
-                "max_acc": 0.800000011920929,
-                "max_valid_acc": 0.6800000071525574
-            },
-            "NLSALGIFST": {
-                "max_acc": 0.7900000214576721,
-                "max_valid_acc": 0.5400000214576721
-            },
-            "NLVPMVATV": {
-                "max_acc": 0.800000011920929,
-                "max_valid_acc": 0.5899999737739563
-            },
-            "PKYVKQNTLKLAT": {
-                "max_acc": 0.8299999833106995,
-                "max_valid_acc": 0.6299999952316284
-            },
-            "QARQMVQAMRTIGTHP": {
-                "max_acc": 0.8500000238418579,
-                "max_valid_acc": 0.6200000047683716
-            },
-            "RAKFKQLL": {
-                "max_acc": 0.800000011920929,
-                "max_valid_acc": 0.5899999737739563
-            },
-            "RLRAEAQVK": {
-                "max_acc": 0.9300000071525574,
-                "max_valid_acc": 0.6000000238418579
-            },
-            "SFHSLHLLF": {
-                "max_acc": 0.8299999833106995,
-                "max_valid_acc": 0.6499999761581421
-            },
-            "TPQDLNTML": {
-                "max_acc": 0.8899999856948853,
                 "max_valid_acc": 0.7599999904632568
             },
-            "TPRVTGGGAM": {
-                "max_acc": 0.8600000143051147,
-                "max_valid_acc": 0.8100000023841858
+            "LLLGIGILV": {
+                "max_acc": 0.75,
+                "max_valid_acc": 0.6850000023841858
             },
-            "VTEHDTLLY": {
-                "max_acc": 0.8700000047683716,
-                "max_valid_acc": 0.7900000214576721
-            }
-        }
-    },
-    "dash": {
-        "knn_scores": {
-            "5": 0.7903614640235901,
-            "10": 0.8024096488952637,
-            "50": 0.7301204800605774,
-            "100": 0.6891566514968872
-        },
-        "avg_precision": 0.7848845717380373,
-        "svm_performance": {
-            "BMLF": {
-                "max_acc": 0.9130434989929199,
-                "max_valid_acc": 0.804347813129425
-            },
-            "M1": {
-                "max_acc": 0.8871604800224304,
-                "max_valid_acc": 0.8576542735099792
-            },
-            "pp65": {
-                "max_acc": 0.8970588445663452,
-                "max_valid_acc": 0.739130437374115
-            }
-        }
-    },
-    "mira": {
-        "knn_scores": {
-            "5": 0.2815789580345154,
-            "10": 0.2810526192188263,
-            "50": 0.2184210568666458,
-            "100": 0.20947368443012238
-        },
-        "avg_precision": 0.07214034275925993,
-        "svm_performance": {
-            "FLNGSCGSV": {
-                "max_acc": 0.8500000238418579,
-                "max_valid_acc": 0.7699999809265137
-            },
-            "FLPRVFSAV": {
-                "max_acc": 0.8500000238418579,
-                "max_valid_acc": 0.6800000071525574
-            },
-            "FVDGVPFVV": {
-                "max_acc": 0.800000011920929,
-                "max_valid_acc": 0.6499999761581421
-            },
-            "HTTDPSFLGRY": {
-                "max_acc": 0.8199999928474426,
-                "max_valid_acc": 0.7099999785423279
-            },
-            "KAYNVTQAF": {
-                "max_acc": 0.800000011920929,
-                "max_valid_acc": 0.6700000166893005
-            },
-            "KLNVGDYFV": {
-                "max_acc": 0.8500000238418579,
-                "max_valid_acc": 0.6800000071525574
-            },
-            "KLPDDFTGCV": {
-                "max_acc": 0.8399999737739563,
-                "max_valid_acc": 0.7400000095367432
-            },
-            "KLSYGIATV": {
-                "max_acc": 0.7699999809265137,
+            "LTDEMIAQY": {
+                "max_acc": 0.8100000023841858,
                 "max_valid_acc": 0.6000000238418579
             },
-            "KLWAQCVQL": {
-                "max_acc": 0.8600000143051147,
-                "max_valid_acc": 0.7300000190734863
+            "NQKLIANQF": {
+                "max_acc": 0.7699999809265137,
+                "max_valid_acc": 0.6950000524520874
             },
-            "KPLEFGATSAAL": {
-                "max_acc": 0.8899999856948853,
-                "max_valid_acc": 0.7900000214576721
+            "NRDVDTDFVNEFYAY": {
+                "max_acc": 0.8350000381469727,
+                "max_valid_acc": 0.7350000143051147
             },
-            "LEPLVDLPI": {
-                "max_acc": 0.8899999856948853,
-                "max_valid_acc": 0.7400000095367432
+            "RNPANNAAIVL": {
+                "max_acc": 0.7699999809265137,
+                "max_valid_acc": 0.5600000023841858
             },
-            "MPASWVMRI": {
-                "max_acc": 0.8199999928474426,
-                "max_valid_acc": 0.6499999761581421
+            "SEVGPEHSLAEY": {
+                "max_acc": 0.8149999976158142,
+                "max_valid_acc": 0.7450000047683716
             },
-            "RQLLFVVEV": {
-                "max_acc": 0.800000011920929,
-                "max_valid_acc": 0.6800000071525574
+            "SEYKGPITDVFYKENSY": {
+                "max_acc": 0.7900000214576721,
+                "max_valid_acc": 0.6600000262260437
             },
-            "TLIGDCATV": {
-                "max_acc": 0.8500000238418579,
-                "max_valid_acc": 0.75
+            "SPFHPLADNKFAL": {
+                "max_acc": 0.7699999809265137,
+                "max_valid_acc": 0.6100000143051147
             },
-            "VLWAHGFEL": {
-                "max_acc": 0.8999999761581421,
-                "max_valid_acc": 0.8100000023841858
-            },
-            "YFPLQSYGF": {
-                "max_acc": 0.8199999928474426,
-                "max_valid_acc": 0.7300000190734863
-            },
-            "YIFFASFYY": {
-                "max_acc": 0.8399999737739563,
-                "max_valid_acc": 0.6299999952316284
+            "TPINLVRDL": {
+                "max_acc": 0.7649999856948853,
+                "max_valid_acc": 0.6399999856948853
             },
             "YLDAYNMMI": {
-                "max_acc": 0.8500000238418579,
-                "max_valid_acc": 0.6899999976158142
+                "max_acc": 0.7649999856948853,
+                "max_valid_acc": 0.6850000023841858
             },
-            "YLNTLTLAV": {
-                "max_acc": 0.8799999952316284,
-                "max_valid_acc": 0.7200000286102295
+            "YVVDDPCPIHFY": {
+                "max_acc": 0.7850000262260437,
+                "max_valid_acc": 0.6499999761581421
             }
         }
     }
