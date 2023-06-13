@@ -46,3 +46,6 @@ class PureMetricBenchmarkingPipeline(BenchmarkingPipeline):
     
     def get_cdist(cls, ds_a_df: DataFrame, ds_b_df: DataFrame) -> ndarray:
         raise NotImplementedError()
+    
+    def evaluate_svm_performance(cls, ds_df: DataFrame) -> dict:
+        return dict()
