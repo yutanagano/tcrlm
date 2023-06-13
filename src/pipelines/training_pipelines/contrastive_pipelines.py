@@ -2,7 +2,7 @@ from ... import models
 from ... import metrics
 from ...datahandling import tokenisers
 from ...datahandling.dataloaders import *
-from ...datahandling.datasets import AutoContrastiveDataset, EpitopeContrastiveDataset_dep
+from ...datahandling.datasets import AutoContrastiveDataset, EpitopeContrastiveDataset
 from ...models.wrappers import CLModelWrapper, CombinedCLModelWrapper
 from ...metrics import AdjustedCELoss, alignment_paired, mlm_acc, uniformity
 from ...optim import AdamWithScheduling
@@ -162,23 +162,23 @@ class ECLPipeline(CLPipeline):
         tokeniser = getattr(tokenisers, config["data"]["tokeniser"]["class"])(
             **config["data"]["tokeniser"]["config"]
         )
-        train_ds = EpitopeContrastiveDataset_dep(
+        train_ds = EpitopeContrastiveDataset(
             data=config["data"]["train_path"],
             tokeniser=tokeniser,
             **config["data"]["dataset"]["config"],
         )
-        valid_ds = EpitopeContrastiveDataset_dep(
+        valid_ds = EpitopeContrastiveDataset(
             data=config["data"]["valid_path"],
             tokeniser=tokeniser,
             censoring_lhs=False,
             censoring_rhs=False,
         )
-        train_dl = EpitopeContrastiveDataLoader_dep(
+        train_dl = ContrastiveDataLoader(
             dataset=train_ds,
             sampler=DistributedSampler(train_ds),
             **config["data"]["dataloader"]["config"],
         )
-        valid_dl = EpitopeContrastiveDataLoader_dep(
+        valid_dl = ContrastiveDataLoader(
             dataset=valid_ds,
             p_mask_random=0,
             p_mask_keep=0,
@@ -281,13 +281,13 @@ class CCLPipeline(CLPipeline):
             tokeniser=tokeniser,
             **config["data"]["dataset"]["ac_config"],
         )
-        train_ds_ec = EpitopeContrastiveDataset_dep(
+        train_ds_ec = EpitopeContrastiveDataset(
             data=config["data"]["train_ec_path"],
             tokeniser=tokeniser,
             **config["data"]["dataset"]["ec_config"],
         )
 
-        valid_ds = EpitopeContrastiveDataset_dep(
+        valid_ds = EpitopeContrastiveDataset(
             data=config["data"]["valid_ec_path"],
             tokeniser=tokeniser,
             censoring_lhs=False,
@@ -299,7 +299,7 @@ class CCLPipeline(CLPipeline):
             sampler=DistributedSampler(train_ds_ac),
             **config["data"]["dataloader"]["ac_config"],
         )
-        train_dl_ec = EpitopeContrastiveDataLoader_dep(
+        train_dl_ec = ContrastiveDataLoader(
             dataset=train_ds_ec,
             sampler=DistributedSampler(train_ds_ec),
             **config["data"]["dataloader"]["ec_config"],
@@ -308,7 +308,7 @@ class CCLPipeline(CLPipeline):
             dataloader_ac=train_dl_ac, dataloader_ec=train_dl_ec
         )
 
-        valid_dl = EpitopeContrastiveDataLoader_dep(
+        valid_dl = ContrastiveDataLoader(
             dataset=valid_ds,
             p_mask_random=0,
             p_mask_keep=0,
