@@ -3,6 +3,7 @@ Custom dataset classes.
 """
 
 
+import math
 import pandas as pd
 from pathlib import Path
 
@@ -154,7 +155,7 @@ class EpitopeContrastiveDataset(AutoContrastiveDataset):
             epitope: tcr_count * (tcr_count - 1) // 2
             for epitope, tcr_count in self._ep_tcr_counts.items()
         }
-        self._ep_groupby = self._data.groupby("Epitope")
+        self._ep_groups = self._data.groupby("Epitope").groups
         self._len = sum(
             [pair_count for _, pair_count in self._ep_pair_counts.items()]
         )
@@ -176,8 +177,11 @@ class EpitopeContrastiveDataset(AutoContrastiveDataset):
         epitope, internal_pair_idx = self._get_internal_pair_idx(index)
         x_internal_idx, x_prime_internal_idx = self._get_internal_idcs(epitope, internal_pair_idx)
 
-        x_row = self._ep_groupby.get_group(epitope).iloc[x_internal_idx]
-        x_prime_row = self._ep_groupby.get_group(epitope).iloc[x_prime_internal_idx]
+        x_idx = self._ep_groups[epitope][x_internal_idx]
+        x_prime_idx = self._ep_groups[epitope][x_prime_internal_idx]
+
+        x_row = self._data.loc[x_idx]
+        x_prime_row = self._data.loc[x_prime_idx]
 
         return x_row, x_prime_row
     
@@ -221,16 +225,22 @@ class EpitopeContrastiveDataset(AutoContrastiveDataset):
         TCR pair.
         """
         tcr_count = self._ep_tcr_counts[epitope]
-        rhs_idx = internal_pair_idx
 
-        for lhs_idx in range(tcr_count-1):
-            current_lhs_pair_count = tcr_count-1-lhs_idx
+        return self._k_to_i_j(internal_pair_idx, tcr_count)
+    
+    @staticmethod
+    def _k_to_i_j(k: int, n: int) -> tuple:
+        """
+        Given linear index k of a lower triangular matrix with size n, compute
+        and return the row-column indices i and j
+        """
 
-            if rhs_idx < current_lhs_pair_count:
-                # Adjust rhs_idx because the rhs_idx currently counts how many
-                # rows down from the row below lhs the rhs is
-                return lhs_idx, (lhs_idx + 1 + rhs_idx)
-            
-            rhs_idx -= current_lhs_pair_count
-        
-        raise IndexError(f"Internal pair index {internal_pair_idx} for epitope {epitope} out of range!")
+        k = k + 1
+
+        k_prime = n * (n-1) / 2 - k
+        p = math.floor((math.sqrt(1 + 8*k_prime) - 1) / 2)
+
+        i = int(n - 2 - p)
+        j = int(k - (n-1) * (n-2) / 2 + p * (p+1) / 2)
+
+        return (i, j)
