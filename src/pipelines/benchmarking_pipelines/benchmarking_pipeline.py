@@ -495,7 +495,7 @@ class BenchmarkingPipeline(metaclass=ClassMethodMeta):
         }
         cls.figures[f"{ds_name}_pr_curve"] = pr_figure
 
-    def get_pdist_matrix(cls, ds_name: str, ds_df: DataFrame) -> tuple:
+    def get_pdist_matrix(cls, ds_name: str, ds_df: DataFrame) -> ndarray:
         embs = cls.get_embeddings(ds_name, ds_df)
         pdist_array = torch.pdist(embs, p=2).detach().cpu()
         pdist_matrix = squareform(pdist_array)
