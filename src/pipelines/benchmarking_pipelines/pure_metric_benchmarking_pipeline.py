@@ -32,7 +32,7 @@ class PureMetricBenchmarkingPipeline(BenchmarkingPipeline):
         avg_dists = []
 
         for i in tqdm(range(0, len(cls.background_data), 1000)):
-            dists_batch = cls.get_cdist(
+            dists_batch = cls.get_cdist_matrix(
                 cls.background_data.iloc[i:i+1000],
                 cls.background_data
             ).squeeze()
@@ -44,7 +44,7 @@ class PureMetricBenchmarkingPipeline(BenchmarkingPipeline):
 
         return np.array(avg_dists, dtype=np.float32)
     
-    def get_cdist(cls, ds_a_df: DataFrame, ds_b_df: DataFrame) -> ndarray:
+    def get_cdist_matrix(cls, ds_a_df: DataFrame, ds_b_df: DataFrame) -> ndarray:
         raise NotImplementedError()
     
     def evaluate_svm_performance(cls, ds_df: DataFrame) -> dict:
