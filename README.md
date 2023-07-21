@@ -19,4 +19,4 @@ the following columns, in this order, with the specified data:
 |Epitope|`str`|Amino acid sequence of the target epitope, in all caps|
 |MHCA|`str`|IMGT symbol for the MHC alpha chain gene (excluding any allele specifiers)|
 |MHCB|`str`|IMGT symbol for the MHC beta chain gene (excluding any allele specifiers) (N.B. if class I MHC, the value here is B2M)|
-|duplicate_count|`int`|The number of times this particular TCR-pMHC combination is seen in the dataset|
+|clone_count|`int`|The number of times this particular TCR-pMHC combination is seen in the dataset|
