@@ -16,6 +16,9 @@ class TcrEdit:
     def is_at(self, position: Position) -> bool:
         return self.position == position
     
+    def is_central(self) -> bool:
+        return self.position in (Position.M1, Position.M2, Position.M3)
+    
     def is_from(self, from_residue: Residue) -> bool:
         return self.from_residue == from_residue
     
