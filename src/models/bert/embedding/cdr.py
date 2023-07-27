@@ -4,7 +4,7 @@ CDR123 embedding modules.
 
 
 import math
-from .sinpos import SinPositionEmbedding, SinPositionEmbeddingBiDirectional
+from .sinpos import SinPositionEmbedding, SinPositionEmbeddingBiDirectional, SinPositionEmbeddingRelative
 from torch import Tensor
 from torch.nn import Embedding, Module
 
@@ -88,6 +88,26 @@ class BCDREmbeddingBDPos(BCDREmbedding):
         self.position_embedding = SinPositionEmbeddingBiDirectional(
             num_embeddings=100, embedding_dim=embedding_dim
         )
+
+    def forward(self, x: Tensor) -> Tensor:
+        return (
+            self.token_embedding(x[:, :, 0])
+            + self.position_embedding(x[:, :, 1:3])
+            + self.compartment_embedding(x[:, :, 3])
+        ) * math.sqrt(self.embedding_dim)
+    
+
+class BCDREmbeddingRPos(BCDREmbedding):
+    """
+    CDR embedder for beta only models with relative position embedding.
+
+    Compatible tokenisers: BCDRTokeniser
+    """
+
+    def __init__(self, embedding_dim: int) -> None:
+        super().__init__(embedding_dim)
+
+        self.position_embedding = SinPositionEmbeddingRelative(embedding_dim=embedding_dim, sin_scale_factor=10 ** (2 / embedding_dim))
 
     def forward(self, x: Tensor) -> Tensor:
         return (
