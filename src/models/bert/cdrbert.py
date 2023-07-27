@@ -6,7 +6,7 @@ Compatible tokenisers: BCDRTokeniser
 
 
 from .bert import _BERTBase, _BERTClsEmbedBase
-from .embedding.cdr import BCDREmbedding, CDREmbedding, BCDREmbeddingBDPos
+from .embedding.cdr import BCDREmbedding, CDREmbedding, BCDREmbeddingBDPos, BCDREmbeddingRPos
 import torch
 
 
@@ -94,6 +94,27 @@ class BCDRBERTBDPos(_CDRBERTBase):
         self.embedder = BCDREmbeddingBDPos(embedding_dim=d_model)
 
 
+class BCDRBERTRPos(_CDRBERTBase):
+    """
+    CDRBERT model for beta-chain only data with relative position embeddings.
+    """
+
+    def __init__(
+        self,
+        name: str,
+        num_encoder_layers: int,
+        d_model: int,
+        nhead: int,
+        dim_feedforward: int,
+        dropout: float = 0.1
+    ) -> None:
+        super().__init__(
+            name, num_encoder_layers, d_model, nhead, dim_feedforward, dropout
+        )
+
+        self.embedder = BCDREmbeddingRPos(embedding_dim=d_model)
+
+
 class BCDRClsBERT(_BERTClsEmbedBase, BCDRBERT):
     """
     BCDRBERT model which uses the <cls> token to embed.
@@ -109,4 +130,9 @@ class CDRClsBERT(_BERTClsEmbedBase, CDRBERT):
 class BCDRClsBERTBDPos(_BERTClsEmbedBase, BCDRBERTBDPos):
     """
     BCDRBERTBDPos model which uses the <cls> token to embed.
+    """
+
+class BCDRClsBERTRPos(_BERTClsEmbedBase, BCDRBERTRPos):
+    """
+    BCDRBERTRPos model with <cls> embedding
     """
