@@ -16,7 +16,9 @@ from .bert.cdrbert import (
     BCDRBERT,
     CDRBERT,
     BCDRBERTBDPos,
+    BCDRBERTRPos,
     BCDRClsBERT,
     CDRClsBERT,
     BCDRClsBERTBDPos,
+    BCDRClsBERTRPos
 )
