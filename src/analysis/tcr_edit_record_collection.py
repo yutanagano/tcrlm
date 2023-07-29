@@ -80,6 +80,12 @@ class TcrEditRecordCollection:
         return state_dict
     
     @staticmethod
+    def from_save(f) -> "TcrEditRecordCollection":
+        state_dict = pickle.load(f)
+
+        return TcrEditRecordCollection.from_state_dict(state_dict)
+
+    @staticmethod
     def from_state_dict(state_dict: dict) -> "TcrEditRecordCollection":
         edit_record_collection = TcrEditRecordCollection()
 
