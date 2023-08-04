@@ -13,7 +13,7 @@ class SelfAttentionStack(ABC, Module):
         pass
 
 
-class SelfAttentionStackWithBuiltin(SelfAttentionStack):
+class SelfAttentionStackWithBuiltins(SelfAttentionStack):
     def __init__(self, num_layers: int, d_model: int, nhead: int, dropout: float = 0.1) -> None:
         super().__init__()
 

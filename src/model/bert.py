@@ -1,47 +1,39 @@
-from abc import abstractmethod, ABC
 from torch import Tensor
 from torch.nn import Module
 
-from src.model.data.tokenisers.token_indices import DefaultTokenInex
+from src.model.data.tokenisers.token_indices import DefaultTokenIndex
 from src.model.token_embedders.token_embedder import TokenEmbedder
 from src.model.mlm_token_prediction_projector import MlmTokenPredictionProjector
 from src.model.self_attention_stack import SelfAttentionStack
 from src.model.vector_representation_delegate import VectorRepresentationDelegate
 
 
-class Bert(ABC, Module):
-    @property
-    @abstractmethod
-    def embedder(self) -> TokenEmbedder:
-        pass
+class Bert(Module):
+    def __init__(self, token_embedder: TokenEmbedder, self_attention_stack: SelfAttentionStack, mlm_token_prediction_projector: MlmTokenPredictionProjector, vector_representation_delegate: VectorRepresentationDelegate) -> None:
+        super().__init__()
 
-    @property
-    @abstractmethod
-    def self_attention_stack(self) -> SelfAttentionStack:
-        pass
-
-    @property
-    @abstractmethod
-    def mlm_token_prediction_projector(self) -> MlmTokenPredictionProjector:
-        pass
-
-    @property
-    @abstractmethod
-    def vector_representation_delegate(self) -> VectorRepresentationDelegate:
-        pass
+        self._token_embedder = token_embedder
+        self._self_attention_stack = self_attention_stack
+        self._mlm_token_prediction_projector = mlm_token_prediction_projector
+        self._vector_representation_delegate = vector_representation_delegate
 
     def get_vector_representations_of(self, tokenised_tcrs: Tensor) -> Tensor:
-        raw_token_embeddings = self.embedder.forward(tokenised_tcrs)
+        raw_token_embeddings = self._embed(tokenised_tcrs)
         padding_mask = self._get_padding_mask(tokenised_tcrs)
-        return self.vector_representation_delegate.get_vector_representations_of(raw_token_embeddings, padding_mask)
+        vector_representations = self._vector_representation_delegate.get_vector_representations_of(raw_token_embeddings, padding_mask)
 
-    def get_mlm_token_predictions(self, tokenised_and_masked_tcrs: Tensor) -> Tensor:
-        raw_token_embeddings = self.embedder.forward(tokenised_and_masked_tcrs)
+        return vector_representations
+
+    def get_mlm_token_predictions_for(self, tokenised_and_masked_tcrs: Tensor) -> Tensor:
+        raw_token_embeddings = self._embed(tokenised_and_masked_tcrs)
         padding_mask = self._get_padding_mask(tokenised_and_masked_tcrs)
-        contextualised_token_embeddings = self.self_attention_stack.forward(raw_token_embeddings, padding_mask)
-        mlm_token_predictions = self.mlm_token_prediction_projector.forward(contextualised_token_embeddings)
-
+        contextualised_token_embeddings = self._self_attention_stack.forward(raw_token_embeddings, padding_mask)
+        mlm_token_predictions = self._mlm_token_prediction_projector.forward(contextualised_token_embeddings)
+        
         return mlm_token_predictions
+    
+    def _embed(self, tokenised_tcrs: Tensor) -> Tensor:
+        return self._token_embedder.forward(tokenised_tcrs)
 
     def _get_padding_mask(self, tokenised_tcrs: Tensor) -> Tensor:
-        return tokenised_tcrs[:, :, 0] == DefaultTokenInex.NULL
+        return tokenised_tcrs[:, :, 0] == DefaultTokenIndex.NULL

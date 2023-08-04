@@ -4,7 +4,7 @@ from torch.utils.data import Dataset
 from typing import Iterable
 
 from src.tcr import Tcr
-from src.model.data.tokeniser.tokeniser import Tokeniser
+from src.model.data.tokenisers.tokeniser import Tokeniser
 
 
 class TcrDataset(Dataset):
@@ -20,7 +20,7 @@ class TcrDataset(Dataset):
         tcr_at_index = self._tcr_series.iloc[index]
         return self._tokenise(tcr_at_index)
 
-    def _generate_tcr_series_from(data: Iterable[Tcr]) -> Series:
+    def _generate_tcr_series_from(self, data: Iterable[Tcr]) -> Series:
         tcr_series = Series(data)
         return tcr_series
     
