@@ -2,7 +2,7 @@ import pytest
 from torch import Tensor
 
 from src.model.data.tcr_dataset import TcrDataset
-from src.model.data.tokenisers.tokeniser import Tokeniser
+from src.model.data.tokeniser.tokeniser import Tokeniser
 from src.tcr import Tcr
 
 

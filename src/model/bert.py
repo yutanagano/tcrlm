@@ -1,8 +1,8 @@
 from torch import Tensor
 from torch.nn import Module
 
-from src.model.data.tokenisers.token_indices import DefaultTokenIndex
-from src.model.token_embedders.token_embedder import TokenEmbedder
+from src.model.data.tokeniser.token_indices import DefaultTokenIndex
+from src.model.token_embedder.token_embedder import TokenEmbedder
 from src.model.mlm_token_prediction_projector import MlmTokenPredictionProjector
 from src.model.self_attention_stack import SelfAttentionStack
 from src.model.vector_representation_delegate import VectorRepresentationDelegate
