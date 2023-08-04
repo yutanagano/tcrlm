@@ -1,7 +1,7 @@
 import pytest
 from torch import Tensor
 
-from src.model.data.tokenisers.beta_cdr_tokeniser import BetaCdrTokeniser
+from src.model.data.tokeniser.beta_cdr_tokeniser import BetaCdrTokeniser
 from src.model.data.tcr_dataset import TcrDataset
 from src.model.data.tcr_dataloader import TcrDataLoader
 

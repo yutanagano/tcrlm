@@ -2,7 +2,7 @@ import pytest
 import torch
 
 from src.tcr import TravGene, TrbvGene, Tcrv, Tcr
-from src.model.data.tokenisers.beta_cdr_tokeniser import BetaCdrTokeniser
+from src.model.data.tokeniser.beta_cdr_tokeniser import BetaCdrTokeniser
 
 
 def test_tokenise(mock_tcr: Tcr):

@@ -4,7 +4,7 @@ from torch.utils.data import Dataset
 from typing import Iterable
 
 from src.tcr import Tcr
-from src.model.data.tokenisers.tokeniser import Tokeniser
+from src.model.data.tokeniser.tokeniser import Tokeniser
 
 
 class TcrDataset(Dataset):
