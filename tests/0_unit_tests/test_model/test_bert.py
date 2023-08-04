@@ -3,7 +3,7 @@ import torch
 from torch import Tensor
 
 from src.model.bert import Bert
-from src.model.token_embedders.beta_cdr_embedder import BetaCdrEmbedder
+from src.model.token_embedder.beta_cdr_embedder import BetaCdrEmbedder
 from src.model.self_attention_stack import SelfAttentionStackWithBuiltins
 from src.model.mlm_token_prediction_projector import AminoAcidTokenProjector
 from src.model.vector_representation_delegate import AveragePoolVectorRepresentationDelegate

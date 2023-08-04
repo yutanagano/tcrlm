@@ -2,8 +2,8 @@ import torch
 from torch import Tensor
 from typing import List, Tuple
 
-from src.model.data.tokenisers.tokeniser import Tokeniser
-from src.model.data.tokenisers.token_indices import AminoAcidTokenIndex, CdrCompartmentIndex
+from src.model.data.tokeniser.tokeniser import Tokeniser
+from src.model.data.tokeniser.token_indices import AminoAcidTokenIndex, CdrCompartmentIndex
 from src.tcr import Tcr
 
 
