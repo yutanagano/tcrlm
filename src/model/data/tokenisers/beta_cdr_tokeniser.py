@@ -20,7 +20,7 @@ class BetaCdrTokeniser(Tokeniser):
     def tokenise(self, tcr: Tcr) -> Tensor:
         initial_cls_vector = (AminoAcidTokenIndex.CLS, 0, 0, CdrCompartmentIndex.NULL)
         cdr1b = self._tokenise_cdr1b(tcr)
-        cdr2b = self._get_cdr2b(tcr)
+        cdr2b = self._tokenise_cdr2b(tcr)
         cdr3b = self._tokenise_cdr3b(tcr)
 
         all_cdrs_tokenised = [initial_cls_vector] + cdr1b + cdr2b + cdr3b
@@ -47,7 +47,7 @@ class BetaCdrTokeniser(Tokeniser):
     
     def _convert_to_numerical_form(self, aa_sequence: str, cdr_index: CdrCompartmentIndex) -> List[Tuple[int]]:
         token_indices = [AminoAcidTokenIndex[aa] for aa in aa_sequence]
-        token_positions = [idx for idx, _ in enumerate(aa_sequence)]
+        token_positions = [idx for idx, _ in enumerate(aa_sequence, start=1)]
         cdr_length = [len(aa_sequence) for _ in aa_sequence]
         compartment_index = [cdr_index for _ in aa_sequence]
         
