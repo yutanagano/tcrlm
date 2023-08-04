@@ -1,10 +1,20 @@
 import pandas as pd
 from pathlib import Path
 import pytest
+
+from src.tcr import TravGene, TrbvGene, Tcrv, Tcr
 from src.datahandling import datasets
 from src.datahandling.dataloaders import TCRDataLoader
 from src.datahandling.tokenisers import CDR3Tokeniser
 
+
+@pytest.fixture
+def mock_tcr():
+    trav = Tcrv(TravGene["TRAV1-1"], 1)
+    trbv = Tcrv(TrbvGene["TRBV2"], 1)
+    tcr = Tcr(trav, "CATQYF", trbv, "CASQYF")
+
+    return tcr
 
 @pytest.fixture(scope="session")
 def mock_data_path():

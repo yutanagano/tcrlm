@@ -1,17 +1,16 @@
-from abc import ABC, abstractmethod
 from enum import IntEnum
 
 
-class DefaultTokenInex(IntEnum):
+class DefaultTokenIndex(IntEnum):
     NULL = 0
     MASK = 1
     CLS = 2
 
 
 class AminoAcidTokenIndex(IntEnum):
-    NULL = DefaultTokenInex.NULL
-    MASK = DefaultTokenInex.MASK
-    CLS = DefaultTokenInex.CLS
+    NULL = DefaultTokenIndex.NULL
+    MASK = DefaultTokenIndex.MASK
+    CLS = DefaultTokenIndex.CLS
     A = 3
     C = 4
     D = 5
@@ -35,7 +34,7 @@ class AminoAcidTokenIndex(IntEnum):
 
 
 class CdrCompartmentIndex(IntEnum):
-    NULL = DefaultTokenInex.NULL
+    NULL = DefaultTokenIndex.NULL
     CDR1 = 1
     CDR2 = 2
     CDR3 = 3
