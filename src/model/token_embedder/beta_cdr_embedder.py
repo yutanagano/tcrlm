@@ -2,7 +2,7 @@ import math
 from torch import Tensor
 from torch.nn import Embedding
 
-from src.model.data.tokeniser.token_indices import DefaultTokenIndex, AminoAcidTokenIndex, CdrCompartmentIndex
+from src.data.tokeniser.token_indices import DefaultTokenIndex, AminoAcidTokenIndex, BetaCdrCompartmentIndex
 from src.model.token_embedder.token_embedder import TokenEmbedder
 from src.model.token_embedder.sin_position_embedding import SinPositionEmbedding
 
@@ -11,7 +11,7 @@ MAX_PLAUSIBLE_CDR_LENGTH = 100
 
 
 VOCABULARY_SIZE = len(AminoAcidTokenIndex)
-NUMBER_OF_COMPARTMENTS = len(CdrCompartmentIndex)
+NUMBER_OF_COMPARTMENTS = len(BetaCdrCompartmentIndex)
 
 
 class BetaCdrEmbedder(TokenEmbedder):

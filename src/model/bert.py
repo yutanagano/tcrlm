@@ -1,7 +1,7 @@
 from torch import Tensor
 from torch.nn import Module
 
-from src.model.data.tokeniser.token_indices import DefaultTokenIndex
+from src.data.tokeniser.token_indices import DefaultTokenIndex
 from src.model.token_embedder.token_embedder import TokenEmbedder
 from src.model.mlm_token_prediction_projector import MlmTokenPredictionProjector
 from src.model.self_attention_stack import SelfAttentionStack
@@ -16,6 +16,10 @@ class Bert(Module):
         self._self_attention_stack = self_attention_stack
         self._mlm_token_prediction_projector = mlm_token_prediction_projector
         self._vector_representation_delegate = vector_representation_delegate
+
+    @property
+    def d_model(self) -> int:
+        return self._self_attention_stack.d_model
 
     def get_vector_representations_of(self, tokenised_tcrs: Tensor) -> Tensor:
         raw_token_embeddings = self._embed(tokenised_tcrs)
