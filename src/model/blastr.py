@@ -5,10 +5,10 @@ from numpy import ndarray
 
 from src.tcr import Tcr
 from src.model.bert import Bert
-from src.model.data.tcr_dataset import TcrDataset
-from src.model.data.tcr_dataloader import TcrDataLoader
+from src.data.tcr_dataset import TcrDataset
+from src.data.tcr_dataloader import TcrDataLoader
 from src.model.tcr_representation_model import TcrRepresentationModel
-from src.model.data.tokeniser.tokeniser import Tokeniser
+from src.data.tokeniser.tokeniser import Tokeniser
 
 
 class Blastr(TcrRepresentationModel):

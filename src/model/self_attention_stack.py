@@ -4,6 +4,11 @@ from torch.nn import Module, TransformerEncoder, TransformerEncoderLayer
 
 
 class SelfAttentionStack(ABC, Module):
+    @property
+    @abstractmethod
+    def d_model(self) -> int:
+        pass
+
     @abstractmethod
     def forward(self, token_embeddings: Tensor, padding_mask: Tensor) -> Tensor:
         pass
@@ -14,9 +19,12 @@ class SelfAttentionStack(ABC, Module):
 
 
 class SelfAttentionStackWithBuiltins(SelfAttentionStack):
+    d_model: int = None
+
     def __init__(self, num_layers: int, d_model: int, nhead: int, dropout: float = 0.1) -> None:
         super().__init__()
 
+        self.d_model = d_model
         self._num_layers_in_stack = num_layers
 
         self_attention_block = TransformerEncoderLayer(

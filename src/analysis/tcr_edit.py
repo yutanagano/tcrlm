@@ -1,10 +1,10 @@
-from ..resources import AMINO_ACIDS
+from src.amino_acids import AminoAcid
 
 from enum import Enum
 from itertools import permutations, product
 
 Position = Enum("Position", ["C_TERM", "M1", "M2", "M3", "N_TERM"])
-Residue = Enum("Residues", AMINO_ACIDS + ("null",))
+Residue = Enum("Residues", [aa.name for aa in AminoAcid] + ["null"])
 
 
 class TcrEdit:
