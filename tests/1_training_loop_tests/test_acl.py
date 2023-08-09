@@ -4,7 +4,7 @@ import torch
 import warnings
 
 from src.training_manager import TrainingManager
-from src.training_delegate import MlmTrainingDelegate
+from src.training_delegate import AclTrainingDelegate
 from src.model.token_embedder import BetaCdrEmbedder
 from src.model.self_attention_stack import SelfAttentionStackWithBuiltins
 from src.model.mlm_token_prediction_projector import AminoAcidTokenProjector
@@ -23,7 +23,7 @@ def test_main(model_template, config, tmp_path):
     if not torch.cuda.is_available():
         warnings.warn("MLM test skipped due to hardware limitations")
 
-    training_manager = TrainingManager(MlmTrainingDelegate())
+    training_manager = TrainingManager(AclTrainingDelegate())
     expected_model_save_dir = tmp_path / "model_saves" / "foo_bar_baz_01"
 
     p = Process(
@@ -41,9 +41,11 @@ def test_main(model_template, config, tmp_path):
             "epoch",
             "loss",
             "lr",
-            "valid_loss",
-            "valid_acc",
-            "valid_top5_acc",
+            "valid_cont_loss",
+            "valid_mlm_loss",
+            "valid_aln",
+            "valid_unf",
+            "valid_mlm_acc"
         ],
         expected_len=4
     )
@@ -95,7 +97,7 @@ def config():
                 "initargs": {}
             },
             "trainable_model": {
-                "class": "MlmTrainableModel",
+                "class": "ClTrainableModel",
                 "initargs": {}
             }
         },
@@ -107,7 +109,7 @@ def config():
                 "initargs": {}
             },
             "batch_collator": {
-                "class": "MlmBatchCollator",
+                "class": "AclBatchCollator",
                 "initargs": {}
             },
             "dataloader": {
@@ -122,6 +124,12 @@ def config():
                 "class": "AdjustedCELoss",
                 "initargs": {
                     "label_smoothing": 0.1
+                }
+            },
+            "contrastive_loss": {
+                "class": "SimCLoss",
+                "initargs": {
+                    "temp": 0.05
                 }
             }
         },
