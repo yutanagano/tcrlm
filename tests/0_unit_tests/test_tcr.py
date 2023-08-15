@@ -42,12 +42,31 @@ class TestTcrv:
 
         assert mystery_tcrv.cdr1_sequence == None
         assert mystery_tcrv.cdr2_sequence == None
+
+    def test_assume_first_allele_if_not_known(self):
+        mystery_allele = Tcrv(gene="TRAV1-1", allele_num=None)
+
+        assert mystery_allele.gene == "TRAV1-1"
+        assert mystery_allele.allele_num == 1
     
     def test_equality(self):
         anchor = Tcrv(gene=TravGene["TRAV23/DV6"], allele_num=1)
         comparison = Tcrv(gene=TravGene["TRAV23/DV6"], allele_num=1)
 
         assert anchor == comparison
+
+    def test_repr(self, example_trav: Tcrv):
+        result = repr(example_trav)
+        expected = "TRAV1-1*01"
+
+        assert result == expected
+
+    def test_repr_when_unknown(self):
+        mystery_tcrv = Tcrv(gene=None, allele_num=None)
+        result = repr(mystery_tcrv)
+        expected = "?"
+
+        assert result == expected
 
 
 class TestTcr:
@@ -102,3 +121,9 @@ class TestTcr:
         )
 
         assert anchor == comparison
+
+    def test_repr(self, example_tcr: Tcr):
+        result = repr(example_tcr)
+        expected = "Tra(TRAV1-1*01, CASQYF), Trb(TRBV3-1*01, CATQYF)"
+        
+        assert result == expected
