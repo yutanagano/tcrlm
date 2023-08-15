@@ -58,7 +58,7 @@ class Tcrv:
 
     def __repr__(self) -> str:
         if self._gene_is_unknown():
-            return "NA"
+            return "?"
 
         return f"{self.gene.name}*{self.allele_num:02d}"
 
@@ -105,3 +105,15 @@ class Tcr:
             and self._trbv == __value._trbv
             and self.junction_b_sequence == __value.junction_b_sequence
         )
+
+    def __repr__(self) -> str:
+        junction_a_repr = self._represent_junction_sequence(self.junction_a_sequence)
+        junction_b_repr = self._represent_junction_sequence(self.junction_b_sequence)
+
+        return f"Tra({self._trav}, {junction_a_repr}), Trb({self._trbv}, {junction_b_repr})"
+    
+    def _represent_junction_sequence(self, sequence: Optional[str]) -> str:
+        if sequence is None:
+            return "?"
+        else:
+            return sequence

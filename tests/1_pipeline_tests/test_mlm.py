@@ -100,8 +100,8 @@ def config():
             }
         },
         "data": {
-            "path_to_training_data": "tests/resources/mock_data_beta.csv",
-            "path_to_validation_data": "tests/resources/mock_data_beta.csv",
+            "path_to_training_data": "tests/resources/mock_data.csv",
+            "path_to_validation_data": "tests/resources/mock_data.csv",
             "tokeniser": {
                 "class": "BetaCdrTokeniser",
                 "initargs": {}

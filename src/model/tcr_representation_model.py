@@ -1,34 +1,26 @@
 from abc import abstractmethod
-import numpy as np
 from numpy import ndarray
+from pandas import DataFrame
 from scipy.spatial import distance
-from typing import Iterable
 
-from src.tcr import Tcr
-from src.model.tcr_metric import TcrMetric
+from src.model.tcr_metric.tcr_metric import TcrMetric
 
 
 class TcrRepresentationModel(TcrMetric):
-    def calc_distance_between(self, anchor: Tcr, comparison: Tcr) -> float:
-        anchor_representation = self.calc_representation_of(anchor)
-        comparison_representation = self.calc_representation_of(comparison)
-        difference = anchor_representation - comparison_representation
-
-        return np.linalg.norm(difference, ord=2)
+    """
+    See TcrMetric for specs of input DataFrames.
+    """
     
-    def calc_cdist_matrix(self, anchors: Iterable[Tcr], comparisons: Iterable[Tcr]) -> ndarray:
-        anchor_representations = self.calc_representations_of(anchors)
-        comparison_representations = self.calc_representations_of(comparisons)
+    def calc_cdist_matrix(self, anchor_tcrs: DataFrame, comparison_tcrs: DataFrame) -> ndarray:
+        anchor_representations = self.calc_representations_of(anchor_tcrs)
+        comparison_representations = self.calc_representations_of(comparison_tcrs)
         
         return distance.cdist(anchor_representations, comparison_representations, metric="euclidean")
     
-    def calc_pdist_vector(self, tcrs: Iterable[Tcr]) -> ndarray:
+    def calc_pdist_vector(self, tcrs: DataFrame) -> ndarray:
         tcr_representations = self.calc_representations_of(tcrs)
         return distance.pdist(tcr_representations, metric="euclidean")
 
-    def calc_representation_of(self, tcr: Tcr) -> ndarray:
-        return self.calc_representations_of([tcr])[0]
-
     @abstractmethod
-    def calc_representations_of(self, tcrs: Iterable[Tcr]) -> ndarray:
+    def calc_representations_of(self, tcrs: DataFrame) -> ndarray:
         pass

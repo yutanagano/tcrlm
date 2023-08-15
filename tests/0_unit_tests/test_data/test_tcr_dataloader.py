@@ -8,7 +8,7 @@ from src.data.tcr_dataloader import TcrDataLoader
 from src.data.tokeniser.token_indices import DefaultTokenIndex
 
 BATCH_SIZE = 3
-MAX_TOKENISED_TCR_LENGTH = 35
+MAX_TOKENISED_TCR_LENGTH = 48
 TOKEN_NUM_DIMS = 4
 
 
