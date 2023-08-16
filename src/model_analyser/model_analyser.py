@@ -4,8 +4,8 @@ import re
 from typing import Optional, Type
 
 from src.model.tcr_metric import TcrMetric
-from src.model_benchmarker.benchmark import Benchmark, KnnBenchmark, PgenBenchmark, PrecisionRecallBenchmark
-from src.model_benchmarker.benchmark_result import BenchmarkResult
+from src.model_analyser.analysis import Analysis, KnnAnalysis, PgenAnalysis, PrecisionRecallAnalysis
+from src.model_analyser.analysis_result import AnalysisResult
 
 
 BACKGROUND_DATA_PATH = "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/tanno/test.csv"
@@ -14,7 +14,7 @@ LABELLED_DATA_PATHS = {
     "gdb_holdout": "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/gdb/test.csv",
 }
 
-class ModelBenchmarker:
+class ModelAnalyser:
     def __init__(self, working_directory: Optional[Path] = None) -> None:
         self._set_working_directory(working_directory)
         self._load_data()
@@ -32,34 +32,34 @@ class ModelBenchmarker:
             name: pd.read_csv(path) for name, path in LABELLED_DATA_PATHS.items()
         }
 
-    def benchmark(self, tcr_model: TcrMetric) -> None:
-        benchmarks = [
-            KnnBenchmark,
-            PrecisionRecallBenchmark,
-            PgenBenchmark
+    def analyse(self, tcr_model: TcrMetric) -> None:
+        analyses = [
+            KnnAnalysis,
+            PrecisionRecallAnalysis,
+            PgenAnalysis
         ]
 
-        benchmark_results = [
-            self._run_benchmark(BenchmarkClass, tcr_model) for BenchmarkClass in benchmarks
+        analysis_results = [
+            self._run_analysis(AnalysisClass, tcr_model) for AnalysisClass in analyses
         ]
 
         path_to_save_directory = self._get_path_to_save_directory(tcr_model)
 
-        for benchmark_result in benchmark_results:
-            benchmark_result.save(path_to_save_directory)
+        for analysis_result in analysis_results:
+            analysis_result.save(path_to_save_directory)
 
-    def _run_benchmark(self, benchmark_class: Type[Benchmark], tcr_model: TcrMetric) -> BenchmarkResult:
-        print(f"Running {benchmark_class.__name__}...")
+    def _run_analysis(self, analysis_class: Type[Analysis], tcr_model: TcrMetric) -> AnalysisResult:
+        print(f"Running {analysis_class.__name__}...")
 
-        benchmark = benchmark_class(
+        analysis = analysis_class(
             background_data=self._background_data,
             background_pgen=self._background_pgen,
             labelled_data=self._labelled_data,
             tcr_model=tcr_model,
             working_directory=self._working_directory
         )
-        benchmark_result = benchmark.run()
-        return benchmark_result
+        analysis_result = analysis.run()
+        return analysis_result
     
     def _get_path_to_save_directory(self, tcr_model: TcrMetric) -> Path:
         save_parent_dir = self._get_save_parent_dir()

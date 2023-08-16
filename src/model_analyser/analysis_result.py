@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Dict, Optional
 
 
-class BenchmarkResult:
+class AnalysisResult:
     def __init__(self, name: str, results_dict: Optional[Dict] = None, figures: Optional[Dict[str, Figure]] = None) -> None:
         self.name = name
         self._results_dict = results_dict
