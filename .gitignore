@@ -6,6 +6,7 @@ __pycache__
 .coverage*
 /.venv
 /.python3.8
+/.model_computation_cache
 /ignore
 /model_saves
 /run_local_training.sh
