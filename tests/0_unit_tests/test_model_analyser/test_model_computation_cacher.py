@@ -2,7 +2,7 @@ import hashlib
 import numpy as np
 from pandas import DataFrame
 
-from src.model_benchmarker.model_computation_cacher import ModelComputationCacher
+from src.model_analyser.model_computation_cacher import ModelComputationCacher
 from src.model.tcr_metric import BetaCdr3Levenshtein
 
 

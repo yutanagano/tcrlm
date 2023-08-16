@@ -4,19 +4,19 @@ import numpy as np
 from numpy import ndarray
 from tqdm import tqdm
 
-from src.model_benchmarker.benchmark import Benchmark
-from src.model_benchmarker.benchmark_result import BenchmarkResult
+from src.model_analyser.analysis import Analysis
+from src.model_analyser.analysis_result import AnalysisResult
 
 
-class PgenBenchmark(Benchmark):
-    def run(self) -> BenchmarkResult:
+class PgenAnalysis(Analysis):
+    def run(self) -> AnalysisResult:
         bg_tcrs_avg_dist_to_100_nearest_neighbours = self._get_bg_tcrs_avg_dist_to_100_nearest_neighbours()
         pgen_vs_local_density_figure = self._generate_pgen_vs_local_density_figure(bg_tcrs_avg_dist_to_100_nearest_neighbours)
         figures = {
             "pgen_vs_local_density": pgen_vs_local_density_figure
         }
 
-        return BenchmarkResult("pgen_vs_local_density", figures=figures)
+        return AnalysisResult("pgen_vs_local_density", figures=figures)
     
     def _get_bg_tcrs_avg_dist_to_100_nearest_neighbours(self) -> ndarray:
         return self._model_computation_cacher.get_cached_or_compute_array(

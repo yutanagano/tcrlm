@@ -4,19 +4,19 @@ from pandas import DataFrame
 from scipy import stats
 from scipy.spatial import distance
 
-from src.model_benchmarker.benchmark import Benchmark
-from src.model_benchmarker.benchmark_result import BenchmarkResult
+from src.model_analyser.analysis import Analysis
+from src.model_analyser.analysis_result import AnalysisResult
 
 
-class KnnBenchmark(Benchmark):
-    def run(self) -> BenchmarkResult:
+class KnnAnalysis(Analysis):
+    def run(self) -> AnalysisResult:
         results_dict = dict()
 
         for dataset_name, dataset in self._labelled_data.items():
             knn_stats = self._evaluate_knn_accuracy(dataset)
             results_dict[dataset_name] = knn_stats
         
-        return BenchmarkResult("knn", results_dict=results_dict)
+        return AnalysisResult("knn", results_dict=results_dict)
     
     def _evaluate_knn_accuracy(self, dataset: DataFrame) -> dict:
         pdist_vector = self._model_computation_cacher.calc_pdist_vector(dataset)

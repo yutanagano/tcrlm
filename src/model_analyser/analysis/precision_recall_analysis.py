@@ -6,12 +6,12 @@ from pandas import DataFrame
 from scipy.spatial import distance
 from sklearn import metrics
 
-from src.model_benchmarker.benchmark import Benchmark
-from src.model_benchmarker.benchmark_result import BenchmarkResult
+from src.model_analyser.analysis import Analysis
+from src.model_analyser.analysis_result import AnalysisResult
 
 
-class PrecisionRecallBenchmark(Benchmark):
-    def run(self) -> BenchmarkResult:
+class PrecisionRecallAnalysis(Analysis):
+    def run(self) -> AnalysisResult:
         results_dict = dict()
         figures = dict()
 
@@ -22,7 +22,7 @@ class PrecisionRecallBenchmark(Benchmark):
             results_dict[dataset_name] = pr_stats
             figures[f"{dataset_name}_pr_curve"] = pr_figure
         
-        return BenchmarkResult("precision_recall", results_dict=results_dict, figures=figures)
+        return AnalysisResult("precision_recall", results_dict=results_dict, figures=figures)
     
     def _evaluate_pr_curve(self, dataset: DataFrame) -> dict:
         pdist_vector = self._model_computation_cacher.calc_pdist_vector(dataset)

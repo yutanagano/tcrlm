@@ -1,8 +1,8 @@
-from src.model_benchmarker.benchmark_result import BenchmarkResult
+from src.model_analyser.analysis_result import AnalysisResult
 
 
-class BenchmarkResultChecker:
-    def __init__(self, benchmark_result: BenchmarkResult) -> None:
+class AnalysisResultChecker:
+    def __init__(self, benchmark_result: AnalysisResult) -> None:
         self._benchmark_result = benchmark_result
 
     def name_is(self, name: str) -> bool:

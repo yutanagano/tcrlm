@@ -3,11 +3,11 @@ from pandas import DataFrame
 from pathlib import Path
 
 from src.model.tcr_metric import TcrMetric
-from src.model_benchmarker.model_computation_cacher import ModelComputationCacher
-from src.model_benchmarker.benchmark_result import BenchmarkResult
+from src.model_analyser.model_computation_cacher import ModelComputationCacher
+from src.model_analyser.analysis_result import AnalysisResult
 
 
-class Benchmark(ABC):
+class Analysis(ABC):
     def __init__(self, background_data: DataFrame, background_pgen: DataFrame, labelled_data: DataFrame, tcr_model: TcrMetric, working_directory: Path) -> None:
         self._background_data = background_data
         self._background_pgen = background_pgen
@@ -15,5 +15,5 @@ class Benchmark(ABC):
         self._model_computation_cacher = ModelComputationCacher(tcr_model, working_directory)
 
     @abstractmethod
-    def run(self) -> BenchmarkResult:
+    def run(self) -> AnalysisResult:
         pass
