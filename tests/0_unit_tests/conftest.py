@@ -13,9 +13,11 @@ def mock_tcr():
 
     return tcr
 
+
 @pytest.fixture
 def mock_data_path():
     return Path("tests") / "resources" / "mock_data.csv"
+
 
 @pytest.fixture
 def mock_data_df(mock_data_path):

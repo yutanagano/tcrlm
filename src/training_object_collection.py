@@ -13,7 +13,7 @@ class TrainingObjectCollection:
         validation_dataloader: TcrDataLoader,
         loss_functions: dict,
         optimiser: AdamWithScheduling,
-        device: torch.device
+        device: torch.device,
     ):
         self.model = model
         self.training_dataloader = training_dataloader

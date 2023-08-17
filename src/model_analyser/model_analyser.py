@@ -4,7 +4,12 @@ import re
 from typing import Optional, Type
 
 from src.model.tcr_metric import TcrMetric
-from src.model_analyser.analysis import Analysis, KnnAnalysis, PgenAnalysis, PrecisionRecallAnalysis
+from src.model_analyser.analysis import (
+    Analysis,
+    KnnAnalysis,
+    PgenAnalysis,
+    PrecisionRecallAnalysis,
+)
 from src.model_analyser.analysis_result import AnalysisResult
 
 
@@ -13,6 +18,7 @@ BACKGROUND_PGEN_PATH = "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder
 LABELLED_DATA_PATHS = {
     "gdb_holdout": "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/gdb/test.csv",
 }
+
 
 class ModelAnalyser:
     def __init__(self, working_directory: Optional[Path] = None) -> None:
@@ -33,11 +39,7 @@ class ModelAnalyser:
         }
 
     def analyse(self, tcr_model: TcrMetric) -> None:
-        analyses = [
-            KnnAnalysis,
-            PrecisionRecallAnalysis,
-            PgenAnalysis
-        ]
+        analyses = [KnnAnalysis, PrecisionRecallAnalysis, PgenAnalysis]
 
         analysis_results = [
             self._run_analysis(AnalysisClass, tcr_model) for AnalysisClass in analyses
@@ -48,7 +50,9 @@ class ModelAnalyser:
         for analysis_result in analysis_results:
             analysis_result.save(path_to_save_directory)
 
-    def _run_analysis(self, analysis_class: Type[Analysis], tcr_model: TcrMetric) -> AnalysisResult:
+    def _run_analysis(
+        self, analysis_class: Type[Analysis], tcr_model: TcrMetric
+    ) -> AnalysisResult:
         print(f"Running {analysis_class.__name__}...")
 
         analysis = analysis_class(
@@ -56,15 +60,17 @@ class ModelAnalyser:
             background_pgen=self._background_pgen,
             labelled_data=self._labelled_data,
             tcr_model=tcr_model,
-            working_directory=self._working_directory
+            working_directory=self._working_directory,
         )
         analysis_result = analysis.run()
         return analysis_result
-    
+
     def _get_path_to_save_directory(self, tcr_model: TcrMetric) -> Path:
         save_parent_dir = self._get_save_parent_dir()
-        mode_name_without_special_characeters = self._remove_special_characters(tcr_model.name)
-        
+        mode_name_without_special_characeters = self._remove_special_characters(
+            tcr_model.name
+        )
+
         model_save_dir = save_parent_dir / mode_name_without_special_characeters
         model_save_dir.mkdir(exist_ok=True)
 

@@ -10,18 +10,14 @@ def test_calc_cdist_matrix(mock_data_df: DataFrame):
     comparison_tcrs = mock_data_df.iloc[0:3]
 
     result = model.calc_cdist_matrix(anchor_tcrs, comparison_tcrs)
-    expected = np.array(
-        [
-            [0, 57, 46],
-            [57, 0, 103]
-        ]
-    )
+    expected = np.array([[0, 57, 46], [57, 0, 103]])
 
     assert np.array_equal(result, expected)
+
 
 def test_calc_pdist_vector(mock_data_df: DataFrame):
     model = BetaTcrdist()
     result = model.calc_pdist_vector(mock_data_df)
-    expected = np.array([57,46,103])
+    expected = np.array([57, 46, 103])
 
     assert np.array_equal(result, expected)

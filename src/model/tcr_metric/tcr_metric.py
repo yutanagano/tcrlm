@@ -25,7 +25,9 @@ class TcrMetric(ABC):
         pass
 
     @abstractmethod
-    def calc_cdist_matrix(self, anchor_tcrs: DataFrame, comparison_tcrs: DataFrame) -> ndarray:
+    def calc_cdist_matrix(
+        self, anchor_tcrs: DataFrame, comparison_tcrs: DataFrame
+    ) -> ndarray:
         pass
 
     @abstractmethod

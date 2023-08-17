@@ -6,14 +6,16 @@ from src import metric
 
 
 class MlmTrainingDelegate(TrainingDelegate):
-    def run_training_epoch_and_return_metrics_for(self, training_object_collection: TrainingObjectCollection) -> dict:
+    def run_training_epoch_and_return_metrics_for(
+        self, training_object_collection: TrainingObjectCollection
+    ) -> dict:
         model = training_object_collection.model
         dataloader = training_object_collection.training_dataloader
         loss_fn = training_object_collection.loss_functions["cross_entropy_loss"]
         optimiser = training_object_collection.optimiser
         device = training_object_collection.device
 
-        current_process_not_on_first_gpu = (device.index != 0)
+        current_process_not_on_first_gpu = device.index != 0
 
         model.train()
 
@@ -21,7 +23,9 @@ class MlmTrainingDelegate(TrainingDelegate):
         total_lr = 0
         divisor = 0
 
-        for masked_tcrs, mlm_targets in tqdm(dataloader, disable=current_process_not_on_first_gpu):
+        for masked_tcrs, mlm_targets in tqdm(
+            dataloader, disable=current_process_not_on_first_gpu
+        ):
             num_samples = len(masked_tcrs)
 
             masked_tcrs = masked_tcrs.to(device)
@@ -38,14 +42,16 @@ class MlmTrainingDelegate(TrainingDelegate):
             divisor += num_samples
 
         return {"loss": total_loss / divisor, "lr": total_lr / divisor}
-    
-    def validate_and_return_metrics_for(self, training_object_collection: TrainingObjectCollection) -> dict:
+
+    def validate_and_return_metrics_for(
+        self, training_object_collection: TrainingObjectCollection
+    ) -> dict:
         model = training_object_collection.model
         dataloader = training_object_collection.validation_dataloader
         loss_fn = training_object_collection.loss_functions["cross_entropy_loss"]
         device = training_object_collection.device
 
-        current_process_not_on_first_gpu = (device.index != 0)
+        current_process_not_on_first_gpu = device.index != 0
 
         model.eval()
 
@@ -54,7 +60,9 @@ class MlmTrainingDelegate(TrainingDelegate):
         total_top5_acc = 0
         divisor = 0
 
-        for masked_tcrs, mlm_targets in tqdm(dataloader, disable=current_process_not_on_first_gpu):
+        for masked_tcrs, mlm_targets in tqdm(
+            dataloader, disable=current_process_not_on_first_gpu
+        ):
             num_samples = len(masked_tcrs)
 
             masked_tcrs = masked_tcrs.to(device)

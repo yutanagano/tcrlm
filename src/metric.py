@@ -149,7 +149,7 @@ class SimECLoss(Module):
     Simple Euclidean contrastive loss.
     """
 
-    def __init__(self, temp: float=0.05) -> None:
+    def __init__(self, temp: float = 0.05) -> None:
         super().__init__()
         self._temp = temp
 
@@ -197,7 +197,7 @@ class AULoss(Module):
     def forward(self, z: Tensor, z_prime: Tensor) -> Tensor:
         aln = alignment_paired(z, z_prime, alpha=self._alpha) / self._temp
         unf_exp = torch.exp(-torch.cdist(z, z_prime, p=2).pow(self._alpha) / self._temp)
-        
+
         return aln.mean() + unf_exp.mean().log()
 
 
