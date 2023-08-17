@@ -7,9 +7,11 @@ from src.tcr import TravGene, TrbvGene, Tcrv, Tcr
 def example_trav():
     return Tcrv(gene=TravGene["TRAV1-1"], allele_num=1)
 
+
 @pytest.fixture
 def example_trbv():
     return Tcrv(gene=TrbvGene["TRBV3-1"], allele_num=1)
+
 
 @pytest.fixture
 def example_tcr(example_trav, example_trbv):
@@ -20,7 +22,7 @@ def example_tcr(example_trav, example_trbv):
         trav=example_trav,
         junction_a_sequence=example_junction_a,
         trbv=example_trbv,
-        junction_b_sequence=example_junction_b
+        junction_b_sequence=example_junction_b,
     )
 
 
@@ -48,7 +50,7 @@ class TestTcrv:
 
         assert mystery_allele.gene == "TRAV1-1"
         assert mystery_allele.allele_num == 1
-    
+
     def test_equality(self):
         anchor = Tcrv(gene=TravGene["TRAV23/DV6"], allele_num=1)
         comparison = Tcrv(gene=TravGene["TRAV23/DV6"], allele_num=1)
@@ -111,13 +113,13 @@ class TestTcr:
             trav=Tcrv(gene=TravGene["TRAV1-1"], allele_num=1),
             junction_a_sequence="CASQYF",
             trbv=Tcrv(gene=TrbvGene["TRBV3-1"], allele_num=1),
-            junction_b_sequence="CATQYF"
+            junction_b_sequence="CATQYF",
         )
         comparison = Tcr(
             trav=Tcrv(gene=TravGene["TRAV1-1"], allele_num=1),
             junction_a_sequence="CASQYF",
             trbv=Tcrv(gene=TrbvGene["TRBV3-1"], allele_num=1),
-            junction_b_sequence="CATQYF"
+            junction_b_sequence="CATQYF",
         )
 
         assert anchor == comparison
@@ -125,5 +127,5 @@ class TestTcr:
     def test_repr(self, example_tcr: Tcr):
         result = repr(example_tcr)
         expected = "Tra(TRAV1-1*01, CASQYF), Trb(TRBV3-1*01, CATQYF)"
-        
+
         assert result == expected

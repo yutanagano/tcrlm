@@ -64,10 +64,10 @@ class Tcrv:
 
     def _gene_is_unknown(self):
         return self.gene is None
-    
+
     def _allele_is_unknown(self):
         return self.allele_num is None
-    
+
     def _assume_first_allele(self):
         self.allele_num = 1
 
@@ -111,7 +111,7 @@ class Tcr:
         junction_b_repr = self._represent_junction_sequence(self.junction_b_sequence)
 
         return f"Tra({self._trav}, {junction_a_repr}), Trb({self._trbv}, {junction_b_repr})"
-    
+
     def _represent_junction_sequence(self, sequence: Optional[str]) -> str:
         if sequence is None:
             return "?"

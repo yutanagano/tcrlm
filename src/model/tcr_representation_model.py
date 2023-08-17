@@ -10,13 +10,17 @@ class TcrRepresentationModel(TcrMetric):
     """
     See TcrMetric for specs of input DataFrames.
     """
-    
-    def calc_cdist_matrix(self, anchor_tcrs: DataFrame, comparison_tcrs: DataFrame) -> ndarray:
+
+    def calc_cdist_matrix(
+        self, anchor_tcrs: DataFrame, comparison_tcrs: DataFrame
+    ) -> ndarray:
         anchor_representations = self.calc_representations_of(anchor_tcrs)
         comparison_representations = self.calc_representations_of(comparison_tcrs)
-        
-        return distance.cdist(anchor_representations, comparison_representations, metric="euclidean")
-    
+
+        return distance.cdist(
+            anchor_representations, comparison_representations, metric="euclidean"
+        )
+
     def calc_pdist_vector(self, tcrs: DataFrame) -> ndarray:
         tcr_representations = self.calc_representations_of(tcrs)
         return distance.pdist(tcr_representations, metric="euclidean")

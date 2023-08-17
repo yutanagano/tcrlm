@@ -13,7 +13,9 @@ TOKEN_NUM_DIMS = 4
 
 
 def test_iter(tcr_dataset):
-    dataloader = TcrDataLoader(tcr_dataset, batch_size=BATCH_SIZE, collate_fn=demo_collate_fn)
+    dataloader = TcrDataLoader(
+        tcr_dataset, batch_size=BATCH_SIZE, collate_fn=demo_collate_fn
+    )
 
     for batch in dataloader:
         assert type(batch) == Tensor
@@ -21,6 +23,7 @@ def test_iter(tcr_dataset):
         assert batch.size(0) == BATCH_SIZE
         assert batch.size(1) == MAX_TOKENISED_TCR_LENGTH
         assert batch.size(2) == TOKEN_NUM_DIMS
+
 
 def test_set_epoch(tcr_dataset):
     mock_sampler = MockSampler()
@@ -44,5 +47,8 @@ class MockSampler:
 def tcr_dataset(mock_data_df):
     return TcrDataset(mock_data_df, CdrTokeniser())
 
+
 def demo_collate_fn(batch: Tensor) -> Tensor:
-    return rnn.pad_sequence(batch, batch_first=True, padding_value=DefaultTokenIndex.NULL)
+    return rnn.pad_sequence(
+        batch, batch_first=True, padding_value=DefaultTokenIndex.NULL
+    )

@@ -5,9 +5,13 @@ from src.training_object_collection import TrainingObjectCollection
 
 class TrainingDelegate(ABC):
     @abstractmethod
-    def run_training_epoch_and_return_metrics_for(self, training_object_collection: TrainingObjectCollection) -> dict:
+    def run_training_epoch_and_return_metrics_for(
+        self, training_object_collection: TrainingObjectCollection
+    ) -> dict:
         pass
 
     @abstractmethod
-    def validate_and_return_metrics_for(self, training_object_collection: TrainingObjectCollection) -> dict:
+    def validate_and_return_metrics_for(
+        self, training_object_collection: TrainingObjectCollection
+    ) -> dict:
         pass

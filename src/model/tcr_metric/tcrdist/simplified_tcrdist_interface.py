@@ -10,13 +10,22 @@ from typing import Dict, Literal
 class TcrdistInterface:
     _all_genes = repertoire_db.RefGeneSet("alphabeta_gammadelta_db.tsv").all_genes
 
-    def calc_alpha_cdist_matrices(self, anchor_tcrs: DataFrame, comparison_tcrs: DataFrame) -> Dict[str, ndarray]:
+    def calc_alpha_cdist_matrices(
+        self, anchor_tcrs: DataFrame, comparison_tcrs: DataFrame
+    ) -> Dict[str, ndarray]:
         return self._calc_cdist_matrices(anchor_tcrs, comparison_tcrs, chain="alpha")
 
-    def calc_beta_cdist_matrices(self, anchor_tcrs: DataFrame, comparison_tcrs: DataFrame) -> Dict[str, ndarray]:
+    def calc_beta_cdist_matrices(
+        self, anchor_tcrs: DataFrame, comparison_tcrs: DataFrame
+    ) -> Dict[str, ndarray]:
         return self._calc_cdist_matrices(anchor_tcrs, comparison_tcrs, chain="beta")
 
-    def _calc_cdist_matrices(self, anchor_tcrs: DataFrame, comparison_tcrs: DataFrame, chain: Literal["alpha", "beta"]) -> Dict[str, ndarray]:
+    def _calc_cdist_matrices(
+        self,
+        anchor_tcrs: DataFrame,
+        comparison_tcrs: DataFrame,
+        chain: Literal["alpha", "beta"],
+    ) -> Dict[str, ndarray]:
         anchor_tcrs = self._convert_df_to_tcrdist_form(anchor_tcrs)
         comparison_tcrs = self._convert_df_to_tcrdist_form(comparison_tcrs)
 
@@ -25,8 +34,10 @@ class TcrdistInterface:
 
         pws_kwargs = self._get_pws_kwargs(chain)
 
-        return rep_funcs._pws(df=anchor_tcrs, df2=comparison_tcrs, store=True, **pws_kwargs)
-    
+        return rep_funcs._pws(
+            df=anchor_tcrs, df2=comparison_tcrs, store=True, **pws_kwargs
+        )
+
     def _convert_df_to_tcrdist_form(self, df: DataFrame) -> DataFrame:
         df = df.rename(
             columns={
@@ -48,8 +59,10 @@ class TcrdistInterface:
             df["count"] = 1
 
         return df
-    
-    def _infer_cdrs_from_v_gene(self, cell_df, chain, organism="human", imgt_aligned=True):
+
+    def _infer_cdrs_from_v_gene(
+        self, cell_df, chain, organism="human", imgt_aligned=True
+    ):
         """
         Taken and modified from tcrdist.repertoire.TCRrep
         """
@@ -75,7 +88,7 @@ class TcrdistInterface:
             f2 = lambda v: self._map_gene_to_reference_seq2(
                 gene=v, cdr=2, organism=organism, attr="cdrs"
             )
-            
+
         if chain == "alpha":
             cell_df = cell_df.assign(
                 cdr1_a_aa=list(map(f0, cell_df.v_a_gene)),
@@ -102,7 +115,7 @@ class TcrdistInterface:
             )
 
         return cell_df
-    
+
     def _map_gene_to_reference_seq2(self, organism, gene, cdr, attr="cdrs_no_gaps"):
         """
         Taken and modified from tcrdist.repertoire.TCRrep
@@ -119,7 +132,7 @@ class TcrdistInterface:
                 stacklevel=2,
             )
         return aa_string
-    
+
     def _get_pws_kwargs(self, chain: Literal["alpha", "beta"]) -> dict:
         if chain == "alpha":
             chain_code = "a"

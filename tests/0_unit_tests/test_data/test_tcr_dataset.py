@@ -10,13 +10,14 @@ from src.data.tokeniser.token_indices import AminoAcidTokenIndex
 def test_len(tcr_dataset):
     assert len(tcr_dataset) == 3
 
+
 def test_getitem(tcr_dataset):
     first_tcr = tcr_dataset[0]
     expected_tcr = Tcr(
         trav=Tcrv(TravGene["TRAV1-1"], 1),
         junction_a_sequence="CAVKASGSRLT",
         trbv=Tcrv(TrbvGene["TRBV2"], 1),
-        junction_b_sequence="CASSDRAQPQHF"
+        junction_b_sequence="CASSDRAQPQHF",
     )
 
     assert first_tcr == expected_tcr

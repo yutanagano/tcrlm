@@ -1,5 +1,6 @@
 from collections import deque
 
+
 class TcrEditRecord:
     def __init__(self) -> None:
         self.distance_estimates = deque(maxlen=10_000)
@@ -13,23 +14,23 @@ class TcrEditRecord:
     def average_distance(self):
         if sum(self.distance_estimates) == 0:
             return 0.0
-        
+
         return sum(self.distance_estimates) / len(self.distance_estimates)
-    
+
     @property
     def min_distance(self):
         return min(self.distance_estimates)
-    
+
     @property
     def max_distance(self):
         return max(self.distance_estimates)
-    
+
     def get_state_dict(self):
         return {
             "distance_estimates": self.distance_estimates,
-            "num_estimates_made": self.num_estimates_made
+            "num_estimates_made": self.num_estimates_made,
         }
-    
+
     @staticmethod
     def from_state_dict(state_dict: dict) -> "TcrEditRecord":
         edit_record = TcrEditRecord()
