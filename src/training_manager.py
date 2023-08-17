@@ -10,18 +10,17 @@ from torch import multiprocessing
 from typing import Optional
 
 from src.config_reader import ConfigReader
-from src.training_delegate.training_delegate import TrainingDelegate
 from src.model.bert import Bert
 from src.training_object_collection import TrainingObjectCollection
 
 
 class TrainingManager:
-    def __init__(self, training_delegate: TrainingDelegate) -> None:
-        self._training_delegate = training_delegate
+    def __init__(self, config: dict) -> None:
+        self._config_reader = ConfigReader(config)
+        self._training_delegate = self._config_reader.get_training_delegate()
         self._num_gpus_available = torch.cuda.device_count()
 
-    def train(self, config: dict, working_directory: Optional[Path] = None) -> None:
-        self._config_reader = ConfigReader(config)
+    def train(self, working_directory: Optional[Path] = None) -> None:
         self._set_working_directory(working_directory)
         self._launch_training_processes()
 
