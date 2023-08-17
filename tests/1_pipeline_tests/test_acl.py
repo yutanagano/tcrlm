@@ -4,7 +4,6 @@ import torch
 import warnings
 
 from src.training_manager import TrainingManager
-from src.training_delegate import AclTrainingDelegate
 from src.model.token_embedder import BetaCdrEmbedder
 from src.model.self_attention_stack import SelfAttentionStackWithBuiltins
 from src.model.mlm_token_prediction_projector import AminoAcidTokenProjector
@@ -25,12 +24,12 @@ def test_main(model_template, config, tmp_path):
     if not torch.cuda.is_available():
         warnings.warn("MLM test skipped due to hardware limitations")
 
-    training_manager = TrainingManager(AclTrainingDelegate())
+    training_manager = TrainingManager(config)
     expected_model_save_dir = tmp_path / "model_saves" / "foo_bar_baz_01"
 
     p = Process(
         target=training_manager.train,
-        kwargs={"config": config, "working_directory": tmp_path},
+        kwargs={"working_directory": tmp_path},
     )
     p.start()
     p.join()
@@ -78,6 +77,10 @@ def model_template():
 @pytest.fixture
 def config():
     return {
+        "training_delegate": {
+            "class": "AclTrainingDelegate",
+            "initargs": {}
+        },
         "model": {
             "name": "foo (bar, baz 01)",
             "path_to_pretrained_state_dict": None,
