@@ -2,8 +2,19 @@ import pytest
 import random
 import torch
 
-from src.batch_collator.mlm_batch_collator import MlmBatchCollator
+from src.batch_collator import MlmBatchCollator
 from src.data.tokeniser.beta_cdr_tokeniser import BetaCdrTokeniser
+
+
+def test_collate_fn(mock_tokenised_tcrs, expected_masked_tcrs, expected_mlm_targets):
+    tokeniser = BetaCdrTokeniser()
+    batch_generator = MlmBatchCollator(tokeniser)
+
+    random.seed(4)
+    masked_tcrs, mlm_targets = batch_generator.collate_fn(mock_tokenised_tcrs)
+
+    assert torch.equal(masked_tcrs, expected_masked_tcrs)
+    assert torch.equal(mlm_targets, expected_mlm_targets)
 
 
 @pytest.fixture
@@ -101,14 +112,3 @@ def expected_mlm_targets():
             [0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 7, 0, 0, 0],
         ]
     )
-
-
-def test_collate_fn(mock_tokenised_tcrs, expected_masked_tcrs, expected_mlm_targets):
-    tokeniser = BetaCdrTokeniser()
-    batch_generator = MlmBatchCollator(tokeniser)
-
-    random.seed(4)
-    masked_tcrs, mlm_targets = batch_generator.collate_fn(mock_tokenised_tcrs)
-
-    assert torch.equal(masked_tcrs, expected_masked_tcrs)
-    assert torch.equal(mlm_targets, expected_mlm_targets)
