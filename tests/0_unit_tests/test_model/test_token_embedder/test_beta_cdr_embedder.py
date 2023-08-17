@@ -14,6 +14,7 @@ def mock_batch_of_tokenised_tcrs(mock_tcr):
 
     return mock_batch_of_tokenised_tcrs
 
+
 def test_forward(mock_batch_of_tokenised_tcrs):
     BATCH_SIZE = 2
     TOKENISED_TCR_LENGTH = 18

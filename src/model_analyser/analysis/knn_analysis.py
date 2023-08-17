@@ -15,9 +15,9 @@ class KnnAnalysis(Analysis):
         for dataset_name, dataset in self._labelled_data.items():
             knn_stats = self._evaluate_knn_accuracy(dataset)
             results_dict[dataset_name] = knn_stats
-        
+
         return AnalysisResult("knn", results_dict=results_dict)
-    
+
     def _evaluate_knn_accuracy(self, dataset: DataFrame) -> dict:
         pdist_vector = self._model_computation_cacher.calc_pdist_vector(dataset)
         pdist_matrix = distance.squareform(pdist_vector)
@@ -40,8 +40,12 @@ class KnnAnalysis(Analysis):
                 epitopes_of_k_nearest_tcrs = epitope_cat_codes[
                     indices_of_k_nearest_tcrs
                 ]
-                pred, _ = stats.mode(epitopes_of_k_nearest_tcrs, keepdims=True)  # Predict epitope
-                scores.append(correct_epitope_label.item() == pred.item())  # Record score
+                pred, _ = stats.mode(
+                    epitopes_of_k_nearest_tcrs, keepdims=True
+                )  # Predict epitope
+                scores.append(
+                    correct_epitope_label.item() == pred.item()
+                )  # Record score
 
             score = np.array(scores, dtype=np.float32).mean().item()
             knn_stats[k] = score
