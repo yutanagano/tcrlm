@@ -8,6 +8,8 @@ from src.model.tcr_metric.tcrdist.simplified_tcrdist_interface import TcrdistInt
 
 class BetaTcrdist(TcrMetric):
     name = "Beta tcrdist"
+    distance_bins = None
+
     _tcrdist_interface = TcrdistInterface()
 
     def calc_cdist_matrix(self, anchor_tcrs: DataFrame, comparison_tcrs: DataFrame) -> ndarray:

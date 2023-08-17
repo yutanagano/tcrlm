@@ -9,6 +9,7 @@ from src.model.tcr_metric.tcr_metric import TcrMetric
 
 class BetaCdr3Levenshtein(TcrMetric):
     name = "Beta CDR3 Levenshtein"
+    distance_bins = range(15)
 
     def calc_cdist_matrix(self, anchor_tcrs: DataFrame, comparison_tcrs: DataFrame) -> ndarray:
         anchor_tcr_cdr3bs = anchor_tcrs.CDR3B
