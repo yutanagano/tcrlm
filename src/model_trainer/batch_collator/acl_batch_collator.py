@@ -1,7 +1,7 @@
 from typing import Iterable, Tuple, List
 from torch import LongTensor
 
-from src.batch_collator.mlm_batch_collator import MlmBatchCollator
+from src.model_trainer.batch_collator import MlmBatchCollator
 from src.data.tokeniser.token_indices import DefaultTokenIndex
 
 

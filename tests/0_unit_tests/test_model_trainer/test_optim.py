@@ -1,4 +1,4 @@
-from src import optim
+from src.model_trainer import optim
 from torch.nn import Linear
 
 

@@ -5,7 +5,7 @@ from torch import LongTensor
 from torch.nn import utils
 from typing import Iterable, List, Tuple
 
-from src.batch_collator.batch_collator import BatchCollator
+from src.model_trainer.batch_collator import BatchCollator
 from src.data.tokeniser.token_indices import DefaultTokenIndex
 
 
