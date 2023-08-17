@@ -1,7 +1,7 @@
 from tqdm import tqdm
 
-from src.training_delegate.training_delegate import TrainingDelegate
-from src.training_object_collection import TrainingObjectCollection
+from src.model_trainer.training_delegate import TrainingDelegate
+from src.model_trainer.training_object_collection import TrainingObjectCollection
 from src import metric
 
 

@@ -3,7 +3,7 @@ import pytest
 import torch
 import warnings
 
-from src.training_manager import TrainingManager
+from src.model_trainer import ModelTrainer
 from src.model.token_embedder import BetaCdrEmbedder
 from src.model.self_attention_stack import SelfAttentionStackWithBuiltins
 from src.model.mlm_token_prediction_projector import AminoAcidTokenProjector
@@ -24,7 +24,7 @@ def test_main(model_template, config, tmp_path):
     if not torch.cuda.is_available():
         warnings.warn("MLM test skipped due to hardware limitations")
 
-    training_manager = TrainingManager(config)
+    training_manager = ModelTrainer(config)
     expected_model_save_dir = tmp_path / "model_saves" / "foo_bar_baz_01"
 
     p = Process(

@@ -2,7 +2,7 @@ import pytest
 import random
 import torch
 
-from src.batch_collator import MlmBatchCollator
+from src.model_trainer.batch_collator import MlmBatchCollator
 from src.data.tokeniser.beta_cdr_tokeniser import BetaCdrTokeniser
 
 
