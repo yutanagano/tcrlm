@@ -5,17 +5,16 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DistributedSampler
 from types import ModuleType
 
-from src import batch_collator as batch_collator_module
 from src import metric as metric_module
-from src import training_delegate as training_delegate_module
 from src.data import tokeniser as tokeniser_module
 from src.model import trainable_model as trainable_model_module
 from src.model import self_attention_stack as self_attention_stack_module
 from src.model import mlm_token_prediction_projector as mlm_token_prediction_projector_module
 from src.model import vector_representation_delegate as vector_representation_delegate_module
 from src.model import token_embedder as token_embedder_module
+from src.model_trainer import batch_collator as batch_collator_module
+from src.model_trainer import training_delegate as training_delegate_module
 
-from src.batch_collator import BatchCollator
 from src.data.tcr_dataloader import TcrDataLoader
 from src.data.tokeniser import Tokeniser
 from src.data.tcr_dataset import TcrDataset
@@ -25,9 +24,10 @@ from src.model.token_embedder.token_embedder import TokenEmbedder
 from src.model.self_attention_stack import SelfAttentionStack
 from src.model.mlm_token_prediction_projector import MlmTokenPredictionProjector
 from src.model.vector_representation_delegate import VectorRepresentationDelegate
-from src.optim import AdamWithScheduling
-from src.training_delegate import TrainingDelegate
-from src.training_object_collection import TrainingObjectCollection
+from src.model_trainer.batch_collator import BatchCollator
+from src.model_trainer.optim import AdamWithScheduling
+from src.model_trainer.training_delegate import TrainingDelegate
+from src.model_trainer.training_object_collection import TrainingObjectCollection
 
 
 class ConfigReader:

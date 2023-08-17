@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from src.training_object_collection import TrainingObjectCollection
+from src.model_trainer.training_object_collection import TrainingObjectCollection
 
 
 class TrainingDelegate(ABC):

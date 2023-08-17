@@ -2,7 +2,7 @@ import torch
 from torch.nn.parallel import DistributedDataParallel
 
 from src.data.tcr_dataloader import TcrDataLoader
-from src.optim import AdamWithScheduling
+from src.model_trainer.optim import AdamWithScheduling
 
 
 class TrainingObjectCollection:

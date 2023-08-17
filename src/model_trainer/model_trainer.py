@@ -9,12 +9,12 @@ from torch import distributed
 from torch import multiprocessing
 from typing import Optional
 
-from src.config_reader import ConfigReader
+from src.model_trainer.config_reader import ConfigReader
 from src.model.bert import Bert
-from src.training_object_collection import TrainingObjectCollection
+from src.model_trainer.training_object_collection import TrainingObjectCollection
 
 
-class TrainingManager:
+class ModelTrainer:
     def __init__(self, config: dict) -> None:
         self._config_reader = ConfigReader(config)
         self._training_delegate = self._config_reader.get_training_delegate()
