@@ -12,6 +12,7 @@ class Analysis(ABC):
         self._background_data = background_data
         self._background_pgen = background_pgen
         self._labelled_data = labelled_data
+        self._model = tcr_model
         self._model_computation_cacher = ModelComputationCacher(tcr_model, working_directory)
 
     @abstractmethod

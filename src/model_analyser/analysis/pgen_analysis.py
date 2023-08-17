@@ -33,7 +33,7 @@ class PgenAnalysis(Analysis):
         avg_dists = []
 
         for i in tqdm(range_over_indices_of_first_row_of_batches):
-            dists_batch = self._model_computation_cacher.calc_cdist_matrix(
+            dists_batch = self._model.calc_cdist_matrix(
                 self._background_data.iloc[i:i+BATCH_SIZE],
                 self._background_data
             ).squeeze()

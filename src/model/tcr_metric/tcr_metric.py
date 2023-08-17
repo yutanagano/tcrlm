@@ -1,6 +1,7 @@
 from abc import abstractmethod, ABC
 from numpy import ndarray
 from pandas import DataFrame
+from typing import Iterable, Union
 
 
 class TcrMetric(ABC):
@@ -29,4 +30,12 @@ class TcrMetric(ABC):
 
     @abstractmethod
     def calc_pdist_vector(self, tcrs: DataFrame) -> ndarray:
+        pass
+
+    @property
+    @abstractmethod
+    def distance_bins(self) -> Iterable[Union[float, int]]:
+        """
+        list representing the bins to use when generating tcr distance histograms.
+        """
         pass

@@ -3,7 +3,7 @@ import numpy as np
 from numpy import ndarray
 from pandas import DataFrame
 from pathlib import Path
-from typing import Callable
+from typing import Callable, IO
 
 from src.model.tcr_metric import TcrMetric
 
@@ -54,3 +54,12 @@ class ModelComputationCacher:
         stringified_args = [str(arg).encode("utf-8") for arg in args]
         hashed_args = [hashlib.sha256(arg).hexdigest() for arg in stringified_args]
         return "_".join(hashed_args)
+    
+    def get_readable_buffer(self, filename: str) -> IO:
+        file = self._cache_dir / filename
+        file.touch()
+        return open(file, "r")
+
+    def get_appendable_buffer(self, filename: str) -> IO:
+        file = self._cache_dir / filename
+        return open(file, "a")
