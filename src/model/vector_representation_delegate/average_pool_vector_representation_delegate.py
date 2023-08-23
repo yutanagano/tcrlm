@@ -1,20 +1,8 @@
-from abc import ABC, abstractmethod
 from torch import Tensor
 from torch.nn import functional as F
 
+from src.model.vector_representation_delegate import VectorRepresentationDelegate
 from src.model.self_attention_stack import SelfAttentionStack
-
-
-class VectorRepresentationDelegate(ABC):
-    @abstractmethod
-    def __init__(self, self_attention_stack: SelfAttentionStack) -> None:
-        pass
-
-    @abstractmethod
-    def get_vector_representations_of(
-        self, token_embeddings: Tensor, padding_mask: Tensor
-    ) -> Tensor:
-        pass
 
 
 class AveragePoolVectorRepresentationDelegate(VectorRepresentationDelegate):
