@@ -1,3 +1,5 @@
+import pytest
+
 from src.model_analyser.analysis import (
     MetricCalibrationAnalysis,
     metric_calibration_analysis,
@@ -6,9 +8,11 @@ from src.model_analyser.analysis import (
 from tests.resources.analysis_result_checker import AnalysisResultChecker
 
 
-metric_calibration_analysis.NUM_BG_DISTANCES_TO_SAMPLE = 10
+metric_calibration_analysis.NUM_BG_DISTANCES_TO_SAMPLE = 100
+metric_calibration_analysis.BATCH_SIZE_WHEN_ESTIMATING_BG_DISTANCES = 10
 
 
+@pytest.mark.filterwarnings("ignore:invalid value encountered in divide")
 def test_run(
     mock_bg_data,
     mock_pgens,
@@ -30,3 +34,4 @@ def test_run(
 
     assert result_checker.name_is("metric_calibration")
     assert result_checker.has_results_dict()
+    assert result_checker.has_figures()

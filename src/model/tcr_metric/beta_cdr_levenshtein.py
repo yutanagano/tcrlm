@@ -9,8 +9,8 @@ from src.model.tcr_metric.tcr_metric import TcrMetric
 
 
 class BetaCdrLevenshtein(TcrMetric):
-    name = "Beta CDR3 Levenshtein"
-    distance_bins = None
+    name = "Beta CDR Levenshtein"
+    distance_bins = range(36)
 
     def calc_cdist_matrix(
         self, anchor_tcrs: DataFrame, comparison_tcrs: DataFrame
@@ -39,7 +39,7 @@ class BetaCdrLevenshtein(TcrMetric):
         return cdist_cdr1 + cdist_cdr2 + cdist_cdr3
 
     def _add_first_allele_designation_if_none_present(self, trbvs: Series) -> Series:
-        return trbvs.map(lambda x: x if "*" in x else x + "*01")
+        return trbvs.map(lambda x: x + "*01" if isinstance(x, str) and "*" not in x else x)
 
     def _get_vcdrs(self, trbvs: Series) -> DataFrame:
         df = DataFrame()

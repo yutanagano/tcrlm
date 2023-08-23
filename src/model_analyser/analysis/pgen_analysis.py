@@ -26,7 +26,7 @@ class PgenAnalysis(Analysis):
         )
 
     def _avg_dist_computation(self) -> ndarray:
-        BATCH_SIZE = 1000
+        BATCH_SIZE = 100
         KTH = min(100, len(self._background_data) - 1)
 
         range_over_indices_of_first_row_of_batches = range(
