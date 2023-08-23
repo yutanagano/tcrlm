@@ -1,6 +1,8 @@
 import pandas as pd
+from pandas import DataFrame
 from pathlib import Path
 import re
+import seaborn as sns
 from typing import Optional, Type
 
 from src.model.tcr_metric import TcrMetric
@@ -9,6 +11,7 @@ from src.model_analyser.analysis import (
     KnnAnalysis,
     PgenAnalysis,
     PrecisionRecallAnalysis,
+    MetricCalibrationAnalysis
 )
 from src.model_analyser.analysis_result import AnalysisResult
 
@@ -24,6 +27,7 @@ class ModelAnalyser:
     def __init__(self, working_directory: Optional[Path] = None) -> None:
         self._set_working_directory(working_directory)
         self._load_data()
+        sns.set_theme()
 
     def _set_working_directory(self, working_directory: Optional[Path]) -> None:
         if working_directory is not None:
@@ -32,14 +36,22 @@ class ModelAnalyser:
             self._working_directory = Path.cwd()
 
     def _load_data(self) -> None:
-        self._background_data = pd.read_csv(BACKGROUND_DATA_PATH)
-        self._background_pgen = pd.read_csv(BACKGROUND_PGEN_PATH)
+        self._background_data = self._load_tcr_csv(BACKGROUND_DATA_PATH)
+        self._background_pgen = self._load_tcr_csv(BACKGROUND_PGEN_PATH)
         self._labelled_data = {
-            name: pd.read_csv(path) for name, path in LABELLED_DATA_PATHS.items()
+            name: self._load_tcr_csv(path) for name, path in LABELLED_DATA_PATHS.items()
         }
 
+    def _load_tcr_csv(self, path_to_csv: str) -> DataFrame:
+        df = pd.read_csv(path_to_csv)
+
+        if "clone_count" not in df:
+            df["clone_count"] = 1
+
+        return df
+
     def analyse(self, tcr_model: TcrMetric) -> None:
-        analyses = [KnnAnalysis, PrecisionRecallAnalysis, PgenAnalysis]
+        analyses = [KnnAnalysis, PrecisionRecallAnalysis, PgenAnalysis, MetricCalibrationAnalysis]
 
         analysis_results = [
             self._run_analysis(AnalysisClass, tcr_model) for AnalysisClass in analyses
