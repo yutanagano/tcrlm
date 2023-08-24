@@ -11,7 +11,7 @@ from src.model_analyser.analysis import (
     KnnAnalysis,
     PgenAnalysis,
     PrecisionRecallAnalysis,
-    MetricCalibrationAnalysis
+    MetricCalibrationAnalysis,
 )
 from src.model_analyser.analysis_result import AnalysisResult
 
@@ -48,14 +48,19 @@ class ModelAnalyser:
         for column in ("TRAV", "CDR3A", "TRAJ", "TRBV", "CDR3B", "TRBJ"):
             if column not in df:
                 df[column] = pd.NA
-        
+
         if "clone_count" not in df:
             df["clone_count"] = 1
 
         return df
 
     def analyse(self, tcr_model: TcrMetric) -> None:
-        analyses = [KnnAnalysis, PrecisionRecallAnalysis, PgenAnalysis, MetricCalibrationAnalysis]
+        analyses = [
+            KnnAnalysis,
+            PrecisionRecallAnalysis,
+            PgenAnalysis,
+            MetricCalibrationAnalysis,
+        ]
 
         analysis_results = [
             self._run_analysis(AnalysisClass, tcr_model) for AnalysisClass in analyses

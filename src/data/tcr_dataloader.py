@@ -8,9 +8,7 @@ from src.data.tokeniser.token_indices import DefaultTokenIndex
 
 def default_collate_fn(batch: Iterable[LongTensor]) -> LongTensor:
     return utils.rnn.pad_sequence(
-        sequences=batch,
-        batch_first=True,
-        padding_value=DefaultTokenIndex.NULL
+        sequences=batch, batch_first=True, padding_value=DefaultTokenIndex.NULL
     )
 
 

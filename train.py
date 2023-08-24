@@ -10,7 +10,7 @@ def main():
     args = parse_args()
     path_to_working_directory = get_path_to_working_directory(args)
     config_dict = load_config_dict(args)
-    
+
     model_trainer = ModelTrainer(config_dict)
     model_trainer.train(working_directory=path_to_working_directory)
 

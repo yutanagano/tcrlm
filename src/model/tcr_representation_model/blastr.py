@@ -19,7 +19,9 @@ class Blastr(TcrRepresentationModel):
     name: str = None
     distance_bins = np.linspace(0, 2, num=21)
 
-    def __init__(self, name: str, tokeniser: Tokeniser, bert: Bert, device: torch.device) -> None:
+    def __init__(
+        self, name: str, tokeniser: Tokeniser, bert: Bert, device: torch.device
+    ) -> None:
         self.name = name
         self.tokeniser = tokeniser
         self.bert = bert.eval()
@@ -39,24 +41,35 @@ class Blastr(TcrRepresentationModel):
     @torch.no_grad()
     def _get_bert_representations_of_tcrs_in(self, dataloader: TcrDataLoader) -> Tensor:
         batched_representations = [
-            self.bert.get_vector_representations_of(batch.to(self.device)) for batch in dataloader
+            self.bert.get_vector_representations_of(batch.to(self.device))
+            for batch in dataloader
         ]
         return torch.concat(batched_representations).cpu()
-    
-    def calc_cdist_matrix_from_representations(self, anchor_tcr_representations: ndarray, comparison_tcr_representations: ndarray) -> ndarray:
-        return distance.cdist(anchor_tcr_representations, comparison_tcr_representations, metric="euclidean")
-    
-    def calc_pdist_vector_from_representations(self, tcr_representations: ndarray) -> ndarray:
+
+    def calc_cdist_matrix_from_representations(
+        self,
+        anchor_tcr_representations: ndarray,
+        comparison_tcr_representations: ndarray,
+    ) -> ndarray:
+        return distance.cdist(
+            anchor_tcr_representations,
+            comparison_tcr_representations,
+            metric="euclidean",
+        )
+
+    def calc_pdist_vector_from_representations(
+        self, tcr_representations: ndarray
+    ) -> ndarray:
         return distance.pdist(tcr_representations, metric="euclidean")
 
 
 def load_blastr_save(path: Path) -> Blastr:
-    with open(path/"config.json", "r") as f:
+    with open(path / "config.json", "r") as f:
         config = json.load(f)
     config_reader = ConfigReader(config)
-    
-    state_dict = torch.load(path/"state_dict.pt")
-    
+
+    state_dict = torch.load(path / "state_dict.pt")
+
     if torch.cuda.is_available():
         device = torch.device("cuda:0")
     else:
