@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from src.tcr import Tcr, Tcrv, TravGene, TrbvGene
+from src.tcr import Tcr, Tcrv, TravGene
 from src.data.tokeniser.beta_cdr_tokeniser import BetaCdrTokeniser
 
 
@@ -10,15 +10,8 @@ def tokeniser():
     return BetaCdrTokeniser()
 
 
-def test_tokenise(tokeniser: BetaCdrTokeniser):
-    example_tcr = Tcr(
-        trav=Tcrv(TravGene["TRAV1-1"], 1),
-        junction_a_sequence="CASQYF",
-        trbv=Tcrv(TrbvGene["TRBV2"], 1),
-        junction_b_sequence="CATQYF",
-    )
-
-    tokenised_tcr = tokeniser.tokenise(example_tcr)
+def test_tokenise(tokeniser: BetaCdrTokeniser, mock_tcr):
+    tokenised_tcr = tokeniser.tokenise(mock_tcr)
     expected = torch.tensor(
         [
             [2, 0, 0, 0],
@@ -35,7 +28,7 @@ def test_tokenise(tokeniser: BetaCdrTokeniser):
             [10, 6, 6, 2],
             [4, 1, 6, 3],
             [3, 2, 6, 3],
-            [19, 3, 6, 3],
+            [18, 3, 6, 3],
             [16, 4, 6, 3],
             [22, 5, 6, 3],
             [7, 6, 6, 3],
