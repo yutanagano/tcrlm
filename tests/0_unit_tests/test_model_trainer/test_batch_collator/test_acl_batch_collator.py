@@ -6,12 +6,23 @@ from src.model_trainer.batch_collator import AclBatchCollator
 from src.data.tokeniser.beta_cdr_tokeniser import BetaCdrTokeniser
 
 
-def test_collate_fn(mock_tokenised_tcrs, expected_anchor_tcrs, expected_positive_pair_tcrs, expected_masked_tcrs, expected_mlm_targets):
+def test_collate_fn(
+    mock_tokenised_tcrs,
+    expected_anchor_tcrs,
+    expected_positive_pair_tcrs,
+    expected_masked_tcrs,
+    expected_mlm_targets,
+):
     tokeniser = BetaCdrTokeniser()
     batch_generator = AclBatchCollator(tokeniser)
 
     random.seed(4)
-    anchor_tcrs, positive_pair_tcrs, masked_tcrs, mlm_targets = batch_generator.collate_fn(mock_tokenised_tcrs)
+    (
+        anchor_tcrs,
+        positive_pair_tcrs,
+        masked_tcrs,
+        mlm_targets,
+    ) = batch_generator.collate_fn(mock_tokenised_tcrs)
 
     assert torch.equal(anchor_tcrs, expected_anchor_tcrs)
     assert torch.equal(positive_pair_tcrs, expected_positive_pair_tcrs)

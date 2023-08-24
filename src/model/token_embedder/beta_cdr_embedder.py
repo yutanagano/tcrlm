@@ -12,8 +12,6 @@ from src.model.token_embedder.sin_position_embedding import SinPositionEmbedding
 
 
 MAX_PLAUSIBLE_CDR_LENGTH = 100
-
-
 VOCABULARY_SIZE = len(AminoAcidTokenIndex)
 NUMBER_OF_COMPARTMENTS = len(BetaCdrCompartmentIndex)
 

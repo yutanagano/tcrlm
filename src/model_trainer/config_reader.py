@@ -9,8 +9,12 @@ from src import metric as metric_module
 from src.data import tokeniser as tokeniser_module
 from src.model import trainable_model as trainable_model_module
 from src.model import self_attention_stack as self_attention_stack_module
-from src.model import mlm_token_prediction_projector as mlm_token_prediction_projector_module
-from src.model import vector_representation_delegate as vector_representation_delegate_module
+from src.model import (
+    mlm_token_prediction_projector as mlm_token_prediction_projector_module,
+)
+from src.model import (
+    vector_representation_delegate as vector_representation_delegate_module,
+)
 from src.model import token_embedder as token_embedder_module
 from src.model_trainer import batch_collator as batch_collator_module
 from src.model_trainer import training_delegate as training_delegate_module
@@ -42,10 +46,12 @@ class ConfigReader:
 
     def get_config(self) -> dict:
         return self._config
-    
+
     def get_training_delegate(self) -> TrainingDelegate:
         config = self._config["training_delegate"]
-        return self._get_object_from_module_using_config(training_delegate_module, config)
+        return self._get_object_from_module_using_config(
+            training_delegate_module, config
+        )
 
     def get_training_object_collection_on_device(
         self, device: torch.device
@@ -74,9 +80,7 @@ class ConfigReader:
         trainable_model = self._get_trainable_model_on_device(device)
         return DistributedDataParallel(trainable_model)
 
-    def _get_trainable_model_on_device(
-        self, device: torch.device
-    ) -> TrainableModel:
+    def _get_trainable_model_on_device(self, device: torch.device) -> TrainableModel:
         trainable_model_wrapper_class_name = self._config["model"]["trainable_model"][
             "class"
         ]
@@ -90,9 +94,7 @@ class ConfigReader:
     def get_bert_on_device(self, device: torch.device) -> Bert:
         token_embedder = self._get_token_embedder()
         self_attention_stack = self._get_self_attention_stack()
-        mlm_token_prediction_projector = (
-            self._get_mlm_token_prediction_projector()
-        )
+        mlm_token_prediction_projector = self._get_mlm_token_prediction_projector()
         vector_representation_delegate = (
             self._get_vector_representation_delegate_for_self_attention_stack(
                 self_attention_stack
@@ -111,9 +113,7 @@ class ConfigReader:
 
     def _get_token_embedder(self) -> TokenEmbedder:
         config = self._config["model"]["token_embedder"]
-        return self._get_object_from_module_using_config(
-            token_embedder_module, config
-        )
+        return self._get_object_from_module_using_config(token_embedder_module, config)
 
     def _get_self_attention_stack(self) -> SelfAttentionStack:
         config = self._config["model"]["self_attention_stack"]
@@ -158,9 +158,7 @@ class ConfigReader:
         dataloader_initargs = self._config["data"]["dataloader"]["initargs"]
 
         tokeniser = self.get_tokeniser()
-        dataset = self._get_dataset(
-            Path(path_to_training_data_csv_as_str), tokeniser
-        )
+        dataset = self._get_dataset(Path(path_to_training_data_csv_as_str), tokeniser)
         batch_collator = self._get_batch_collator_for_tokeniser(tokeniser)
 
         return TcrDataLoader(
@@ -177,9 +175,7 @@ class ConfigReader:
         dataloader_initargs = self._config["data"]["dataloader"]["initargs"]
 
         tokeniser = self.get_tokeniser()
-        dataset = self._get_dataset(
-            Path(path_to_validation_data_csv_as_str), tokeniser
-        )
+        dataset = self._get_dataset(Path(path_to_validation_data_csv_as_str), tokeniser)
         batch_collator = self._get_batch_collator_for_tokeniser(tokeniser)
 
         return TcrDataLoader(
@@ -188,9 +184,7 @@ class ConfigReader:
 
     def get_tokeniser(self) -> Tokeniser:
         config = self._config["data"]["tokeniser"]
-        return self._get_object_from_module_using_config(
-            tokeniser_module, config
-        )
+        return self._get_object_from_module_using_config(tokeniser_module, config)
 
     def _get_dataset(
         self, path_to_training_data_csv: Path, tokeniser: Tokeniser
@@ -198,9 +192,7 @@ class ConfigReader:
         df = pd.read_csv(path_to_training_data_csv)
         return TcrDataset(data=df, tokeniser=tokeniser)
 
-    def _get_batch_collator_for_tokeniser(
-        self, tokeniser: Tokeniser
-    ) -> BatchCollator:
+    def _get_batch_collator_for_tokeniser(self, tokeniser: Tokeniser) -> BatchCollator:
         config = self._config["data"]["batch_collator"]
         class_name = config["class"]
         initargs = config["initargs"]
@@ -210,9 +202,7 @@ class ConfigReader:
     def _get_loss_functions(self) -> dict:
         loss_function_configs = self._config["loss"]
         loss_functions = {
-            name: self._get_object_from_module_using_config(
-                metric_module, config
-            )
+            name: self._get_object_from_module_using_config(metric_module, config)
             for name, config in loss_function_configs.items()
         }
         return loss_functions
