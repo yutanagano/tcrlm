@@ -19,7 +19,7 @@ class PrecisionRecallAnalysis(Analysis):
             pr_stats = self._evaluate_pr_curve(dataset)
             pr_figure = self._plot_pr_curve(pr_stats, dataset_name)
 
-            results_dict[dataset_name] = pr_stats
+            results_dict[f"avg_precision_{dataset_name}"] = pr_stats["avg_precision"]
             figures[f"{dataset_name}_pr_curve"] = pr_figure
 
         return AnalysisResult(
