@@ -1,5 +1,6 @@
 import hashlib
 import numpy as np
+from numpy import ndarray
 from pandas import DataFrame
 
 from src.model_analyser.model_computation_cacher import ModelComputationCacher
@@ -38,6 +39,11 @@ def test_calc_pdist_vector(tmp_path, mock_data_df):
 
     assert np.array_equal(result, expected)
     assert expected_cache_path.is_file()
+
+
+def test_calc_vector_representations():
+    #TODO Write this test perhaps when implementing a simple Tcr representation model baseline
+    pass
 
 
 def test_get_cached_or_compute_array(tmp_path):
