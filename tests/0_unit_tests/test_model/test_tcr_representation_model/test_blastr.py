@@ -1,6 +1,7 @@
 import math
 from numpy import ndarray
 import pytest
+import torch
 
 from src.model.tcr_representation_model import Blastr
 from src.data.tokeniser import BetaCdrTokeniser
@@ -38,7 +39,7 @@ def test_calc_vector_representations(blastr: Blastr, toy_bert_d_model, mock_data
 
 @pytest.fixture
 def blastr(tokeniser, toy_bert):
-    return Blastr(name="foobar", tokeniser=tokeniser, bert=toy_bert)
+    return Blastr(name="foobar", tokeniser=tokeniser, bert=toy_bert, device=torch.device("cpu"))
 
 
 @pytest.fixture
