@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from torch import Tensor
-from torch.nn import Module, TransformerEncoder, TransformerEncoderLayer
+from torch.nn import Linear, Module, TransformerEncoder, TransformerEncoderLayer
 
 
 class SelfAttentionStack(ABC, Module):
@@ -58,3 +58,28 @@ class SelfAttentionStackWithBuiltins(SelfAttentionStack):
             )
 
         return token_embeddings
+
+
+class SelfAttentionStackWithInitialProjection(SelfAttentionStack):
+    d_model: int = None
+
+    def __init__(
+        self, num_layers: int, embedding_dim: int, d_model: int, nhead: int, dropout: float = 0.1
+    ) -> None:
+        super().__init__()
+
+        self._initial_projector = Linear(in_features=embedding_dim, out_features=d_model, bias=False)
+        self._standard_stack = SelfAttentionStackWithBuiltins(
+            num_layers=num_layers,
+            d_model=d_model,
+            nhead=nhead,
+            dropout=dropout
+        )
+
+    def forward(self, token_embeddings: Tensor, padding_mask: Tensor) -> Tensor:
+        projected_embeddings = self._initial_projector.forward(token_embeddings)
+        return self._standard_stack.forward(projected_embeddings, padding_mask)
+    
+    def get_token_embeddings_at_penultimate_layer(self, token_embeddings: Tensor, padding_mask: Tensor) -> Tensor:
+        projected_embeddings = self._initial_projector.forward(token_embeddings)
+        return self._standard_stack.get_token_embeddings_at_penultimate_layer(projected_embeddings, padding_mask)
