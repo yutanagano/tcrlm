@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Callable, IO
 
 from src.model.tcr_metric import TcrMetric
+from src.model.tcr_representation_model import TcrRepresentationModel
 
 
 class ModelComputationCacher:
@@ -41,6 +42,22 @@ class ModelComputationCacher:
         pdist_vector = self.get_cached_or_compute_array(filename, compute_fn)
 
         return pdist_vector
+    
+    def calc_vector_representations(self, tcrs: DataFrame) -> ndarray:
+        if isinstance(self._model, TcrRepresentationModel):
+            representation_model: TcrRepresentationModel = self._model
+        else:
+            raise RuntimeError(f"{self._model.name} is not a")
+
+        argument_hash_str = self._get_argument_hash_str(tcrs)
+        filename = f"reps_{argument_hash_str}.npy"
+
+        representation_model: TcrRepresentationModel = self._model
+        compute_fn = lambda: representation_model.calc_vector_representations(tcrs)
+
+        vector_representations = self.get_cached_or_compute_array(filename, compute_fn)
+
+        return vector_representations
 
     def get_cached_or_compute_array(
         self, filename: str, compute_fn: Callable

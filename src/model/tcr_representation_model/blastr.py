@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 import torch
 from torch import Tensor
@@ -18,24 +19,11 @@ class Blastr(TcrRepresentationModel):
     name: str = None
     distance_bins = np.linspace(0, 2, num=21)
 
-    def __init__(self, name: str, tokeniser: Tokeniser, bert: Bert) -> None:
+    def __init__(self, name: str, tokeniser: Tokeniser, bert: Bert, device: torch.device) -> None:
         self.name = name
         self.tokeniser = tokeniser
-        self.bert = bert
-
-    def calc_cdist_matrix(
-        self, anchor_tcrs: DataFrame, comparison_tcrs: DataFrame
-    ) -> ndarray:
-        anchor_representations = self.calc_vector_representations(anchor_tcrs)
-        comparison_representations = self.calc_vector_representations(comparison_tcrs)
-
-        return distance.cdist(
-            anchor_representations, comparison_representations, metric="euclidean"
-        )
-
-    def calc_pdist_vector(self, tcrs: DataFrame) -> ndarray:
-        tcr_representations = self.calc_vector_representations(tcrs)
-        return distance.pdist(tcr_representations, metric="euclidean")
+        self.bert = bert.eval()
+        self.device = device
 
     def calc_vector_representations(self, tcrs: DataFrame) -> ndarray:
         tcr_dataloader = self._make_dataloader_for(tcrs)
@@ -51,15 +39,24 @@ class Blastr(TcrRepresentationModel):
     @torch.no_grad()
     def _get_bert_representations_of_tcrs_in(self, dataloader: TcrDataLoader) -> Tensor:
         batched_representations = [
-            self.bert.get_vector_representations_of(batch) for batch in dataloader
+            self.bert.get_vector_representations_of(batch.to(self.device)) for batch in dataloader
         ]
-        return torch.concat(batched_representations)
+        return torch.concat(batched_representations).cpu()
+    
+    def calc_cdist_matrix_from_representations(self, anchor_tcr_representations: ndarray, comparison_tcr_representations: ndarray) -> ndarray:
+        return distance.cdist(anchor_tcr_representations, comparison_tcr_representations, metric="euclidean")
+    
+    def calc_pdist_vector_from_representations(self, tcr_representations: ndarray) -> ndarray:
+        return distance.pdist(tcr_representations, metric="euclidean")
 
 
 def load_blastr_save(path: Path) -> Blastr:
-    config_reader = ConfigReader(path/"config.json")
+    with open(path/"config.json", "r") as f:
+        config = json.load(f)
+    config_reader = ConfigReader(config)
+    
     state_dict = torch.load(path/"state_dict.pt")
-
+    
     if torch.cuda.is_available():
         device = torch.device("cuda:0")
     else:
@@ -70,4 +67,4 @@ def load_blastr_save(path: Path) -> Blastr:
     bert = config_reader.get_bert_on_device(device)
     bert.load_state_dict(state_dict)
 
-    return Blastr(name=name, tokeniser=tokeniser, bert=bert)
+    return Blastr(name=name, tokeniser=tokeniser, bert=bert, device=device)

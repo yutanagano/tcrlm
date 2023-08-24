@@ -2,10 +2,12 @@ from matplotlib.figure import Figure
 from matplotlib import pyplot as plt
 import numpy as np
 from numpy import ndarray
+from pandas import DataFrame
 from tqdm import tqdm
 
 from src.model_analyser.analysis import Analysis
 from src.model_analyser.analysis_result import AnalysisResult
+from src.model.tcr_representation_model import TcrRepresentationModel
 
 
 class PgenAnalysis(Analysis):
@@ -36,9 +38,7 @@ class PgenAnalysis(Analysis):
         avg_dists = []
 
         for i in tqdm(range_over_indices_of_first_row_of_batches):
-            dists_batch = self._model.calc_cdist_matrix(
-                self._background_data.iloc[i : i + BATCH_SIZE], self._background_data
-            ).squeeze()
+            dists_batch = self._calc_cdist_matrix(self._background_data.iloc[i : i+BATCH_SIZE], self._background_data)
 
             for dists in dists_batch:
                 dists_to_closest_100 = np.partition(dists, kth=KTH)[:KTH]
@@ -46,6 +46,14 @@ class PgenAnalysis(Analysis):
                 avg_dists.append(avg_dist)
 
         return np.array(avg_dists, dtype=np.float32)
+    
+    def _calc_cdist_matrix(self, tcr_batch: DataFrame, background_tcrs: DataFrame) -> ndarray:
+        if isinstance(self._model, TcrRepresentationModel):
+            tcr_batch_representation = self._model.calc_vector_representations(tcr_batch)
+            bg_tcr_representations = self._model_computation_cacher.calc_vector_representations(background_tcrs)
+            return self._model.calc_cdist_matrix_from_representations(tcr_batch_representation, bg_tcr_representations)
+        else:
+            return self._model.calc_cdist_matrix(tcr_batch, background_tcrs)
 
     def _generate_pgen_vs_local_density_figure(
         self, bg_tcrs_avg_dist_to_100_nearest_neighbours: ndarray

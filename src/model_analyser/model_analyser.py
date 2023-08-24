@@ -45,6 +45,10 @@ class ModelAnalyser:
     def _load_tcr_csv(self, path_to_csv: str) -> DataFrame:
         df = pd.read_csv(path_to_csv)
 
+        for column in ("TRAV", "CDR3A", "TRAJ", "TRBV", "CDR3B", "TRBJ"):
+            if column not in df:
+                df[column] = pd.NA
+        
         if "clone_count" not in df:
             df["clone_count"] = 1
 
