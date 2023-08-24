@@ -42,7 +42,7 @@ class ModelComputationCacher:
         pdist_vector = self.get_cached_or_compute_array(filename, compute_fn)
 
         return pdist_vector
-    
+
     def calc_vector_representations(self, tcrs: DataFrame) -> ndarray:
         if isinstance(self._model, TcrRepresentationModel):
             representation_model: TcrRepresentationModel = self._model

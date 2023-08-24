@@ -42,7 +42,7 @@ def test_calc_pdist_vector(tmp_path, mock_data_df):
 
 
 def test_calc_vector_representations():
-    #TODO Write this test perhaps when implementing a simple Tcr representation model baseline
+    # TODO Write this test perhaps when implementing a simple Tcr representation model baseline
     pass
 
 

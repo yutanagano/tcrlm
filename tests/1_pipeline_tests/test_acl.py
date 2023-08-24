@@ -77,10 +77,7 @@ def model_template():
 @pytest.fixture
 def config():
     return {
-        "training_delegate": {
-            "class": "AclTrainingDelegate",
-            "initargs": {}
-        },
+        "training_delegate": {"class": "AclTrainingDelegate", "initargs": {}},
         "model": {
             "name": "foo (bar, baz 01)",
             "path_to_pretrained_state_dict": None,

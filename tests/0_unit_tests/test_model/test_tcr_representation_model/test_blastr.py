@@ -17,7 +17,7 @@ def test_calc_cdist_matrix(blastr: Blastr, mock_data_df):
     result = blastr.calc_cdist_matrix(anchor_tcrs, comparison_tcrs)
 
     assert isinstance(result, ndarray)
-    assert result.shape == (NUM_ANCHOR_TCRS,NUM_COMPARISON_TCRS)
+    assert result.shape == (NUM_ANCHOR_TCRS, NUM_COMPARISON_TCRS)
 
 
 def test_calc_pdist_vector(blastr: Blastr, mock_data_df):
@@ -39,7 +39,9 @@ def test_calc_vector_representations(blastr: Blastr, toy_bert_d_model, mock_data
 
 @pytest.fixture
 def blastr(tokeniser, toy_bert):
-    return Blastr(name="foobar", tokeniser=tokeniser, bert=toy_bert, device=torch.device("cpu"))
+    return Blastr(
+        name="foobar", tokeniser=tokeniser, bert=toy_bert, device=torch.device("cpu")
+    )
 
 
 @pytest.fixture

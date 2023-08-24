@@ -39,7 +39,9 @@ class BetaCdrLevenshtein(TcrMetric):
         return cdist_cdr1 + cdist_cdr2 + cdist_cdr3
 
     def _add_first_allele_designation_if_none_present(self, trbvs: Series) -> Series:
-        return trbvs.map(lambda x: x + "*01" if isinstance(x, str) and "*" not in x else x)
+        return trbvs.map(
+            lambda x: x + "*01" if isinstance(x, str) and "*" not in x else x
+        )
 
     def _get_vcdrs(self, trbvs: Series) -> DataFrame:
         df = DataFrame()

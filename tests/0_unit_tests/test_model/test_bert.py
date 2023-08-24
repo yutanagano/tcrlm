@@ -19,7 +19,9 @@ def mock_tokenised_tcrs():
     )
 
 
-def test_get_vector_representations_of(toy_bert: Bert, toy_bert_d_model, mock_tokenised_tcrs):
+def test_get_vector_representations_of(
+    toy_bert: Bert, toy_bert_d_model, mock_tokenised_tcrs
+):
     result = toy_bert.get_vector_representations_of(mock_tokenised_tcrs)
 
     assert type(result) == Tensor
