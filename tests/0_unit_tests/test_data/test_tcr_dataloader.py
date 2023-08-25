@@ -4,6 +4,7 @@ from torch import Tensor
 from src.data.tokeniser.cdr_tokeniser import CdrTokeniser
 from src.data.tcr_dataset import TcrDataset
 from src.data.tcr_dataloader import TcrDataLoader
+from src.data.batch_collator import DefaultBatchCollator
 
 BATCH_DIMENSIONALITY = 3
 BATCH_SIZE = 3
@@ -11,8 +12,8 @@ MAX_TOKENISED_TCR_LENGTH = 48
 TOKEN_NUM_DIMS = 4
 
 
-def test_iter(tcr_dataset):
-    dataloader = TcrDataLoader(tcr_dataset, batch_size=BATCH_SIZE)
+def test_iter(tcr_dataset, default_batch_collator):
+    dataloader = TcrDataLoader(tcr_dataset, batch_collator=default_batch_collator, batch_size=BATCH_SIZE)
 
     for batch in dataloader:
         assert type(batch) == Tensor
@@ -22,9 +23,9 @@ def test_iter(tcr_dataset):
         assert batch.size(2) == TOKEN_NUM_DIMS
 
 
-def test_set_epoch(tcr_dataset):
+def test_set_epoch(tcr_dataset, default_batch_collator):
     mock_sampler = MockSampler()
-    dataloader = TcrDataLoader(tcr_dataset, sampler=mock_sampler)
+    dataloader = TcrDataLoader(tcr_dataset, batch_collator=default_batch_collator, sampler=mock_sampler)
     EPOCH = 420
 
     dataloader.set_epoch(EPOCH)
@@ -42,4 +43,10 @@ class MockSampler:
 
 @pytest.fixture
 def tcr_dataset(mock_data_df):
-    return TcrDataset(mock_data_df, CdrTokeniser())
+    return TcrDataset(mock_data_df)
+
+
+@pytest.fixture
+def default_batch_collator():
+    tokeniser = CdrTokeniser()
+    return DefaultBatchCollator(tokeniser=tokeniser)

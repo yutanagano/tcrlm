@@ -40,3 +40,9 @@ class Pmhc:
     def __repr__(self) -> str:
         epitope_representation = "?" if self.epitope_sequence is None else self.epitope_sequence
         return f"{self.mhc_a}, {self.mhc_b}, {epitope_representation}"
+    
+
+def make_pmhc_from_components(epitope_sequence: Optional[str], mhc_a_symbol: Optional[str], mhc_b_symbol: Optional[str]) -> Pmhc:
+    mhc_a = MhcGene(mhc_a_symbol)
+    mhc_b = MhcGene(mhc_b_symbol)
+    return Pmhc(epitope_sequence=epitope_sequence, mhc_a=mhc_a, mhc_b=mhc_b)

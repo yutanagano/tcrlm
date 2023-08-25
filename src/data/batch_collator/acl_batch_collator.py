@@ -1,14 +1,17 @@
 from typing import Iterable, Tuple, List
 from torch import LongTensor
 
-from src.model_trainer.batch_collator import MlmBatchCollator
+from src.data.batch_collator import MlmBatchCollator
 from src.data.tokeniser.token_indices import DefaultTokenIndex
+from src.data.tcr_pmhc_pair import TcrPmhcPair
 
 
 class AclBatchCollator(MlmBatchCollator):
     PROPORTION_OF_TOKENS_TO_CENSOR = 0.2
 
-    def collate_fn(self, tokenised_tcrs: Iterable[LongTensor]) -> Tuple[LongTensor]:
+    def collate_fn(self, tcr_pmhc_pairs: Iterable[TcrPmhcPair]) -> Tuple[LongTensor]:
+        tokenised_tcrs = [self._tokeniser.tokenise(pair.tcr) for pair in tcr_pmhc_pairs]
+
         indices_of_tokens_to_drop_anchor_tcrs = [
             self._choose_random_subset_of_indices(
                 tcr, self.PROPORTION_OF_TOKENS_TO_CENSOR
@@ -38,7 +41,7 @@ class AclBatchCollator(MlmBatchCollator):
         anchor_tcrs_padded = self._pad_tokenised_sequences(anchor_tcrs)
         positive_pair_tcrs_padded = self._pad_tokenised_sequences(positive_pair_tcrs)
 
-        masked_tcrs_padded, mlm_targets_padded = super().collate_fn(tokenised_tcrs)
+        masked_tcrs_padded, mlm_targets_padded = super().collate_fn(tcr_pmhc_pairs)
 
         return (
             anchor_tcrs_padded,

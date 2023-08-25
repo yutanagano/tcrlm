@@ -5,8 +5,9 @@ from torch import LongTensor
 from torch.nn import utils
 from typing import Iterable, List, Tuple
 
-from src.model_trainer.batch_collator import BatchCollator
+from src.data.batch_collator import BatchCollator
 from src.data.tokeniser.token_indices import DefaultTokenIndex
+from src.data.tcr_pmhc_pair import TcrPmhcPair
 
 
 class MlmBatchCollator(BatchCollator):
@@ -14,7 +15,9 @@ class MlmBatchCollator(BatchCollator):
     PROBABILITY_MASKING_RESULTS_IN_RANDOM_AA = 0.1
     PROBABILITY_MASKING_RESULTS_IN_NO_OP = 0.1
 
-    def collate_fn(self, tokenised_tcrs: Iterable[LongTensor]) -> Tuple[LongTensor]:
+    def collate_fn(self, tcr_pmhc_pairs: Iterable[TcrPmhcPair]) -> Tuple[LongTensor]:
+        tokenised_tcrs = [self._tokeniser.tokenise(pair.tcr) for pair in tcr_pmhc_pairs]
+
         indices_of_tokens_to_mask = [
             self._choose_random_subset_of_indices(
                 tcr, self.PROPORTION_OF_TOKENS_TO_MASK
@@ -81,7 +84,7 @@ class MlmBatchCollator(BatchCollator):
             if replace_token_at_idx_with_random_aa:
                 current_token_at_idx = tokenised_tcr[idx_to_mask, TOKEN_ID_DIM]
                 tokens_that_could_replace_it = (
-                    set(self._token_vocabulary_index)
+                    set(self._tokeniser.token_vocabulary_index)
                     - set(DefaultTokenIndex)
                     - {current_token_at_idx}
                 )
