@@ -2,7 +2,7 @@ import pandas as pd
 from pathlib import Path
 import pytest
 
-from src.tcr import TravGene, TrbvGene, Tcrv, Tcr
+from src.data.tcr import TravGene, TrbvGene, Tcrv, Tcr
 
 
 @pytest.fixture

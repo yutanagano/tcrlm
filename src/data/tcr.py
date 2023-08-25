@@ -36,7 +36,7 @@ class Tcrv:
             self._assume_first_allele()
 
     @property
-    def cdr1_sequence(self) -> str:
+    def cdr1_sequence(self) -> Optional[str]:
         if self._gene_is_unknown():
             return None
 
@@ -45,7 +45,7 @@ class Tcrv:
         return cdr1
 
     @property
-    def cdr2_sequence(self) -> str:
+    def cdr2_sequence(self) -> Optional[str]:
         if self._gene_is_unknown():
             return None
 
@@ -62,19 +62,19 @@ class Tcrv:
 
         return f"{self.gene.name}*{self.allele_num:02d}"
 
-    def _gene_is_unknown(self):
+    def _gene_is_unknown(self) -> bool:
         return self.gene is None
 
-    def _allele_is_unknown(self):
+    def _allele_is_unknown(self) -> bool:
         return self.allele_num is None
 
-    def _assume_first_allele(self):
+    def _assume_first_allele(self) -> None:
         self.allele_num = 1
 
 
 class Tcr:
     def __init__(
-        self, trav: Tcrv, junction_a_sequence: str, trbv: Tcrv, junction_b_sequence: str
+        self, trav: Tcrv, junction_a_sequence: Optional[str], trbv: Tcrv, junction_b_sequence: Optional[str]
     ) -> None:
         self._trav = trav
         self.junction_a_sequence = junction_a_sequence
@@ -83,19 +83,19 @@ class Tcr:
         self.junction_b_sequence = junction_b_sequence
 
     @property
-    def cdr1a_sequence(self):
+    def cdr1a_sequence(self) -> Optional[str]:
         return self._trav.cdr1_sequence
 
     @property
-    def cdr2a_sequence(self):
+    def cdr2a_sequence(self) -> Optional[str]:
         return self._trav.cdr2_sequence
 
     @property
-    def cdr1b_sequence(self):
+    def cdr1b_sequence(self) -> Optional[str]:
         return self._trbv.cdr1_sequence
 
     @property
-    def cdr2b_sequence(self):
+    def cdr2b_sequence(self) -> Optional[str]:
         return self._trbv.cdr2_sequence
 
     def __eq__(self, __value: object) -> bool:

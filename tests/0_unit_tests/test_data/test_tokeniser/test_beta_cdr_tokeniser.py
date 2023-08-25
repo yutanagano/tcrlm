@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from src.tcr import Tcr, Tcrv, TravGene
+from src.data.tcr import Tcr, Tcrv, TravGene
 from src.data.tokeniser.beta_cdr_tokeniser import BetaCdrTokeniser
 
 

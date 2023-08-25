@@ -7,6 +7,7 @@ from src.model.tcr_representation_model import Blastr
 from src.data.tokeniser import BetaCdrTokeniser
 
 
+@pytest.mark.filterwarnings("ignore:Converting mask without torch.bool")
 def test_calc_cdist_matrix(blastr: Blastr, mock_data_df):
     NUM_ANCHOR_TCRS = 2
     NUM_COMPARISON_TCRS = 3
@@ -20,6 +21,7 @@ def test_calc_cdist_matrix(blastr: Blastr, mock_data_df):
     assert result.shape == (NUM_ANCHOR_TCRS, NUM_COMPARISON_TCRS)
 
 
+@pytest.mark.filterwarnings("ignore:Converting mask without torch.bool")
 def test_calc_pdist_vector(blastr: Blastr, mock_data_df):
     result = blastr.calc_pdist_vector(mock_data_df)
     num_tcrs = len(mock_data_df)
@@ -29,6 +31,7 @@ def test_calc_pdist_vector(blastr: Blastr, mock_data_df):
     assert result.shape == (num_pairs,)
 
 
+@pytest.mark.filterwarnings("ignore:Converting mask without torch.bool")
 def test_calc_vector_representations(blastr: Blastr, toy_bert_d_model, mock_data_df):
     result = blastr.calc_vector_representations(mock_data_df)
     num_tcrs = len(mock_data_df)

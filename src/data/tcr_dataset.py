@@ -3,7 +3,7 @@ from pandas import DataFrame, Series
 from torch import Tensor
 from torch.utils.data import Dataset
 
-from src.tcr import Tcr, Tcrv, TravGene, TrbvGene
+from src.data.tcr import Tcr, Tcrv, TravGene, TrbvGene
 from src.data.tokeniser.tokeniser import Tokeniser
 
 
