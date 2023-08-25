@@ -26,12 +26,19 @@ class TcrDataset(Dataset):
         trbv = self._get_value_if_not_na_else_none(row.TRBV)
         junction_a = self._get_value_if_not_na_else_none(row.CDR3A)
         junction_b = self._get_value_if_not_na_else_none(row.CDR3B)
-        tcr = data.make_tcr_from_components(trav_symbol=trav, junction_a_sequence=junction_a, trbv_symbol=trbv, junction_b_sequence=junction_b)
+        tcr = data.make_tcr_from_components(
+            trav_symbol=trav,
+            junction_a_sequence=junction_a,
+            trbv_symbol=trbv,
+            junction_b_sequence=junction_b,
+        )
 
         epitope = self._get_value_if_not_na_else_none(row.Epitope)
         mhc_a = self._get_value_if_not_na_else_none(row.MHCA)
         mhc_b = self._get_value_if_not_na_else_none(row.MHCB)
-        pmhc = data.make_pmhc_from_components(epitope_sequence=epitope, mhc_a_symbol=mhc_a, mhc_b_symbol=mhc_b)
+        pmhc = data.make_pmhc_from_components(
+            epitope_sequence=epitope, mhc_a_symbol=mhc_a, mhc_b_symbol=mhc_b
+        )
 
         return TcrPmhcPair(tcr, pmhc)
 

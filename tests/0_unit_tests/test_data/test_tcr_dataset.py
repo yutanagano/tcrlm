@@ -18,9 +18,7 @@ def test_getitem(tcr_dataset):
         junction_b_sequence="CASSDRAQPQHF",
     )
     expected_pmhc = Pmhc(
-        epitope_sequence="CLAMP",
-        mhc_a=MhcGene("HLA-A*01"),
-        mhc_b=MhcGene("B2M")
+        epitope_sequence="CLAMP", mhc_a=MhcGene("HLA-A*01"), mhc_b=MhcGene("B2M")
     )
 
     assert first_tcr_pmhc_pair.tcr == expected_tcr

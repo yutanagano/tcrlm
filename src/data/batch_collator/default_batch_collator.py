@@ -9,7 +9,10 @@ from src.data.tcr_pmhc_pair import TcrPmhcPair
 
 class DefaultBatchCollator(BatchCollator):
     def collate_fn(self, tcr_pmhc_pairs: Iterable[TcrPmhcPair]) -> Tuple[LongTensor]:
-        batch = [self._tokeniser.tokenise(tcr_pmhc_pair.tcr) for tcr_pmhc_pair in tcr_pmhc_pairs]
+        batch = [
+            self._tokeniser.tokenise(tcr_pmhc_pair.tcr)
+            for tcr_pmhc_pair in tcr_pmhc_pairs
+        ]
         return utils.rnn.pad_sequence(
             sequences=batch, batch_first=True, padding_value=DefaultTokenIndex.NULL
         )
