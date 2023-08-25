@@ -3,7 +3,7 @@ from torch import Tensor
 
 from src.data.tcr_dataset import TcrDataset
 from src.data.tokeniser.tokeniser import Tokeniser
-from src.tcr import Tcr, Tcrv, TravGene, TrbvGene
+from src.data.tcr import Tcr, Tcrv, TravGene, TrbvGene
 from src.data.tokeniser.token_indices import AminoAcidTokenIndex
 
 

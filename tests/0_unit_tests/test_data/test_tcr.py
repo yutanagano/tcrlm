@@ -1,6 +1,6 @@
 import pytest
 
-from src.tcr import TravGene, TrbvGene, Tcrv, Tcr
+from src.data.tcr import TravGene, TrbvGene, Tcrv, Tcr
 
 
 @pytest.fixture

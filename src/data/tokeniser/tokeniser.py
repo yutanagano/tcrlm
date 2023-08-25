@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from enum import IntEnum
 from torch import Tensor
 
-from src.tcr import Tcr
+from src.data.tcr import Tcr
 
 
 class Tokeniser(ABC):

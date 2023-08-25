@@ -70,6 +70,8 @@ class AclTrainingDelegate(TrainingDelegate):
 
         current_process_not_on_first_gpu = device.index != 0
 
+        model.eval()
+
         total_cont_loss = 0
         total_mlm_loss = 0
         total_aln = 0
@@ -87,7 +89,6 @@ class AclTrainingDelegate(TrainingDelegate):
             masked_tcrs = masked_tcrs.to(device)
             mlm_targets = mlm_targets.to(device)
 
-            model.train()  # turn dropout on for contrastive eval, as it adds noise
             anchor_tcr_embeddings = model.module.bert.get_vector_representations_of(
                 anchor_tcrs
             )
@@ -95,7 +96,6 @@ class AclTrainingDelegate(TrainingDelegate):
                 model.module.bert.get_vector_representations_of(positive_pair_tcrs)
             )
 
-            model.eval()
             mlm_logits = model.module.bert.get_mlm_token_predictions_for(masked_tcrs)
 
             contrastive_loss = contrastive_loss_fn(
