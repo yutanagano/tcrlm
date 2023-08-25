@@ -14,7 +14,7 @@ def test_calc_cdist_matrix(tmp_path, mock_data_df):
 
     result = cacher.calc_cdist_matrix(mock_data_df, mock_data_df)
 
-    expected = np.array([[0, 4, 0], [4, 0, 4], [0, 4, 0]])
+    expected = np.array([[0, 6, 0], [6, 0, 6], [0, 6, 0]])
     expected_cache_file_name = f"cdist_{mock_data_hashed}_{mock_data_hashed}.npy"
     expected_cache_path = (
         tmp_path / ".model_computation_cache" / model.name / expected_cache_file_name
@@ -31,7 +31,7 @@ def test_calc_pdist_vector(tmp_path, mock_data_df):
 
     result = cacher.calc_pdist_vector(mock_data_df)
 
-    expected = np.array([4, 0, 4])
+    expected = np.array([6, 0, 6])
     expected_cache_file_name = f"pdist_{mock_data_hashed}.npy"
     expected_cache_path = (
         tmp_path / ".model_computation_cache" / model.name / expected_cache_file_name

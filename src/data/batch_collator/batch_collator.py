@@ -3,12 +3,13 @@ from torch import LongTensor
 from typing import Iterable, Tuple
 
 from src.data.tokeniser.tokeniser import Tokeniser
+from src.data.tcr_pmhc_pair import TcrPmhcPair
 
 
 class BatchCollator(ABC):
     def __init__(self, tokeniser: Tokeniser) -> None:
-        self._token_vocabulary_index = tokeniser.token_vocabulary_index
+        self._tokeniser = tokeniser
 
     @abstractmethod
-    def collate_fn(self, tokenised_tcrs: Iterable[LongTensor]) -> Tuple[LongTensor]:
+    def collate_fn(self, tcr_pmhc_pairs: Iterable[TcrPmhcPair]) -> Tuple[LongTensor]:
         pass

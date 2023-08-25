@@ -5,19 +5,15 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DistributedSampler
 from types import ModuleType
 
-from src import metric as metric_module
-from src.data import tokeniser as tokeniser_module
-from src.model import trainable_model as trainable_model_module
-from src.model import self_attention_stack as self_attention_stack_module
-from src.model import (
-    mlm_token_prediction_projector as mlm_token_prediction_projector_module,
-)
-from src.model import (
-    vector_representation_delegate as vector_representation_delegate_module,
-)
-from src.model import token_embedder as token_embedder_module
-from src.model_trainer import batch_collator as batch_collator_module
-from src.model_trainer import training_delegate as training_delegate_module
+import src.metric as metric_module
+import src.data.tokeniser as tokeniser_module
+import src.model.trainable_model as trainable_model_module
+import src.model.self_attention_stack as self_attention_stack_module
+import src.model.mlm_token_prediction_projector as mlm_token_prediction_projector_module
+import src.model.vector_representation_delegate as vector_representation_delegate_module
+import src.model.token_embedder as token_embedder_module
+import src.data.batch_collator as batch_collator_module
+import src.model_trainer.training_delegate as training_delegate_module
 
 from src.data.tcr_dataloader import TcrDataLoader
 from src.data.tokeniser import Tokeniser
@@ -28,7 +24,7 @@ from src.model.token_embedder.token_embedder import TokenEmbedder
 from src.model.self_attention_stack import SelfAttentionStack
 from src.model.mlm_token_prediction_projector import MlmTokenPredictionProjector
 from src.model.vector_representation_delegate import VectorRepresentationDelegate
-from src.model_trainer.batch_collator import BatchCollator
+from src.data.batch_collator import BatchCollator
 from src.model_trainer.optim import AdamWithScheduling
 from src.model_trainer.training_delegate import TrainingDelegate
 from src.model_trainer.training_object_collection import TrainingObjectCollection
@@ -158,13 +154,13 @@ class ConfigReader:
         dataloader_initargs = self._config["data"]["dataloader"]["initargs"]
 
         tokeniser = self.get_tokeniser()
-        dataset = self._get_dataset(Path(path_to_training_data_csv_as_str), tokeniser)
+        dataset = self._get_dataset(Path(path_to_training_data_csv_as_str))
         batch_collator = self._get_batch_collator_for_tokeniser(tokeniser)
 
         return TcrDataLoader(
             dataset=dataset,
             sampler=DistributedSampler(dataset, shuffle=True),
-            collate_fn=batch_collator.collate_fn,
+            batch_collator=batch_collator,
             **dataloader_initargs
         )
 
@@ -175,22 +171,20 @@ class ConfigReader:
         dataloader_initargs = self._config["data"]["dataloader"]["initargs"]
 
         tokeniser = self.get_tokeniser()
-        dataset = self._get_dataset(Path(path_to_validation_data_csv_as_str), tokeniser)
+        dataset = self._get_dataset(Path(path_to_validation_data_csv_as_str))
         batch_collator = self._get_batch_collator_for_tokeniser(tokeniser)
 
         return TcrDataLoader(
-            dataset=dataset, collate_fn=batch_collator.collate_fn, **dataloader_initargs
+            dataset=dataset, batch_collator=batch_collator, **dataloader_initargs
         )
 
     def get_tokeniser(self) -> Tokeniser:
         config = self._config["data"]["tokeniser"]
         return self._get_object_from_module_using_config(tokeniser_module, config)
 
-    def _get_dataset(
-        self, path_to_training_data_csv: Path, tokeniser: Tokeniser
-    ) -> TcrDataset:
+    def _get_dataset(self, path_to_training_data_csv: Path) -> TcrDataset:
         df = pd.read_csv(path_to_training_data_csv)
-        return TcrDataset(data=df, tokeniser=tokeniser)
+        return TcrDataset(df)
 
     def _get_batch_collator_for_tokeniser(self, tokeniser: Tokeniser) -> BatchCollator:
         config = self._config["data"]["batch_collator"]
