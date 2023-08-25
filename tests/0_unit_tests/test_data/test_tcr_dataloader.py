@@ -13,7 +13,9 @@ TOKEN_NUM_DIMS = 4
 
 
 def test_iter(tcr_dataset, default_batch_collator):
-    dataloader = TcrDataLoader(tcr_dataset, batch_collator=default_batch_collator, batch_size=BATCH_SIZE)
+    dataloader = TcrDataLoader(
+        tcr_dataset, batch_collator=default_batch_collator, batch_size=BATCH_SIZE
+    )
 
     for batch in dataloader:
         assert type(batch) == Tensor
@@ -25,7 +27,9 @@ def test_iter(tcr_dataset, default_batch_collator):
 
 def test_set_epoch(tcr_dataset, default_batch_collator):
     mock_sampler = MockSampler()
-    dataloader = TcrDataLoader(tcr_dataset, batch_collator=default_batch_collator, sampler=mock_sampler)
+    dataloader = TcrDataLoader(
+        tcr_dataset, batch_collator=default_batch_collator, sampler=mock_sampler
+    )
     EPOCH = 420
 
     dataloader.set_epoch(EPOCH)

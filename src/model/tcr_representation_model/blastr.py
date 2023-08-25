@@ -38,7 +38,9 @@ class Blastr(TcrRepresentationModel):
     def _make_dataloader_for(self, tcrs: DataFrame) -> TcrDataLoader:
         dataset = TcrDataset(tcrs)
         batch_collator = DefaultBatchCollator(self._tokeniser)
-        return TcrDataLoader(dataset, batch_collator=batch_collator, batch_size=512, shuffle=False)
+        return TcrDataLoader(
+            dataset, batch_collator=batch_collator, batch_size=512, shuffle=False
+        )
 
     @torch.no_grad()
     def _get_bert_representations_of_tcrs_in(self, dataloader: TcrDataLoader) -> Tensor:

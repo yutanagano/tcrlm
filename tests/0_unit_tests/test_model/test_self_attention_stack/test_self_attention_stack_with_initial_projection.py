@@ -50,10 +50,8 @@ def test_get_token_embeddings_at_penultimate_layer(
     mock_token_embeddings,
     mock_padding_mask,
 ):
-    result = (
-        self_attention_stack_with_initial_projection.get_token_embeddings_at_penultimate_layer(
-            mock_token_embeddings, mock_padding_mask
-        )
+    result = self_attention_stack_with_initial_projection.get_token_embeddings_at_penultimate_layer(
+        mock_token_embeddings, mock_padding_mask
     )
 
     assert type(result) == Tensor

@@ -74,7 +74,11 @@ class Tcrv:
 
 class Tcr:
     def __init__(
-        self, trav: Tcrv, junction_a_sequence: Optional[str], trbv: Tcrv, junction_b_sequence: Optional[str]
+        self,
+        trav: Tcrv,
+        junction_a_sequence: Optional[str],
+        trbv: Tcrv,
+        junction_b_sequence: Optional[str],
     ) -> None:
         self._trav = trav
         self.junction_a_sequence = junction_a_sequence
@@ -119,16 +123,26 @@ class Tcr:
             return sequence
 
 
-def make_tcr_from_components(trav_symbol: Optional[str], junction_a_sequence: Optional[str], trbv_symbol: Optional[str], junction_b_sequence: Optional[str]) -> Tcr:
+def make_tcr_from_components(
+    trav_symbol: Optional[str],
+    junction_a_sequence: Optional[str],
+    trbv_symbol: Optional[str],
+    junction_b_sequence: Optional[str],
+) -> Tcr:
     trav = _get_trav_from_symbol(trav_symbol)
     trbv = _get_trbv_from_symbol(trbv_symbol)
-    return Tcr(trav=trav, junction_a_sequence=junction_a_sequence, trbv=trbv, junction_b_sequence=junction_b_sequence)
+    return Tcr(
+        trav=trav,
+        junction_a_sequence=junction_a_sequence,
+        trbv=trbv,
+        junction_b_sequence=junction_b_sequence,
+    )
 
 
 def _get_trav_from_symbol(symbol: Optional[str]) -> Tcrv:
     if symbol is None:
         return Tcrv(gene=None, allele_num=None)
-    
+
     gene = _get_trav_gene_object_from_symbol(symbol)
     allele_num = _get_allele_number_from_symbol(symbol)
     return Tcrv(gene=gene, allele_num=allele_num)
@@ -137,11 +151,11 @@ def _get_trav_from_symbol(symbol: Optional[str]) -> Tcrv:
 def _get_trbv_from_symbol(symbol: Optional[str]) -> Tcrv:
     if symbol is None:
         return Tcrv(gene=None, allele_num=None)
-    
+
     gene = _get_trbv_gene_object_from_symbol(symbol)
     allele_num = _get_allele_number_from_symbol(symbol)
     return Tcrv(gene=gene, allele_num=allele_num)
-    
+
 
 def _get_trav_gene_object_from_symbol(symbol: str) -> TravGene:
     str_representing_gene = symbol.split("*")[0]

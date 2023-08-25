@@ -8,12 +8,12 @@ class MhcGene:
     def __eq__(self, __value: object) -> bool:
         if self.symbol is None:
             return False
-        
+
         self_is_subset_of_other = __value.symbol in self.symbol
         other_is_subset_of_self = self.symbol in __value.symbol
 
         return self_is_subset_of_other or other_is_subset_of_self
-    
+
     def __repr__(self) -> str:
         if self.symbol is None:
             return "?"
@@ -22,7 +22,9 @@ class MhcGene:
 
 
 class Pmhc:
-    def __init__(self, epitope_sequence: Optional[str], mhc_a: MhcGene, mhc_b: MhcGene) -> None:
+    def __init__(
+        self, epitope_sequence: Optional[str], mhc_a: MhcGene, mhc_b: MhcGene
+    ) -> None:
         self.epitope_sequence = epitope_sequence
         self.mhc_a = mhc_a
         self.mhc_b = mhc_b
@@ -30,19 +32,25 @@ class Pmhc:
     def __eq__(self, __value: object) -> bool:
         if self.epitope_sequence is None:
             return False
-        
-        same_epitope = (self.epitope_sequence == __value.epitope_sequence)
-        same_mhc_a = (self.mhc_a == __value.mhc_a)
-        same_mhc_b = (self.mhc_b == __value.mhc_b)
+
+        same_epitope = self.epitope_sequence == __value.epitope_sequence
+        same_mhc_a = self.mhc_a == __value.mhc_a
+        same_mhc_b = self.mhc_b == __value.mhc_b
 
         return same_epitope and same_mhc_a and same_mhc_b
-    
-    def __repr__(self) -> str:
-        epitope_representation = "?" if self.epitope_sequence is None else self.epitope_sequence
-        return f"{self.mhc_a}, {self.mhc_b}, {epitope_representation}"
-    
 
-def make_pmhc_from_components(epitope_sequence: Optional[str], mhc_a_symbol: Optional[str], mhc_b_symbol: Optional[str]) -> Pmhc:
+    def __repr__(self) -> str:
+        epitope_representation = (
+            "?" if self.epitope_sequence is None else self.epitope_sequence
+        )
+        return f"{self.mhc_a}, {self.mhc_b}, {epitope_representation}"
+
+
+def make_pmhc_from_components(
+    epitope_sequence: Optional[str],
+    mhc_a_symbol: Optional[str],
+    mhc_b_symbol: Optional[str],
+) -> Pmhc:
     mhc_a = MhcGene(mhc_a_symbol)
     mhc_b = MhcGene(mhc_b_symbol)
     return Pmhc(epitope_sequence=epitope_sequence, mhc_a=mhc_a, mhc_b=mhc_b)
