@@ -8,7 +8,7 @@ from src.data.tokeniser.token_indices import DefaultTokenIndex
 from src.data.tcr_pmhc_pair import TcrPmhcPair
 
 
-class ContrastiveBatchCollator(MlmBatchCollator):
+class ClBatchCollator(MlmBatchCollator):
     PROPORTION_OF_TOKENS_TO_CENSOR = 0.2
 
     def collate_fn(self, tcr_pmhc_pairs: Iterable[TcrPmhcPair]) -> Tuple[LongTensor]:

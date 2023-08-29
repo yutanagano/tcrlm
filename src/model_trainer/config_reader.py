@@ -184,6 +184,11 @@ class ConfigReader:
 
     def _get_dataset(self, path_to_training_data_csv: Path) -> TcrDataset:
         df = pd.read_csv(path_to_training_data_csv)
+
+        for column in ("TRAV", "CDR3A", "TRAJ", "TRBV", "CDR3B", "TRBJ", "Epitope", "MHCA", "MHCB"):
+            if column not in df:
+                df[column] = pd.NA
+
         return TcrDataset(df)
 
     def _get_batch_collator_for_tokeniser(self, tokeniser: Tokeniser) -> BatchCollator:
