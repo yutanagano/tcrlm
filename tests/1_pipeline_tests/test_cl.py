@@ -22,7 +22,7 @@ N_HEAD = 2
 
 def test_main(model_template, config, tmp_path):
     if not torch.cuda.is_available():
-        warnings.warn("MLM test skipped due to hardware limitations")
+        warnings.warn("CL test skipped due to hardware limitations")
 
     training_manager = ModelTrainer(config)
     expected_model_save_dir = tmp_path / "model_saves" / "foo_bar_baz_01"
@@ -44,8 +44,6 @@ def test_main(model_template, config, tmp_path):
             "lr",
             "valid_cont_loss",
             "valid_mlm_loss",
-            "valid_aln",
-            "valid_unf",
             "valid_mlm_acc",
         ],
         expected_len=4,
@@ -77,7 +75,7 @@ def model_template():
 @pytest.fixture
 def config():
     return {
-        "training_delegate": {"class": "AclTrainingDelegate", "initargs": {}},
+        "training_delegate": {"class": "ClTrainingDelegate", "initargs": {}},
         "model": {
             "name": "foo (bar, baz 01)",
             "path_to_pretrained_state_dict": None,
@@ -107,7 +105,7 @@ def config():
             "path_to_training_data": "tests/resources/mock_data.csv",
             "path_to_validation_data": "tests/resources/mock_data.csv",
             "tokeniser": {"class": "BetaCdrTokeniser", "initargs": {}},
-            "batch_collator": {"class": "AclBatchCollator", "initargs": {}},
+            "batch_collator": {"class": "ContrastiveBatchCollator", "initargs": {}},
             "dataloader": {"initargs": {"batch_size": 3, "num_workers": 1}},
         },
         "loss": {
@@ -115,7 +113,7 @@ def config():
                 "class": "AdjustedCELoss",
                 "initargs": {"label_smoothing": 0.1},
             },
-            "contrastive_loss": {"class": "SimCLoss", "initargs": {"temp": 0.05}},
+            "contrastive_loss": {"class": "BatchContrastiveLoss", "initargs": {"temp": 0.05}},
         },
         "optimiser": {"initargs": {"n_warmup_steps": 10, "d_model": D_MODEL}},
         "num_epochs": 3,

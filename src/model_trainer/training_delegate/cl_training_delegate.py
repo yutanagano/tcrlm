@@ -5,7 +5,7 @@ from src.model_trainer.training_object_collection import TrainingObjectCollectio
 from src import metric
 
 
-class AclTrainingDelegate(TrainingDelegate):
+class ClTrainingDelegate(TrainingDelegate):
     def run_training_epoch_and_return_metrics_for(
         self, training_object_collection: TrainingObjectCollection
     ) -> dict:
@@ -28,23 +28,23 @@ class AclTrainingDelegate(TrainingDelegate):
         total_lr = 0
         divisor = 0
 
-        for anchor_tcrs, positive_pair_tcrs, masked_tcrs, mlm_targets in tqdm(
+        for double_view_batch, double_view_positives_mask, masked_tcrs, mlm_targets in tqdm(
             dataloader, disable=current_process_not_on_first_gpu
         ):
-            num_samples = len(anchor_tcrs)
+            num_samples = len(double_view_batch)
 
-            anchor_tcrs = anchor_tcrs.to(device)
-            positive_pair_tcrs = positive_pair_tcrs.to(device)
+            double_view_batch = double_view_batch.to(device)
+            double_view_positives_mask = double_view_positives_mask.to(device)
             masked_tcrs = masked_tcrs.to(device)
             mlm_targets = mlm_targets.to(device)
 
-            anchor_tcr_embeddings, positive_pair_tcr_embeddings, mlm_logits = model(
-                anchor_tcrs, positive_pair_tcrs, masked_tcrs
+            double_view_batch_embeddings, mlm_logits = model(
+                double_view_batch, masked_tcrs
             )
 
             optimiser.zero_grad()
             loss = contrastive_loss_fn(
-                anchor_tcr_embeddings, positive_pair_tcr_embeddings
+                double_view_batch_embeddings, double_view_positives_mask
             ) + cross_entropy_loss_fn(mlm_logits.flatten(0, 1), mlm_targets.view(-1))
             loss.backward()
             optimiser.step()
@@ -74,32 +74,23 @@ class AclTrainingDelegate(TrainingDelegate):
 
         total_cont_loss = 0
         total_mlm_loss = 0
-        total_aln = 0
-        total_unf = 0
         total_mlm_acc = 0
         divisor = 0
 
-        for anchor_tcrs, positive_pair_tcrs, masked_tcrs, mlm_targets in tqdm(
+        for double_view_batch, double_view_positives_mask, masked_tcrs, mlm_targets in tqdm(
             dataloader, disable=current_process_not_on_first_gpu
         ):
-            num_samples = len(anchor_tcrs)
+            num_samples = len(double_view_batch)
 
-            anchor_tcrs = anchor_tcrs.to(device)
-            positive_pair_tcrs = positive_pair_tcrs.to(device)
+            double_view_batch = double_view_batch.to(device)
+            double_view_positives_mask = double_view_positives_mask.to(device)
             masked_tcrs = masked_tcrs.to(device)
             mlm_targets = mlm_targets.to(device)
 
-            anchor_tcr_embeddings = model.module.bert.get_vector_representations_of(
-                anchor_tcrs
-            )
-            positive_pair_tcr_embeddings = (
-                model.module.bert.get_vector_representations_of(positive_pair_tcrs)
-            )
-
-            mlm_logits = model.module.bert.get_mlm_token_predictions_for(masked_tcrs)
+            double_view_batch_embeddings, mlm_logits = model(double_view_batch, masked_tcrs)
 
             contrastive_loss = contrastive_loss_fn(
-                anchor_tcr_embeddings, positive_pair_tcr_embeddings
+                double_view_batch_embeddings, double_view_positives_mask
             )
             mlm_loss = cross_entropy_loss_fn(
                 mlm_logits.flatten(0, 1), mlm_targets.view(-1)
@@ -107,20 +98,11 @@ class AclTrainingDelegate(TrainingDelegate):
 
             total_cont_loss += contrastive_loss.item() * num_samples
             total_mlm_loss += mlm_loss.item() * num_samples
-            total_aln += (
-                metric.alignment_paired(
-                    anchor_tcr_embeddings, positive_pair_tcr_embeddings
-                ).item()
-                * num_samples
-            )
-            total_unf += metric.uniformity(anchor_tcr_embeddings).item() * num_samples
             total_mlm_acc += metric.mlm_acc(mlm_logits, mlm_targets) * num_samples
             divisor += num_samples
 
         return {
             "valid_cont_loss": total_cont_loss / divisor,
             "valid_mlm_loss": total_mlm_loss / divisor,
-            "valid_aln": total_aln / divisor,
-            "valid_unf": total_unf / divisor,
             "valid_mlm_acc": total_mlm_acc / divisor,
         }
