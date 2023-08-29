@@ -114,7 +114,7 @@ class Tcr:
         junction_a_repr = self._represent_junction_sequence(self.junction_a_sequence)
         junction_b_repr = self._represent_junction_sequence(self.junction_b_sequence)
 
-        return f"Tra({self._trav}, {junction_a_repr}), Trb({self._trbv}, {junction_b_repr})"
+        return f"Tra({self._trav}/{junction_a_repr})/Trb({self._trbv}/{junction_b_repr})"
 
     def _represent_junction_sequence(self, sequence: Optional[str]) -> str:
         if sequence is None:

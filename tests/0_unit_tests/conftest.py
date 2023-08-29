@@ -2,16 +2,12 @@ import pandas as pd
 from pathlib import Path
 import pytest
 
-from src.data.tcr import TravGene, TrbvGene, Tcrv, Tcr
+from src import data
 
 
 @pytest.fixture
 def mock_tcr():
-    trav = Tcrv(TravGene["TRAV1-1"], 1)
-    trbv = Tcrv(TrbvGene["TRBV2"], 1)
-    tcr = Tcr(trav, "CATQYF", trbv, "CASQYF")
-
-    return tcr
+    return data.make_tcr_from_components("TRAV1-1*01", "CATQYF", "TRBV2*01", "CASQYF")
 
 
 @pytest.fixture
