@@ -2,7 +2,7 @@ import pytest
 import random
 import torch
 
-from src.data.batch_collator import ContrastiveBatchCollator
+from src.data.batch_collator import ClBatchCollator
 from src.data.tokeniser.beta_cdr_tokeniser import BetaCdrTokeniser
 from src.data.tcr_dataset import TcrDataset
 
@@ -15,7 +15,7 @@ def test_collate_fn(
     expected_mlm_targets,
 ):
     tokeniser = BetaCdrTokeniser()
-    batch_generator = ContrastiveBatchCollator(tokeniser)
+    batch_generator = ClBatchCollator(tokeniser)
 
     random.seed(4)
     (

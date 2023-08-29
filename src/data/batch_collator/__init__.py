@@ -2,4 +2,4 @@ from .batch_collator import BatchCollator
 
 from .default_batch_collator import DefaultBatchCollator
 from .mlm_batch_collator import MlmBatchCollator
-from .contrastive_batch_collator import ContrastiveBatchCollator
+from .cl_batch_collator import ClBatchCollator
