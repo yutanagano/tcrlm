@@ -2,31 +2,31 @@ import pytest
 import random
 import torch
 
-from src.data.batch_collator import AclBatchCollator
+from src.data.batch_collator import ContrastiveBatchCollator
 from src.data.tokeniser.beta_cdr_tokeniser import BetaCdrTokeniser
 from src.data.tcr_dataset import TcrDataset
 
 
 def test_collate_fn(
     mock_batch,
-    expected_anchor_tcrs,
-    expected_positive_pair_tcrs,
+    expected_double_view_batch,
+    expected_double_view_positives_mask,
     expected_masked_tcrs,
     expected_mlm_targets,
 ):
     tokeniser = BetaCdrTokeniser()
-    batch_generator = AclBatchCollator(tokeniser)
+    batch_generator = ContrastiveBatchCollator(tokeniser)
 
     random.seed(4)
     (
-        anchor_tcrs,
-        positive_pair_tcrs,
+        double_view_batch,
+        double_view_positives_mask,
         masked_tcrs,
         mlm_targets,
     ) = batch_generator.collate_fn(mock_batch)
 
-    assert torch.equal(anchor_tcrs, expected_anchor_tcrs)
-    assert torch.equal(positive_pair_tcrs, expected_positive_pair_tcrs)
+    assert torch.equal(double_view_batch, expected_double_view_batch)
+    assert torch.equal(double_view_positives_mask, expected_double_view_positives_mask)
     assert torch.equal(masked_tcrs, expected_masked_tcrs)
     assert torch.equal(mlm_targets, expected_mlm_targets)
 
@@ -38,7 +38,7 @@ def mock_batch(mock_data_df):
 
 
 @pytest.fixture
-def expected_anchor_tcrs():
+def expected_double_view_batch():
     return torch.tensor(
         [
             [
@@ -119,14 +119,6 @@ def expected_anchor_tcrs():
                 [9, 11, 12, 3],
                 [7, 12, 12, 3],
             ],
-        ]
-    )
-
-
-@pytest.fixture
-def expected_positive_pair_tcrs():
-    return torch.tensor(
-        [
             [
                 [2, 0, 0, 0],
                 [18, 1, 5, 1],
@@ -205,6 +197,20 @@ def expected_positive_pair_tcrs():
                 [9, 11, 12, 3],
                 [7, 12, 12, 3],
             ],
+        ]
+    )
+
+
+@pytest.fixture
+def expected_double_view_positives_mask():
+    return torch.tensor(
+        [
+            [0,1,0,1,1,0],
+            [1,0,0,1,1,0],
+            [0,0,0,0,0,1],
+            [1,1,0,0,1,0],
+            [1,1,0,1,0,0],
+            [0,0,1,0,0,0],
         ]
     )
 

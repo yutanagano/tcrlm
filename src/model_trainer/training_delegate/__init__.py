@@ -1,4 +1,4 @@
 from .training_delegate import TrainingDelegate
 
 from .mlm_training_delegate import MlmTrainingDelegate
-from .acl_training_delegate import AclTrainingDelegate
+from .cl_training_delegate import ClTrainingDelegate

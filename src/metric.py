@@ -1,42 +1,86 @@
 import torch
-from torch import Tensor
+from torch import Tensor, FloatTensor, LongTensor
 from torch.nn import CrossEntropyLoss, Module
 from torch.nn import functional as F
 from typing import Optional
 
 
-def alignment(z: Tensor, labels: Tensor, alpha: int = 1) -> Tensor:
+class AdjustedCELoss(CrossEntropyLoss):
     """
-    Computes alignment between embeddings of instances belonging to the same
-    class label, as specified by the labels tensor. It is assumed that the
-    probability of getting TCRs against any epitope is equal.
+    Custom cross entropy loss class which subtracts 2 from the input labels
+    before running the cross entropy funciton. This is because our models'
+    vocabulary space is indexed from 0...X whereas the target data's vocabulary
+    is indexed from 2...X+2 (index 0 and 1 are reserved for the padding and
+    masked tokens respectively).
     """
-    num_cls = len(labels.unique())
 
-    cls_views = [
-        z[(labels == cls_code).nonzero().squeeze(dim=-1)] for cls_code in range(num_cls)
-    ]
+    def __init__(self, label_smoothing: float = 0) -> None:
+        super().__init__(label_smoothing=label_smoothing, ignore_index=-3)
+        # ignore_index is set to -2 here because the padding token, indexed at
+        # 0 in the target vocabulary space, will be mapped to -2 when
+        # moving all indices two places down.
 
-    cls_pdists = torch.stack(
-        [torch.pdist(cls_view, p=2).pow(alpha).mean() for cls_view in cls_views]
-    )
+    def forward(self, input: Tensor, target: Tensor) -> Tensor:
+        return F.cross_entropy(
+            input,
+            target - 3,
+            weight=self.weight,
+            ignore_index=self.ignore_index,
+            reduction=self.reduction,
+            label_smoothing=self.label_smoothing,
+        )
 
-    return cls_pdists.mean()
 
-
-def alignment_paired(z: Tensor, z_prime: Tensor, alpha: int = 1) -> Tensor:
+class BatchContrastiveLoss(Module):
     """
-    Computes alignment between pairs of known positive-pair embeddings.
-    """
-    return (z - z_prime).norm(dim=1).pow(alpha).mean()
+            1    N
+    Loss = --- * Σ (Loss_i)
+            N    i
+    
+                     -1                            exp(z_i dot z_p / t)
+    where Loss_i = ------  *    Σ      log ( ------------------------------ )
+                   |P(i)|    p in P(i)          Σ      exp(z_i dot z_a / t)
+                                             a in A(i)
+    
+    where
+        i is the index of an in-batch sample
+        P(i) is the set of positives of element i
+        A(i) is the set of all elements other than i
+        t is the temperature hyperparameter
 
+    and Loss_i is euivalent to (and here is computed in this way):
 
-def uniformity(z: Tensor, alpha: int = 1, t: float = 1) -> Tensor:
+                                                        1
+    Loss_i = log (    Σ      exp(z_i dot z_a / t) ) - ------    Σ      (z_i dot z_p / t)
+                   a in A(i)                          |P(i)| p in P(i)
+             ______________________________________   __________________________________
+                        background term                         positives term
     """
-    Computes an empirical estimate of uniformity given background data x.
-    """
-    sq_pdist = torch.pdist(z, p=2).pow(alpha)
-    return sq_pdist.mul(-t).exp().mean().log()
+
+    def __init__(self, temp: float = 0.05) -> None:
+        super().__init__()
+        self._temp = temp
+
+    def forward(self, tcr_representations: FloatTensor, positives_mask: LongTensor) -> FloatTensor:
+        dot_products = torch.matmul(tcr_representations, tcr_representations.T) / self._temp
+        positives_term = self._get_positives_term(dot_products, positives_mask)
+        background_term = self._get_background_term(dot_products)
+        loss_per_sample = background_term - positives_term
+        return loss_per_sample.mean()
+
+    def _get_positives_term(self, dot_products: FloatTensor, positives_mask: LongTensor) -> FloatTensor:
+        ALONG_COMPARISONS_DIM = 1
+        contributions_from_positive_comparisons = torch.sum(dot_products * positives_mask, dim=ALONG_COMPARISONS_DIM)
+        num_positives_per_sample = positives_mask.sum(dim=ALONG_COMPARISONS_DIM)
+        return contributions_from_positive_comparisons / num_positives_per_sample
+
+    def _get_background_term(self, dot_products: FloatTensor) -> FloatTensor:
+        ALONG_COMPARISONS_DIM = 1
+        identity_mask = torch.eye(len(dot_products), device=dot_products.device)
+        non_identity_mask = torch.ones_like(identity_mask) - identity_mask
+        exp_dot_products = torch.exp(dot_products)
+        contributions_from_non_identity_terms = torch.sum(exp_dot_products * non_identity_mask, dim=ALONG_COMPARISONS_DIM)
+        return torch.log(contributions_from_non_identity_terms)
 
 
 @torch.no_grad()
@@ -93,169 +137,3 @@ def mlm_topk_acc(logits: Tensor, y: Tensor, k: int, mask: Tensor = None) -> floa
     correct_masked = correct & final_mask
 
     return (correct_masked.sum() / total_residues_considered).item()
-
-
-class AdjustedCELoss(CrossEntropyLoss):
-    """
-    Custom cross entropy loss class which subtracts 2 from the input labels
-    before running the cross entropy funciton. This is because our models'
-    vocabulary space is indexed from 0...X whereas the target data's vocabulary
-    is indexed from 2...X+2 (index 0 and 1 are reserved for the padding and
-    masked tokens respectively).
-    """
-
-    def __init__(self, label_smoothing: float = 0) -> None:
-        super().__init__(label_smoothing=label_smoothing, ignore_index=-3)
-        # ignore_index is set to -2 here because the padding token, indexed at
-        # 0 in the target vocabulary space, will be mapped to -2 when
-        # moving all indices two places down.
-
-    def forward(self, input: Tensor, target: Tensor) -> Tensor:
-        return F.cross_entropy(
-            input,
-            target - 3,
-            weight=self.weight,
-            ignore_index=self.ignore_index,
-            reduction=self.reduction,
-            label_smoothing=self.label_smoothing,
-        )
-
-
-class SimCLoss(Module):
-    """
-    Simple contrastive loss based on SimCSE.
-    """
-
-    def __init__(self, temp: float = 0.05) -> None:
-        super().__init__()
-        self._temp = temp
-
-    def forward(self, z: Tensor, z_prime: Tensor) -> Tensor:
-        """
-        Implements the simple contrastive function as seen in SimCSE. Assumes
-        that embeddings (z, z_prime) are all already l2-normalised.
-        """
-        # z.size: (N,E), z_prime.T.size: (E,N)
-        z_sim = torch.exp(torch.matmul(z, z_prime.T) / self._temp)  # (N,N)
-        pos_sim = torch.diag(z_sim)  # (N,)
-        back_sim = torch.sum(z_sim, dim=1)  # (N,)
-        closs = -torch.log(pos_sim / back_sim)
-
-        return closs.mean()
-
-
-class SimECLoss(Module):
-    """
-    Simple Euclidean contrastive loss.
-    """
-
-    def __init__(self, temp: float = 0.05) -> None:
-        super().__init__()
-        self._temp = temp
-
-    def forward(self, z: Tensor, z_prime: Tensor) -> Tensor:
-        z_sim = torch.exp(-torch.cdist(z, z_prime, p=2) / self._temp)  # (N,N)
-        pos_sim = torch.diag(z_sim)  # (N,)
-        back_sim = torch.sum(z_sim, dim=1)  # (N,)
-        closs = -torch.log(pos_sim / back_sim)
-
-        return closs.mean()
-
-
-class SimCLoss2(Module):
-    """
-    A version of SimCLoss where the uniformity is calculated over the lhs.
-    """
-
-    def __init__(self, temp: float = 0.05) -> None:
-        super().__init__()
-        self._temp = temp
-
-    def forward(self, z: Tensor, z_prime: Tensor) -> Tensor:
-        # z.size: (N,E), z_prime.size: (N,E)
-        pos_sim = torch.exp(torch.sum(z * z_prime, dim=-1) / self._temp)  # (N,)
-
-        z_sim = torch.exp(torch.matmul(z, z.T) / self._temp)  # (N,N)
-        z_sim = z_sim * (1 - torch.eye(z.size(0))).to(z_sim.device)  # (N,N), zero diag
-        back_sim = torch.sum(z_sim, dim=-1)  # (N,)
-
-        closs = -torch.log(pos_sim / back_sim)
-
-        return closs.mean()
-
-
-class AULoss(Module):
-    """
-    Contrastive loss with the alignment and uniformity evaluated separately.
-    """
-
-    def __init__(self, alpha: int = 1, temp: float = 0.05) -> None:
-        super().__init__()
-        self._alpha = alpha
-        self._temp = temp
-
-    def forward(self, z: Tensor, z_prime: Tensor) -> Tensor:
-        aln = alignment_paired(z, z_prime, alpha=self._alpha) / self._temp
-        unf_exp = torch.exp(-torch.cdist(z, z_prime, p=2).pow(self._alpha) / self._temp)
-
-        return aln.mean() + unf_exp.mean().log()
-
-
-class PosBackSimCLoss(Module):
-    """
-    Simple contrastive loss, but where the positive pairs can be sampled
-    independently of the background pairs.
-    """
-
-    def __init__(self, temp: float = 0.05) -> None:
-        super().__init__()
-        self._temp = temp
-
-    def forward(self, z: Tensor, z_pos: Tensor, z_back: Tensor) -> Tensor:
-        """
-        NOTE: assumes that embeddings are all already l2-normalised.
-        """
-        # z.size: (N,E), z_pos.size: (N,E), z_back.T.size: (E,M)
-        pos_sim = torch.exp((z * z_pos).sum(dim=1) / self._temp)  # (N,)
-        back_sim = torch.exp(torch.matmul(z, z_back.T) / self._temp)  # (N,M)
-        back_sim = torch.sum(back_sim, dim=1) + pos_sim  # (N,)
-        closs = -torch.log(pos_sim / back_sim)
-
-        return closs.mean()
-
-
-class TCRContrastiveLoss(Module):
-    """
-    Contrastive loss designed to work on a mixture of epitope-matched and
-    unlabelled background TCRs.
-    """
-
-    def __init__(self, temp: float = 0.05) -> None:
-        super().__init__()
-        self._temp = temp
-
-    def forward(
-        self, bg: Tensor, bg_prime: Tensor, ep: Tensor, ep_prime: Tensor
-    ) -> Tensor:
-        """
-        Assumes that all embeddings are all already l2-normalised.
-        """
-        # N: background batch size, M: labelled batch size
-        N = bg.size(0)
-        M = ep.size(0)
-
-        # First calculate autocontrastive loss over background
-        bg_sim = torch.exp(torch.matmul(bg, bg_prime.T) / self._temp)  # (N,N)
-        bg_pos_sim = torch.diag(bg_sim)  # (N,)
-        bg_back_sim = torch.sum(bg_sim, dim=1)  # (N,)
-        bg_closs = torch.sum(-torch.log(bg_pos_sim / bg_back_sim))  # (1,)
-
-        # then calculate contrastive loss over labelled + background
-        ep_pos_sim = torch.exp(torch.sum(ep * ep_prime, dim=1) / self._temp)  # (M,)
-        ep_back_sim = (
-            torch.sum(torch.exp(torch.matmul(ep, bg_prime.T) / self._temp), dim=1)
-            + ep_pos_sim
-        )  # (M,)
-        ep_closs = torch.sum(-torch.log(ep_pos_sim / ep_back_sim))  # (1,)
-
-        return (bg_closs + ep_closs) / (N + M)
