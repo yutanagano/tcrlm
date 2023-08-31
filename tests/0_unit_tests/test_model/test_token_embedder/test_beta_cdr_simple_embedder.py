@@ -2,17 +2,8 @@ import pytest
 import torch
 from torch import Tensor
 
-from src.data.tokeniser.beta_cdr_tokeniser import BetaCdrTokeniser
+from src.data.tokeniser import BetaCdrTokeniser
 from src.model.token_embedder import BetaCdrSimpleEmbedder
-
-
-@pytest.fixture
-def mock_batch_of_tokenised_tcrs(mock_tcr):
-    tokeniser = BetaCdrTokeniser()
-    tokenised_mock_tcr = tokeniser.tokenise(mock_tcr)
-    batch_of_tokenised_mock_tcrs = torch.stack([tokenised_mock_tcr, tokenised_mock_tcr])
-
-    return batch_of_tokenised_mock_tcrs
 
 
 def test_forward(mock_batch_of_tokenised_tcrs):
@@ -537,3 +528,12 @@ def test_forward(mock_batch_of_tokenised_tcrs):
     assert batch_of_embedded_mock_tcrs.size(0) == BATCH_SIZE
 
     assert torch.equal(embedded_mock_tcr, expected_embedded_mock_tcr)
+
+
+@pytest.fixture
+def mock_batch_of_tokenised_tcrs(mock_tcr):
+    tokeniser = BetaCdrTokeniser()
+    tokenised_mock_tcr = tokeniser.tokenise(mock_tcr)
+    batch_of_tokenised_mock_tcrs = torch.stack([tokenised_mock_tcr, tokenised_mock_tcr])
+
+    return batch_of_tokenised_mock_tcrs
