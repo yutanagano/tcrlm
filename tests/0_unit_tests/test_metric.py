@@ -1,5 +1,5 @@
 import pytest
-from src.metric import *
+from src.nn.performance_measure import *
 import torch
 
 

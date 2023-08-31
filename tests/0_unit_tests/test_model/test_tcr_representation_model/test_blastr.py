@@ -4,7 +4,7 @@ import pytest
 import torch
 
 from src.model.tcr_representation_model import Blastr
-from src.data.tokeniser import BetaCdrTokeniser
+from src.nn.data.tokeniser import BetaCdrTokeniser
 
 
 @pytest.mark.filterwarnings("ignore:Converting mask without torch.bool")

@@ -2,8 +2,8 @@ import pytest
 import torch
 from torch import Tensor
 
-from src.data.tokeniser import BetaCdr3Tokeniser
-from src.model.token_embedder import BetaCdr3SimpleEmbedder
+from src.nn.data.tokeniser import BetaCdr3Tokeniser
+from src.nn.token_embedder import BetaCdr3SimpleEmbedder
 
 
 def test_forward(mock_batch_of_tokenised_tcrs):

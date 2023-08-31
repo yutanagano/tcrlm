@@ -2,12 +2,12 @@ import pandas as pd
 from pathlib import Path
 import pytest
 
-from src import data
+from src.nn.data import schema
 
 
 @pytest.fixture
 def mock_tcr():
-    return data.make_tcr_from_components("TRAV1-1*01", "CATQYF", "TRBV2*01", "CASQYF")
+    return schema.make_tcr_from_components("TRAV1-1*01", "CATQYF", "TRBV2*01", "CASQYF")
 
 
 @pytest.fixture

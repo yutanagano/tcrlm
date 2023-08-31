@@ -2,7 +2,7 @@ import pytest
 import torch
 from torch import Tensor
 
-from src.model.self_attention_stack import SelfAttentionStackWithInitialProjection
+from src.nn.self_attention_stack import SelfAttentionStackWithInitialProjection
 
 
 EMBEDDING_DIM = 10

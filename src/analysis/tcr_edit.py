@@ -1,4 +1,4 @@
-from src.data.amino_acid import AminoAcid
+from src.nn.data.schema.amino_acid import AminoAcid
 
 from enum import Enum
 from itertools import permutations, product

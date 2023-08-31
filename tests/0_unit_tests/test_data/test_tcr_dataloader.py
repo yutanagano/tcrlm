@@ -1,10 +1,10 @@
 import pytest
 from torch import Tensor
 
-from src.data.tokeniser.cdr_tokeniser import CdrTokeniser
-from src.data.tcr_dataset import TcrDataset
-from src.data.tcr_dataloader import TcrDataLoader
-from src.data.batch_collator import DefaultBatchCollator
+from src.nn.data.tokeniser.cdr_tokeniser import CdrTokeniser
+from src.nn.data.tcr_dataset import TcrDataset
+from src.nn.data.tcr_dataloader import TcrDataLoader
+from src.nn.data.batch_collator import DefaultBatchCollator
 
 BATCH_DIMENSIONALITY = 3
 BATCH_SIZE = 3

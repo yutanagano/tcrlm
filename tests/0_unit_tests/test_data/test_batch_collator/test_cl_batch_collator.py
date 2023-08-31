@@ -2,9 +2,9 @@ import pytest
 import random
 import torch
 
-from src.data.batch_collator import ClBatchCollator
-from src.data.tokeniser.beta_cdr_tokeniser import BetaCdrTokeniser
-from src.data.tcr_dataset import TcrDataset
+from src.nn.data.batch_collator import ClBatchCollator
+from src.nn.data.tokeniser.beta_cdr_tokeniser import BetaCdrTokeniser
+from src.nn.data.tcr_dataset import TcrDataset
 
 
 def test_collate_fn(

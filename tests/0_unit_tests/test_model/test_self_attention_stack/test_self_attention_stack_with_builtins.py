@@ -2,7 +2,7 @@ import pytest
 import torch
 from torch import Tensor
 
-from src.model.self_attention_stack import SelfAttentionStackWithBuiltins
+from src.nn.self_attention_stack import SelfAttentionStackWithBuiltins
 
 
 D_MODEL = 4
