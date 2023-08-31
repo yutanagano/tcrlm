@@ -4,13 +4,13 @@ import torch
 import warnings
 
 from src.model_trainer import ModelTrainer
-from src.model.token_embedder import BetaCdrEmbedder
-from src.model.self_attention_stack import SelfAttentionStackWithBuiltins
-from src.model.mlm_token_prediction_projector import AminoAcidTokenProjector
-from src.model.vector_representation_delegate import (
+from src.nn.token_embedder import BetaCdrEmbedder
+from src.nn.self_attention_stack import SelfAttentionStackWithBuiltins
+from src.nn.mlm_token_prediction_projector import AminoAcidTokenProjector
+from src.nn.vector_representation_delegate import (
     AveragePoolVectorRepresentationDelegate,
 )
-from src.model.bert import Bert
+from src.nn.bert import Bert
 
 import tests.resources.helper_functions as helper_functions
 
@@ -105,7 +105,7 @@ def config():
             "path_to_training_data": "tests/resources/mock_data.csv",
             "path_to_validation_data": "tests/resources/mock_data.csv",
             "tokeniser": {"class": "BetaCdrTokeniser", "initargs": {}},
-            "batch_collator": {"class": "ContrastiveBatchCollator", "initargs": {}},
+            "batch_collator": {"class": "ClBatchCollator", "initargs": {}},
             "dataloader": {"initargs": {"batch_size": 3, "num_workers": 1}},
         },
         "loss": {

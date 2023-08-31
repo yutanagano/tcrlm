@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from src.data.tokeniser.cdr_tokeniser import CdrTokeniser
+from src.nn.data.tokeniser.cdr_tokeniser import CdrTokeniser
 
 
 @pytest.fixture

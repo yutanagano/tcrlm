@@ -2,7 +2,7 @@ import pytest
 import torch
 from torch import Tensor
 
-from src.model.bert import Bert
+from src.nn.bert import Bert
 
 
 BATCH_SIZE = 5

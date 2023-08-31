@@ -1,8 +1,8 @@
 import pytest
 import torch
 
-from src.data import make_tcr_from_components
-from src.data.tokeniser import BetaCdrTokeniser
+from src.nn.data import schema
+from src.nn.data.tokeniser import BetaCdrTokeniser
 
 
 def test_tokenise(tokeniser: BetaCdrTokeniser, mock_tcr):
@@ -34,7 +34,7 @@ def test_tokenise(tokeniser: BetaCdrTokeniser, mock_tcr):
 
 
 def test_tokenise_tcr_with_empty_beta(tokeniser: BetaCdrTokeniser):
-    tcr_with_empty_beta = make_tcr_from_components("TRAV1-1*01", "CASQYF", None, None)
+    tcr_with_empty_beta = schema.make_tcr_from_components("TRAV1-1*01", "CASQYF", None, None)
 
     with pytest.raises(RuntimeError):
         tokeniser.tokenise(tcr_with_empty_beta)

@@ -2,8 +2,8 @@ import pytest
 import torch
 from torch import Tensor
 
-from src.data.tokeniser.beta_cdr_tokeniser import BetaCdrTokeniser
-from src.model.token_embedder import BetaCdrEmbedder
+from src.nn.data.tokeniser.beta_cdr_tokeniser import BetaCdrTokeniser
+from src.nn.token_embedder import BetaCdrEmbedder
 
 
 @pytest.fixture

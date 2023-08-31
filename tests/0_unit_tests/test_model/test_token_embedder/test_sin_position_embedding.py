@@ -1,7 +1,7 @@
 import torch
 from torch import testing
 
-from src.model.token_embedder.sin_position_embedding import SinPositionEmbedding
+from src.nn.token_embedder.sin_position_embedding import SinPositionEmbedding
 
 
 def test_embedding():

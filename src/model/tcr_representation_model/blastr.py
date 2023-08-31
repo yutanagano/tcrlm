@@ -7,13 +7,13 @@ from numpy import ndarray
 from pandas import DataFrame
 from scipy.spatial import distance
 
-from src.model.bert import Bert
-from src.data.tcr_dataset import TcrDataset
-from src.data.tcr_dataloader import TcrDataLoader
+from src.nn.bert import Bert
+from src.nn.data.tcr_dataset import TcrDataset
+from src.nn.data.tcr_dataloader import TcrDataLoader
 from src.model.tcr_representation_model import TcrRepresentationModel
-from src.data.tokeniser.tokeniser import Tokeniser
-from src.model_trainer.config_reader import ConfigReader
-from src.data.batch_collator import DefaultBatchCollator
+from src.nn.data.tokeniser.tokeniser import Tokeniser
+from src.config_reader import ConfigReader
+from src.nn.data.batch_collator import DefaultBatchCollator
 
 
 class Blastr(TcrRepresentationModel):

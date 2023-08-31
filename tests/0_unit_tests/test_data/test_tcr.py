@@ -1,6 +1,6 @@
 import pytest
 
-from src import data
+from src.nn.data import schema
 
 
 def test_cdr1a_sequence(mock_tcr):
@@ -49,18 +49,18 @@ def test_repr(mock_tcr):
     argnames=("anchor", "comparison", "expected"),
     argvalues=(
         (
-            data.make_tcr_from_components("TRAV1-1*01", "CATQYF", "TRBV2*01", "CASQYF"),
-            data.make_tcr_from_components("TRAV1-1*01", "CATQYF", "TRBV2*01", "CASQYF"),
+            schema.make_tcr_from_components("TRAV1-1*01", "CATQYF", "TRBV2*01", "CASQYF"),
+            schema.make_tcr_from_components("TRAV1-1*01", "CATQYF", "TRBV2*01", "CASQYF"),
             True
         ),
         (
-            data.make_tcr_from_components("TRAV1-1*01", "CATQYF", "TRBV2*01", "CASQYF"),
-            data.make_tcr_from_components("TRAV5*01", "CASSRPLWYF", "TRBV3-1*01", "CASKLAQF"),
+            schema.make_tcr_from_components("TRAV1-1*01", "CATQYF", "TRBV2*01", "CASQYF"),
+            schema.make_tcr_from_components("TRAV5*01", "CASSRPLWYF", "TRBV3-1*01", "CASKLAQF"),
             False
         ),
         (
-            data.make_tcr_from_components("TRAV1-1*01", "CATQYF", "TRBV2*01", "CASQYF"),
-            data.make_tcr_from_components("TRAV1-1*01", "CATQYF", None, None),
+            schema.make_tcr_from_components("TRAV1-1*01", "CATQYF", "TRBV2*01", "CASQYF"),
+            schema.make_tcr_from_components("TRAV1-1*01", "CATQYF", None, None),
             False
         )
     )
