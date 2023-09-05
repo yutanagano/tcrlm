@@ -110,7 +110,7 @@ def config():
         },
         "loss": {
             "cross_entropy_loss": {
-                "class": "AdjustedCELoss",
+                "class": "AdjustedCrossEntropyLoss",
                 "initargs": {"label_smoothing": 0.1},
             }
         },
