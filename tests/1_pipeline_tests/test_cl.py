@@ -23,6 +23,7 @@ N_HEAD = 2
 def test_main(model_template, config, tmp_path):
     if not torch.cuda.is_available():
         warnings.warn("CL test skipped due to hardware limitations")
+        return
 
     training_manager = ModelTrainer(config)
     expected_model_save_dir = tmp_path / "model_saves" / "foo_bar_baz_01"
