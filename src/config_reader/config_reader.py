@@ -155,7 +155,7 @@ class ConfigReader:
 
         if data_loader_class == "SingleDatasetDataLoader":
             dataloader = self._get_single_dataset_training_dataloader_on_device(device)
-        elif data_loader_class == "DoubleDatasetDataLoader":
+        elif data_loader_class == "DistributedDoubleDatasetDataLoader":
             dataloader = self._get_double_dataset_training_dataloader_on_device(device)
         else:
             raise ValueError(f"Unrecognised dataloader class: {data_loader_class}")
