@@ -205,12 +205,12 @@ def expected_double_view_batch():
 def expected_double_view_positives_mask():
     return torch.tensor(
         [
-            [0,1,0,1,1,0],
-            [1,0,0,1,1,0],
-            [0,0,0,0,0,1],
-            [1,1,0,0,1,0],
-            [1,1,0,1,0,0],
-            [0,0,1,0,0,0],
+            [False,True, False,True, True, False],
+            [True, False,False,True, True, False],
+            [False,False,False,False,False,True],
+            [True, True, False,False,True, False],
+            [True, True, False,True, False,False],
+            [False,False,True, False,False,False],
         ]
     )
 

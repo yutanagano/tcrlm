@@ -1,7 +1,7 @@
 import numpy as np
 from typing import Iterable, Tuple, List
 import torch
-from torch import LongTensor
+from torch import BoolTensor, LongTensor, Tensor
 
 from src.nn.data.batch_collator import MlmBatchCollator
 from src.nn.data.tokeniser.token_indices import DefaultTokenIndex
@@ -11,7 +11,7 @@ from src.nn.data.schema.tcr_pmhc_pair import TcrPmhcPair
 class ClBatchCollator(MlmBatchCollator):
     PROPORTION_OF_TOKENS_TO_CENSOR = 0.2
 
-    def collate_fn(self, tcr_pmhc_pairs: Iterable[TcrPmhcPair]) -> Tuple[LongTensor]:
+    def collate_fn(self, tcr_pmhc_pairs: Iterable[TcrPmhcPair]) -> Tuple[Tensor]:
         double_view_batch = self._generate_double_view_batch(tcr_pmhc_pairs)
         double_view_positives_mask = self._generate_double_view_positives_mask(tcr_pmhc_pairs)
         masked_tcrs_padded, mlm_targets_padded = super().collate_fn(tcr_pmhc_pairs)
@@ -56,7 +56,7 @@ class ClBatchCollator(MlmBatchCollator):
 
         return censored_tcr
     
-    def _generate_double_view_positives_mask(self, tcr_pmhc_pairs: Iterable[TcrPmhcPair]) -> LongTensor:
+    def _generate_double_view_positives_mask(self, tcr_pmhc_pairs: Iterable[TcrPmhcPair]) -> BoolTensor:
         num_samples_in_single_view = len(tcr_pmhc_pairs)
         single_view_identities = np.eye(num_samples_in_single_view)
 
@@ -69,4 +69,4 @@ class ClBatchCollator(MlmBatchCollator):
         double_view_positives_including_identities = np.tile(single_view_positives_including_identities, reps=(2,2))
         double_view_positives = np.logical_and(double_view_positives_including_identities, np.logical_not(double_view_identities))
 
-        return torch.tensor(double_view_positives, dtype=torch.long)
+        return torch.tensor(double_view_positives, dtype=torch.bool)

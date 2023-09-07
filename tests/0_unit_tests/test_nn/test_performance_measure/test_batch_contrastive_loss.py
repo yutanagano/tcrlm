@@ -16,7 +16,7 @@ def test_loss():
             [1,0,0,0],
             [0,1,0,0]
         ],
-        dtype=torch.long
+        dtype=torch.bool
     )
     temp = 0.05
     loss_fn = BatchContrastiveLoss(temp)
