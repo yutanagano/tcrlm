@@ -43,6 +43,8 @@ def test_main(model_template, config, tmp_path):
             "loss",
             "lr",
             "valid_cont_loss",
+            "valid_positive_distance",
+            "valid_negative_distance",
             "valid_mlm_loss",
             "valid_mlm_acc",
         ],

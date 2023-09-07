@@ -73,6 +73,8 @@ class ClTrainingDelegate(TrainingDelegate):
         model.eval()
 
         total_cont_loss = 0
+        total_positive_distance = 0
+        total_negative_distance = 0
         total_mlm_loss = 0
         total_mlm_acc = 0
         divisor = 0
@@ -97,12 +99,16 @@ class ClTrainingDelegate(TrainingDelegate):
             )
 
             total_cont_loss += contrastive_loss.item() * num_samples
+            total_positive_distance += performance_measure.average_positive_distance(double_view_batch_embeddings, double_view_positives_mask) * num_samples
+            total_negative_distance += performance_measure.average_negative_distance(double_view_batch_embeddings, double_view_positives_mask) * num_samples
             total_mlm_loss += mlm_loss.item() * num_samples
             total_mlm_acc += performance_measure.mlm_acc(mlm_logits, mlm_targets) * num_samples
             divisor += num_samples
 
         return {
             "valid_cont_loss": total_cont_loss / divisor,
+            "valid_positive_distance": total_positive_distance / divisor,
+            "valid_negative_distance": total_negative_distance / divisor,
             "valid_mlm_loss": total_mlm_loss / divisor,
             "valid_mlm_acc": total_mlm_acc / divisor,
         }
