@@ -14,7 +14,7 @@ def average_positive_distance(tcr_representations: FloatTensor, positives_mask: 
 @torch.no_grad()
 def average_negative_distance(tcr_representations: FloatTensor, positives_mask: BoolTensor) -> float:
     all_distances = torch.cdist(tcr_representations, tcr_representations, p=2)
-    identity_mask = torch.eye(len(tcr_representations)).logical_not()
+    identity_mask = torch.eye(len(tcr_representations), device=positives_mask.device).logical_not()
     negatives_mask = torch.logical_and(positives_mask.logical_not(), identity_mask)
     negative_distances = all_distances * negatives_mask
     negative_distances_summed = negative_distances.sum().item()
