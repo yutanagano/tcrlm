@@ -9,7 +9,7 @@ from scipy.spatial import distance
 
 from src.nn.bert import Bert
 from src.nn.data.tcr_dataset import TcrDataset
-from src.nn.data.tcr_dataloader import TcrDataLoader
+from src.nn.data.tcr_dataloader import SingleDatasetDataLoader
 from src.model.tcr_representation_model import TcrRepresentationModel
 from src.nn.data.tokeniser.tokeniser import Tokeniser
 from src.config_reader import ConfigReader
@@ -35,15 +35,15 @@ class Blastr(TcrRepresentationModel):
 
         return bert_representations_as_ndarray
 
-    def _make_dataloader_for(self, tcrs: DataFrame) -> TcrDataLoader:
+    def _make_dataloader_for(self, tcrs: DataFrame) -> SingleDatasetDataLoader:
         dataset = TcrDataset(tcrs)
         batch_collator = DefaultBatchCollator(self._tokeniser)
-        return TcrDataLoader(
+        return SingleDatasetDataLoader(
             dataset, batch_collator=batch_collator, device=self._device, batch_size=512, shuffle=False
         )
 
     @torch.no_grad()
-    def _get_bert_representations_of_tcrs_in(self, dataloader: TcrDataLoader) -> Tensor:
+    def _get_bert_representations_of_tcrs_in(self, dataloader: SingleDatasetDataLoader) -> Tensor:
         batched_representations = [
             self._bert.get_vector_representations_of(batch)
             for (batch,) in dataloader
