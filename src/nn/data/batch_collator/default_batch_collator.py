@@ -13,6 +13,7 @@ class DefaultBatchCollator(BatchCollator):
             self._tokeniser.tokenise(tcr_pmhc_pair.tcr)
             for tcr_pmhc_pair in tcr_pmhc_pairs
         ]
-        return utils.rnn.pad_sequence(
+        padded_batch = utils.rnn.pad_sequence(
             sequences=batch, batch_first=True, padding_value=DefaultTokenIndex.NULL
         )
+        return (padded_batch,)

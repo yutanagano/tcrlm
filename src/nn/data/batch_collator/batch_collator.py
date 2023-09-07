@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from torch import LongTensor
+from torch import Tensor
 from typing import Iterable, Tuple
 
 from src.nn.data.tokeniser.tokeniser import Tokeniser
@@ -11,5 +11,5 @@ class BatchCollator(ABC):
         self._tokeniser = tokeniser
 
     @abstractmethod
-    def collate_fn(self, tcr_pmhc_pairs: Iterable[TcrPmhcPair]) -> Tuple[LongTensor]:
+    def collate_fn(self, tcr_pmhc_pairs: Iterable[TcrPmhcPair]) -> Tuple[Tensor]:
         pass
