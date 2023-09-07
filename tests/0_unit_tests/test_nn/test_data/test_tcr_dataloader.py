@@ -1,4 +1,5 @@
 import pytest
+import torch
 from torch import Tensor
 
 from src.nn.data.tokeniser.cdr_tokeniser import CdrTokeniser
@@ -14,10 +15,10 @@ TOKEN_NUM_DIMS = 4
 
 def test_iter(tcr_dataset, default_batch_collator):
     dataloader = TcrDataLoader(
-        tcr_dataset, batch_collator=default_batch_collator, batch_size=BATCH_SIZE
+        tcr_dataset, batch_collator=default_batch_collator, device=torch.device("cpu"), batch_size=BATCH_SIZE
     )
 
-    for batch in dataloader:
+    for (batch,) in dataloader:
         assert type(batch) == Tensor
         assert batch.dim() == BATCH_DIMENSIONALITY
         assert batch.size(0) == BATCH_SIZE
@@ -28,7 +29,7 @@ def test_iter(tcr_dataset, default_batch_collator):
 def test_set_epoch(tcr_dataset, default_batch_collator):
     mock_sampler = MockSampler()
     dataloader = TcrDataLoader(
-        tcr_dataset, batch_collator=default_batch_collator, sampler=mock_sampler
+        tcr_dataset, batch_collator=default_batch_collator, device=torch.device("cpu"), sampler=mock_sampler
     )
     EPOCH = 420
 
