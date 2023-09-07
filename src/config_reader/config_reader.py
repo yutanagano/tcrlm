@@ -15,7 +15,7 @@ import src.nn.token_embedder as token_embedder_module
 import src.nn.data.batch_collator as batch_collator_module
 import src.nn.training_delegate as training_delegate_module
 
-from src.nn.data.tcr_dataloader import TcrDataLoader
+from src.nn.data.tcr_dataloader import TcrDataLoader, SingleDatasetDataLoader, DistributedDoubleDatasetDataLoader
 from src.nn.data.tokeniser import Tokeniser
 from src.nn.data.tcr_dataset import TcrDataset
 from src.nn.trainable_model import TrainableModel
@@ -57,8 +57,8 @@ class ConfigReader:
             device = torch.device(device)
 
         model = self._get_trainable_ddp_on_device(device)
-        training_dataloader = self._get_training_dataloader()
-        validation_dataloader = self._get_validation_dataloader()
+        training_dataloader = self._get_training_dataloader_on_device(device)
+        validation_dataloader = self._get_validation_dataloader_on_device(device)
         loss_functions = self._get_loss_functions()
         optimiser = self._get_optimiser_for_model(model)
 
@@ -150,33 +150,61 @@ class ConfigReader:
 
         return bert
 
-    def _get_training_dataloader(self) -> TcrDataLoader:
-        path_to_training_data_csv_as_str = self._config["data"]["path_to_training_data"]
-        dataloader_initargs = self._config["data"]["dataloader"]["initargs"]
+    def _get_training_dataloader_on_device(self, device: torch.device) -> TcrDataLoader:
+        data_loader_class = self._config["data"]["training_data"]["dataloader"]["class"]
+
+        if data_loader_class == "SingleDatasetDataLoader":
+            dataloader = self._get_single_dataset_training_dataloader_on_device(device)
+        elif data_loader_class == "DoubleDatasetDataLoader":
+            dataloader = self._get_double_dataset_training_dataloader_on_device(device)
+        else:
+            raise ValueError(f"Unrecognised dataloader class: {data_loader_class}")
+        
+        return dataloader
+        
+    def _get_single_dataset_training_dataloader_on_device(self, device: torch.device) -> SingleDatasetDataLoader:
+        path_to_training_data_csv_as_str = self._config["data"]["training_data"]["csv_paths"][0]
+        dataloader_initargs = self._config["data"]["training_data"]["dataloader"]["initargs"]
 
         tokeniser = self.get_tokeniser()
         dataset = self._get_dataset(Path(path_to_training_data_csv_as_str))
-        batch_collator = self._get_batch_collator_for_tokeniser(tokeniser)
+        batch_collator = self._get_batch_collator_with_tokeniser(tokeniser)
 
-        return TcrDataLoader(
+        return SingleDatasetDataLoader(
             dataset=dataset,
             sampler=DistributedSampler(dataset, shuffle=True),
             batch_collator=batch_collator,
+            device=device,
+            **dataloader_initargs
+        )
+    
+    def _get_double_dataset_training_dataloader_on_device(self, device: torch.device) -> DistributedDoubleDatasetDataLoader:
+        paths_to_training_data_csvs_as_str = self._config["data"]["training_data"]["csv_paths"]
+        dataloader_initargs = self._config["data"]["training_data"]["dataloader"]["initargs"]
+
+        tokeniser = self.get_tokeniser()
+        dataset_1 = self._get_dataset(Path(paths_to_training_data_csvs_as_str[0]))
+        dataset_2 = self._get_dataset(Path(paths_to_training_data_csvs_as_str[1]))
+        batch_collator = self._get_batch_collator_with_tokeniser(tokeniser)
+
+        return DistributedDoubleDatasetDataLoader(
+            dataset_1=dataset_1,
+            dataset_2=dataset_2,
+            batch_collator=batch_collator,
+            device=device,
             **dataloader_initargs
         )
 
-    def _get_validation_dataloader(self) -> TcrDataLoader:
-        path_to_validation_data_csv_as_str = self._config["data"][
-            "path_to_validation_data"
-        ]
-        dataloader_initargs = self._config["data"]["dataloader"]["initargs"]
+    def _get_validation_dataloader_on_device(self, device: torch.device) -> TcrDataLoader:
+        path_to_validation_data_csv_as_str = self._config["data"]["validation_data"]["csv_paths"][0]
+        dataloader_initargs = self._config["data"]["validation_data"]["dataloader"]["initargs"]
 
         tokeniser = self.get_tokeniser()
         dataset = self._get_dataset(Path(path_to_validation_data_csv_as_str))
-        batch_collator = self._get_batch_collator_for_tokeniser(tokeniser)
+        batch_collator = self._get_batch_collator_with_tokeniser(tokeniser)
 
-        return TcrDataLoader(
-            dataset=dataset, batch_collator=batch_collator, **dataloader_initargs
+        return SingleDatasetDataLoader(
+            dataset=dataset, batch_collator=batch_collator, device=device, **dataloader_initargs
         )
 
     def get_tokeniser(self) -> Tokeniser:
@@ -192,7 +220,7 @@ class ConfigReader:
 
         return TcrDataset(df)
 
-    def _get_batch_collator_for_tokeniser(self, tokeniser: Tokeniser) -> BatchCollator:
+    def _get_batch_collator_with_tokeniser(self, tokeniser: Tokeniser) -> BatchCollator:
         config = self._config["data"]["batch_collator"]
         class_name = config["class"]
         initargs = config["initargs"]

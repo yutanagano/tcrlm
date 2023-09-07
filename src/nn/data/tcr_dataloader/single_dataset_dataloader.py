@@ -3,11 +3,12 @@ from torch import Tensor
 from torch.utils.data import DataLoader
 from typing import Iterable, Tuple
 
+from src.nn.data.tcr_dataloader import TcrDataLoader
 from src.nn.data.batch_collator import BatchCollator
 from src.nn.data.schema.tcr_pmhc_pair import TcrPmhcPair
 
 
-class TcrDataLoader(DataLoader):
+class SingleDatasetDataLoader(DataLoader, TcrDataLoader):
     def __init__(self, *args, batch_collator: BatchCollator, device: torch.device, **kwargs):
         super().__init__(*args, **kwargs)
         self._batch_collator = batch_collator

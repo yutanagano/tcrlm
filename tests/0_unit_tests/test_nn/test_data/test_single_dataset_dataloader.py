@@ -4,7 +4,7 @@ from torch import Tensor
 
 from src.nn.data.tokeniser.cdr_tokeniser import CdrTokeniser
 from src.nn.data.tcr_dataset import TcrDataset
-from src.nn.data.tcr_dataloader import TcrDataLoader
+from src.nn.data.tcr_dataloader import SingleDatasetDataLoader
 from src.nn.data.batch_collator import DefaultBatchCollator
 
 BATCH_DIMENSIONALITY = 3
@@ -14,7 +14,7 @@ TOKEN_NUM_DIMS = 4
 
 
 def test_iter(tcr_dataset, default_batch_collator):
-    dataloader = TcrDataLoader(
+    dataloader = SingleDatasetDataLoader(
         tcr_dataset, batch_collator=default_batch_collator, device=torch.device("cpu"), batch_size=BATCH_SIZE
     )
 
@@ -28,7 +28,7 @@ def test_iter(tcr_dataset, default_batch_collator):
 
 def test_set_epoch(tcr_dataset, default_batch_collator):
     mock_sampler = MockSampler()
-    dataloader = TcrDataLoader(
+    dataloader = SingleDatasetDataLoader(
         tcr_dataset, batch_collator=default_batch_collator, device=torch.device("cpu"), sampler=mock_sampler
     )
     EPOCH = 420
