@@ -15,7 +15,7 @@ import src.nn.token_embedder as token_embedder_module
 import src.nn.data.batch_collator as batch_collator_module
 import src.nn.training_delegate as training_delegate_module
 
-from src.nn.data.tcr_dataloader import TcrDataLoader, SingleDatasetDataLoader, DistributedDoubleDatasetDataLoader
+from src.nn.data.tcr_dataloader import TcrDataLoader, SingleDatasetDataLoader, DoubleDatasetDataLoader
 from src.nn.data.tokeniser import Tokeniser
 from src.nn.data.tcr_dataset import TcrDataset
 from src.nn.trainable_model import TrainableModel
@@ -178,7 +178,7 @@ class ConfigReader:
             **dataloader_initargs
         )
     
-    def _get_double_dataset_training_dataloader_on_device(self, device: torch.device) -> DistributedDoubleDatasetDataLoader:
+    def _get_double_dataset_training_dataloader_on_device(self, device: torch.device) -> DoubleDatasetDataLoader:
         paths_to_training_data_csvs_as_str = self._config["data"]["training_data"]["csv_paths"]
         dataloader_initargs = self._config["data"]["training_data"]["dataloader"]["initargs"]
 
@@ -187,7 +187,7 @@ class ConfigReader:
         dataset_2 = self._get_dataset(Path(paths_to_training_data_csvs_as_str[1]))
         batch_collator = self._get_batch_collator_with_tokeniser(tokeniser)
 
-        return DistributedDoubleDatasetDataLoader(
+        return DoubleDatasetDataLoader(
             dataset_1=dataset_1,
             dataset_2=dataset_2,
             batch_collator=batch_collator,
