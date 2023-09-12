@@ -22,24 +22,24 @@ class BetaCdrEmbedder(TokenEmbedder):
 
         self._embedding_dim = embedding_dim
 
-        self._token_embedding = Embedding(
+        self.token_embedding = Embedding(
             num_embeddings=VOCABULARY_SIZE,
             embedding_dim=embedding_dim,
             padding_idx=DefaultTokenIndex.NULL,
         )
-        self._position_embedding = SinPositionEmbedding(
+        self.position_embedding = SinPositionEmbedding(
             num_embeddings=MAX_PLAUSIBLE_CDR_LENGTH, embedding_dim=embedding_dim
         )
-        self._compartment_embedding = Embedding(
+        self.compartment_embedding = Embedding(
             num_embeddings=VOCABULARY_SIZE,
             embedding_dim=embedding_dim,
             padding_idx=DefaultTokenIndex.NULL,
         )
 
     def forward(self, tokenised_tcrs: Tensor) -> Tensor:
-        token_component = self._token_embedding.forward(tokenised_tcrs[:, :, 0])
-        position_component = self._position_embedding.forward(tokenised_tcrs[:, :, 1])
-        compartment_component = self._compartment_embedding.forward(
+        token_component = self.token_embedding.forward(tokenised_tcrs[:, :, 0])
+        position_component = self.position_embedding.forward(tokenised_tcrs[:, :, 1])
+        compartment_component = self.compartment_embedding.forward(
             tokenised_tcrs[:, :, 3]
         )
 

@@ -12,6 +12,7 @@ from src.model_analyser.analysis import (
     PgenAnalysis,
     PrecisionRecallAnalysis,
     MetricCalibrationAnalysis,
+    DistanceCorrelateAnalysis
 )
 from src.model_analyser.analysis_result import AnalysisResult
 
@@ -56,6 +57,7 @@ class ModelAnalyser:
 
     def analyse(self, tcr_model: TcrMetric) -> None:
         analyses = [
+            DistanceCorrelateAnalysis,
             KnnAnalysis,
             PrecisionRecallAnalysis,
             PgenAnalysis,

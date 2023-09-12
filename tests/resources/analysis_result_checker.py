@@ -9,7 +9,7 @@ class AnalysisResultChecker:
         return self._benchmark_result.name == name
 
     def has_results_dict(self) -> bool:
-        return self._benchmark_result._results_dict is not None
+        return self._benchmark_result._results is not None
 
     def has_figures(self) -> bool:
         return self._benchmark_result._figures is not None

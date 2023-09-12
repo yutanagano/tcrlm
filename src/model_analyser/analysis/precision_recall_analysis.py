@@ -23,7 +23,7 @@ class PrecisionRecallAnalysis(Analysis):
             figures[f"{dataset_name}_pr_curve"] = pr_figure
 
         return AnalysisResult(
-            "precision_recall", results_dict=results_dict, figures=figures
+            "precision_recall", results=results_dict, figures=figures
         )
 
     def _evaluate_pr_curve(self, dataset: DataFrame) -> dict:
