@@ -8,10 +8,14 @@ from src.model_analyser.analysis_result import AnalysisResult
 from src.model_analyser.tcr_edit_distance_records.tcr_edit_distance_record_collection import TcrEditDistanceRecordCollection
 from src.model_analyser.tcr_edit_distance_records.tcr_edit import Residue, Position, TcrEdit
 from src.model_analyser.tcr_edit_distance_records.tcr_edit_distance_record_collection_analyser import TcrEditDistanceRecordCollectionAnalyser
+from src.model.tcr_representation_model import Blastr
 
 
 class DistanceCorrelateAnalysis(Analysis):
     def run(self) -> AnalysisResult:
+        if self._current_model_is_irrelevant_for_this_analysis():
+            return AnalysisResult("na")
+
         edit_record_collection = self._get_edit_record_collection()
         filled_edit_record_collection = self._fill_edit_record_collection_with_estimates(edit_record_collection)
         self._save_edit_record_collection(filled_edit_record_collection)
@@ -25,6 +29,9 @@ class DistanceCorrelateAnalysis(Analysis):
         figures["substitution_distance_vs_blosum"] = analyser.make_substitution_distance_vs_blosum_figure()
 
         return AnalysisResult("distance_correlate_analysis", figures=figures)
+    
+    def _current_model_is_irrelevant_for_this_analysis(self) -> bool:
+        return not isinstance(self._model, Blastr)
 
     def _get_edit_record_collection(self) -> TcrEditDistanceRecordCollection:
         return self._model_computation_cacher.get_tcr_edit_record_collection()
