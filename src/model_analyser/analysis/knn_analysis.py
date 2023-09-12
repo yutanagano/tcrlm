@@ -16,7 +16,7 @@ class KnnAnalysis(Analysis):
             knn_stats = self._evaluate_knn_accuracy(dataset)
             results_dict[dataset_name] = knn_stats
 
-        return AnalysisResult("knn", results_dict=results_dict)
+        return AnalysisResult("knn", results=results_dict)
 
     def _evaluate_knn_accuracy(self, dataset: DataFrame) -> dict:
         pdist_vector = self._model_computation_cacher.calc_pdist_vector(dataset)

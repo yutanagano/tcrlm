@@ -18,6 +18,7 @@ class TcrEdit:
     def is_at(self, position: Position) -> bool:
         return self.position == position
 
+    @property
     def is_central(self) -> bool:
         return self.position in (Position.M1, Position.M2, Position.M3)
 

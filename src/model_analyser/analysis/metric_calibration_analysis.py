@@ -77,7 +77,7 @@ class MetricCalibrationAnalysis(Analysis):
             ] = enrichment_recall_plot
 
         return AnalysisResult(
-            "metric_calibration", results_dict=results_dict, figures=figures_dict
+            "metric_calibration", results=results_dict, figures=figures_dict
         )
 
     def _get_background_distance_sample(self) -> ndarray:

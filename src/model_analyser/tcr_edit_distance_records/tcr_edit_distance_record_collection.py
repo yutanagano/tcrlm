@@ -1,14 +1,14 @@
-from . import tcr_edit
-from .coverage_summary import CoverageSummary
-from .tcr_edit_record import TcrEditRecord
-from .tcr_edit import TcrEdit
+from src.model_analyser.tcr_edit_distance_records.coverage_summary import CoverageSummary
+from src.model_analyser.tcr_edit_distance_records.tcr_edit_distance_record import TcrEditDistanceRecord
+from src.model_analyser.tcr_edit_distance_records import tcr_edit
+from src.model_analyser.tcr_edit_distance_records.tcr_edit import TcrEdit
 
 from itertools import permutations
 import pickle
 from typing import Iterable, List
 
 
-class TcrEditRecordCollection:
+class TcrEditDistanceRecordCollection:
     MARGINAL_NUM_ESTIMATES_REQUIRED = 100
 
     def __init__(self) -> None:
@@ -18,11 +18,11 @@ class TcrEditRecordCollection:
         self.edit_record_dictionary = dict()
 
         for edit in tcr_edit.get_all_tcr_edits():
-            self.edit_record_dictionary[edit] = TcrEditRecord()
+            self.edit_record_dictionary[edit] = TcrEditDistanceRecord()
 
     def update_edit_record(self, edit: TcrEdit, distance: float):
         relevant_edit_record = self.edit_record_dictionary[edit]
-        relevant_edit_record.add_distance_estimate(distance)
+        relevant_edit_record.add_distance_sample(distance)
 
     def print_current_estimation_coverage(self):
         print("Number of estimates at positions:")
@@ -93,7 +93,7 @@ class TcrEditRecordCollection:
     def get_num_estimates_accross_specified_edits(self, edits: Iterable) -> int:
         relevant_edit_records = [self.edit_record_dictionary[edit] for edit in edits]
         return sum(
-            [edit_record.num_estimates_made for edit_record in relevant_edit_records]
+            [edit_record.num_distances_sampled for edit_record in relevant_edit_records]
         )
 
     def has_sufficient_trbv_coverage(self) -> bool:
@@ -112,18 +112,18 @@ class TcrEditRecordCollection:
         return state_dict
 
     @staticmethod
-    def from_save(f) -> "TcrEditRecordCollection":
+    def from_save(f) -> "TcrEditDistanceRecordCollection":
         state_dict = pickle.load(f)
 
-        return TcrEditRecordCollection.from_state_dict(state_dict)
+        return TcrEditDistanceRecordCollection.from_state_dict(state_dict)
 
     @staticmethod
-    def from_state_dict(state_dict: dict) -> "TcrEditRecordCollection":
-        edit_record_collection = TcrEditRecordCollection()
+    def from_state_dict(state_dict: dict) -> "TcrEditDistanceRecordCollection":
+        edit_record_collection = TcrEditDistanceRecordCollection()
 
         for edit_str, edit_record_state_dict in state_dict.items():
             edit = TcrEdit.from_str(edit_str)
-            edit_record = TcrEditRecord.from_state_dict(edit_record_state_dict)
+            edit_record = TcrEditDistanceRecord.from_state_dict(edit_record_state_dict)
 
             edit_record_collection.edit_record_dictionary[edit] = edit_record
 

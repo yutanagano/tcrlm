@@ -11,7 +11,7 @@ def test_save(tmp_path):
     FIGURE_NAME = "foo"
 
     analysis_result = AnalysisResult(
-        name=NAME, results_dict=RESUTLS_DICT, figures={FIGURE_NAME: Figure()}
+        name=NAME, results=RESUTLS_DICT, figures={FIGURE_NAME: Figure()}
     )
 
     analysis_result.save(tmp_path)

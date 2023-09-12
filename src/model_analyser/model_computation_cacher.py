@@ -3,10 +3,12 @@ import numpy as np
 from numpy import ndarray
 from pandas import DataFrame
 from pathlib import Path
+import pickle
 from typing import Callable, IO
 
 from src.model.tcr_metric import TcrMetric
 from src.model.tcr_representation_model import TcrRepresentationModel
+from src.model_analyser.tcr_edit_distance_records.tcr_edit_distance_record_collection import TcrEditDistanceRecordCollection
 
 
 class ModelComputationCacher:
@@ -73,6 +75,22 @@ class ModelComputationCacher:
                 computed_result,
             )
             return computed_result
+        
+    def get_tcr_edit_record_collection(self) -> TcrEditDistanceRecordCollection:
+        save_path = self._cache_dir/"tcr_edit_record_collection_state.pkl"
+
+        if save_path.is_file():
+            with open(save_path, "rb") as f:
+                state_dict = pickle.load(f)
+            return TcrEditDistanceRecordCollection.from_state_dict(state_dict)
+
+        return TcrEditDistanceRecordCollection()
+    
+    def save_tcr_edit_record_collection(self, tcr_edit_record_collection: TcrEditDistanceRecordCollection) -> None:
+        save_path = self._cache_dir/"tcr_edit_record_collection_state.pkl"
+
+        with open(save_path, "wb") as f:
+            tcr_edit_record_collection.save(f)
 
     def _get_argument_hash_str(self, *args) -> str:
         stringified_args = [str(arg).encode("utf-8") for arg in args]
