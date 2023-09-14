@@ -5,7 +5,7 @@ from src.model_analyser.tcr_edit_distance_records.tcr_edit import TcrEdit
 
 from itertools import permutations
 import pickle
-from typing import Iterable, List
+from typing import Dict, Iterable, List
 
 
 class TcrEditDistanceRecordCollection:
@@ -15,7 +15,7 @@ class TcrEditDistanceRecordCollection:
         self.initialise_edit_record_dictionary()
 
     def initialise_edit_record_dictionary(self) -> None:
-        self.edit_record_dictionary = dict()
+        self.edit_record_dictionary: Dict[TcrEdit, TcrEditDistanceRecord] = dict()
 
         for edit in tcr_edit.get_all_tcr_edits():
             self.edit_record_dictionary[edit] = TcrEditDistanceRecord()

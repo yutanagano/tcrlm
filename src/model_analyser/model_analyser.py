@@ -21,6 +21,7 @@ BACKGROUND_DATA_PATH = "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder
 BACKGROUND_PGEN_PATH = "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/tanno/test_pgens.csv"
 LABELLED_DATA_PATHS = {
     "gdb_holdout": "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/gdb/test.csv",
+    "minervina": "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/minervina/preprocessed.csv"
 }
 
 
@@ -57,11 +58,11 @@ class ModelAnalyser:
 
     def analyse(self, tcr_model: TcrMetric) -> None:
         analyses = [
-            DistanceCorrelateAnalysis,
-            KnnAnalysis,
-            PrecisionRecallAnalysis,
-            PgenAnalysis,
             MetricCalibrationAnalysis,
+            # KnnAnalysis,
+            # PrecisionRecallAnalysis,
+            # PgenAnalysis,
+            # DistanceCorrelateAnalysis,
         ]
 
         analysis_results = [

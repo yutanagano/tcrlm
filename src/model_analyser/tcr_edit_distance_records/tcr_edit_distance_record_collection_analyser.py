@@ -85,7 +85,7 @@ class TcrEditDistanceRecordCollectionAnalyser:
     
     def _get_distance_sample_from_specified_edits(self, edits: Iterable[TcrEdit]) -> List:
         edit_records = [self.edit_record_collection.edit_record_dictionary[edit] for edit in edits]
-        distance_samples = [edit_record.distance_samples for edit_record in edit_records]
+        distance_samples = [edit_record.distance_sample for edit_record in edit_records]
         
         if not any([edit_record.is_overfilled for edit_record in edit_records]):
             return list(chain.from_iterable(distance_samples))
