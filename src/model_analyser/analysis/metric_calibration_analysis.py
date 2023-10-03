@@ -129,8 +129,8 @@ class MetricCalibrationAnalysis(Analysis):
 
         ax.plot(x_coords, y_coords)
 
-        ax.set_xlabel("Fold enrichment of co-specific pairs from background")
-        ax.set_ylabel("Fraction of epitope-specific TCRs deorphanised")
+        ax.set_xlabel("Fold enrichment of co-specific pairs")
+        ax.set_ylabel("Deorphanisation rate")
         ax.set_xscale("log")
         ax.set_yscale("log")
         ax.set_yticks([1.0, 0.9, 0.5, 0.25, 0.1], labels=["$10^0$", r"$9 \times 10^{-1}$", r"$5 \times 10^{-1}$", r"$2.5 \times 10^{-1}$", r"$1 \times 10^{-1}$"])
@@ -241,7 +241,7 @@ class MetricCalibrationAnalysis(Analysis):
 
         ax.legend()
         ax.set_xlabel("Distance")
-        ax.set_ylabel("$PDF(d)$")
+        ax.set_ylabel("Probability density")
         ax.set_yscale("log")
         fig.tight_layout()
 
@@ -278,7 +278,7 @@ class MetricCalibrationAnalysis(Analysis):
         ax.stairs(relative_countour, bins)
 
         ax.set_xlabel("Distance")
-        ax.set_ylabel(r"$P(cospecific|d) \times P(cospecific)^{-1}$")
+        ax.set_ylabel(r"$1/P(cospecific) \times P(cospecific|d)$")
         ax.set_yscale("log")
         fig.tight_layout()
 
@@ -294,8 +294,8 @@ class MetricCalibrationAnalysis(Analysis):
 
         ax.plot(x_coords, relative_countour)
 
-        ax.set_xlabel("Distance")
-        ax.set_ylabel(r"$P(cospecific|d \leq x) \times P(cospecific)^{-1}$")
+        ax.set_xlabel("Distance threshold")
+        ax.set_ylabel("Fold enrichment of co-specific pairs")
         ax.set_yscale("log")
         fig.tight_layout()
 
@@ -316,7 +316,7 @@ class MetricCalibrationAnalysis(Analysis):
 
         ax.plot(x_coords, y_coords)
 
-        ax.set_xlabel("Fold enrichment of co-specific pairs from background")
+        ax.set_xlabel("Fold enrichment of co-specific pairs")
         ax.set_ylabel("Fraction of co-specific pairs captured")
         ax.set_xscale("log")
         ax.set_yscale("log")
