@@ -5,6 +5,7 @@ from numpy import ndarray
 import pandas as pd
 from pandas import DataFrame, Series
 from scipy.spatial import distance
+import statistics
 from sklearn import metrics
 from typing import Dict
 
@@ -80,24 +81,20 @@ class AucByLevenshteinGroups(Analysis):
         return cospecificity_group_sizes.map(lambda x: x > MINIMUM_NUM_PAIRS).all()
 
     def _analyse_model_performance_at_given_dist(self, dist_table: DataFrame, dist: int) -> dict:
-        dist_table_filtered = self._prepare_balanced_dist_table_for_distance(dist_table, dist)
-        similarity_scores = self._get_similarity_scores_from_distances(dist_table_filtered.model)
+        roc_aucs = []
 
-        true_positive_rates, false_positive_rates, _ = metrics.roc_curve(
-            y_true=dist_table_filtered.cospecificity_label,
-            y_score=similarity_scores
-        )
+        for i in range(10):
+            dist_table_filtered = self._prepare_balanced_dist_table_for_distance(dist_table, dist)
+            similarity_scores = self._get_similarity_scores_from_distances(dist_table_filtered.model)
 
-        roc_auc = metrics.roc_auc_score(
-            y_true=dist_table_filtered.cospecificity_label,
-            y_score=similarity_scores
-        )
+            roc_auc = metrics.roc_auc_score(
+                y_true=dist_table_filtered.cospecificity_label,
+                y_score=similarity_scores
+            )
 
-        return {
-            "tpr": true_positive_rates.tolist(),
-            "fpr": false_positive_rates.tolist(),
-            "roc_auc": roc_auc
-        }
+            roc_aucs.append(roc_auc)
+
+        return roc_aucs
 
     def _prepare_balanced_dist_table_for_distance(self, dist_table: DataFrame, dist: int) -> DataFrame:
         filtered_dist_table = dist_table[dist_table.levenshtein == dist]
@@ -116,11 +113,14 @@ class AucByLevenshteinGroups(Analysis):
     
     def _generate_roc_auc_plot(self, dataset_name: str, performance_dict: dict) -> Figure:
         dists = performance_dict.keys()
-        roc_aucs = [performance_dict[dist]["roc_auc"] for dist in dists]
+        roc_auc_lists = [performance_dict[dist] for dist in dists]
+        mean_roc_aucs = np.array([statistics.mean(roc_aucs) for roc_aucs in roc_auc_lists])
+        standard_deviations = np.array([statistics.stdev(roc_aucs) for roc_aucs in roc_auc_lists])
 
         fig, ax = plt.subplots()
 
-        ax.plot(dists, roc_aucs)
+        ax.plot(dists, mean_roc_aucs)
+        ax.fill_between(dists, mean_roc_aucs+standard_deviations, mean_roc_aucs-standard_deviations, alpha=0.2)
         
         ax.set_ylim(0, 1)
 
