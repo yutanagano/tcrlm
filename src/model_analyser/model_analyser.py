@@ -60,7 +60,7 @@ class ModelAnalyser:
     def analyse(self, tcr_model: TcrMetric) -> None:
         analyses = [
             # AucByLevenshteinGroups,
-            # MetricCalibrationAnalysis,
+            MetricCalibrationAnalysis,
             KnnAnalysis,
             # PrecisionRecallAnalysis,
             # PgenAnalysis,
