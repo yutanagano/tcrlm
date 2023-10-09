@@ -48,7 +48,10 @@ class ModelAnalyser:
     def _load_tcr_csv(self, path_to_csv: str) -> DataFrame:
         df = pd.read_csv(path_to_csv)
 
-        for column in ("TRAV", "CDR3A", "TRAJ", "TRBV", "CDR3B", "TRBJ"):
+        for column in ("TRAV", "CDR3A", "TRAJ"):
+            df[column] = pd.NA
+
+        for column in ("TRBV", "CDR3B", "TRBJ"):
             if column not in df:
                 df[column] = pd.NA
 
@@ -59,12 +62,12 @@ class ModelAnalyser:
 
     def analyse(self, tcr_model: TcrMetric) -> None:
         analyses = [
-            # AucByLevenshteinGroups,
+            AucByLevenshteinGroups,
             MetricCalibrationAnalysis,
             KnnAnalysis,
-            # PrecisionRecallAnalysis,
-            # PgenAnalysis,
-            # DistanceCorrelateAnalysis,
+            PrecisionRecallAnalysis,
+            PgenAnalysis,
+            DistanceCorrelateAnalysis,
         ]
 
         analysis_results = [
