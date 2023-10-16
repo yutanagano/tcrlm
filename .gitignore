@@ -10,3 +10,4 @@ __pycache__
 /ignore
 /model_saves
 /run_local_training.sh
+/.ropeproject
