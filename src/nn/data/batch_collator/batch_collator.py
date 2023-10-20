@@ -3,7 +3,7 @@ from torch import Tensor
 from typing import Iterable, Tuple
 
 from src.nn.data.tokeniser.tokeniser import Tokeniser
-from src.nn.data.schema.tcr_pmhc_pair import TcrPmhcPair
+from src.schema import TcrPmhcPair
 
 
 class BatchCollator(ABC):

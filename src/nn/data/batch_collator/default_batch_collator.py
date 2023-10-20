@@ -4,7 +4,7 @@ from torch.nn import utils
 
 from src.nn.data.batch_collator import BatchCollator
 from src.nn.data.tokeniser.token_indices import DefaultTokenIndex
-from src.nn.data.schema.tcr_pmhc_pair import TcrPmhcPair
+from src.schema import TcrPmhcPair
 
 
 class DefaultBatchCollator(BatchCollator):

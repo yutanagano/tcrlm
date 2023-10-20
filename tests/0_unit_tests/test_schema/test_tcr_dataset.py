@@ -1,7 +1,7 @@
 import pytest
 
 from src.nn.data.tcr_dataset import TcrDataset
-from src.nn.data import schema
+from src import schema
 
 
 def test_len(tcr_dataset):

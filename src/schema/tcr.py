@@ -51,10 +51,10 @@ class Tcrv:
 
         allele_symbol = self.__repr__()
         aa_sequence_dictionary = tcr.get_aa_sequence(allele_symbol)
-        
+
         if "CDR2-IMGT" not in aa_sequence_dictionary:
             return None
-        
+
         return aa_sequence_dictionary["CDR2-IMGT"]
 
     def __eq__(self, __value: object) -> bool:

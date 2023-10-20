@@ -5,7 +5,7 @@ from torch import BoolTensor, LongTensor, Tensor
 
 from src.nn.data.batch_collator import MlmBatchCollator
 from src.nn.data.tokeniser.token_indices import DefaultTokenIndex
-from src.nn.data.schema.tcr_pmhc_pair import TcrPmhcPair
+from src.schema import TcrPmhcPair
 
 
 class ClBatchCollator(MlmBatchCollator):
