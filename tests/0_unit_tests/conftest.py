@@ -2,7 +2,7 @@ import pandas as pd
 from pathlib import Path
 import pytest
 
-from src.nn.data import schema
+from src import schema
 
 
 @pytest.fixture

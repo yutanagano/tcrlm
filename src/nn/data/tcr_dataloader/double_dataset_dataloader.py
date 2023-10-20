@@ -5,7 +5,7 @@ from typing import Iterable, Tuple
 
 from src.nn.data.tcr_dataset import TcrDataset
 from src.nn.data.batch_collator import BatchCollator
-from src.nn.data.schema.tcr_pmhc_pair import TcrPmhcPair
+from src.schema import TcrPmhcPair
 
 
 class DoubleDatasetDataLoader:

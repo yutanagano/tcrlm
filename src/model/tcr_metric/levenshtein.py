@@ -5,6 +5,7 @@ from rapidfuzz import process
 from rapidfuzz.distance import Levenshtein
 from scipy.spatial import distance
 from src.model.tcr_metric import TcrMetric
+from src import schema
 from tidytcells import tcr
 from typing import Iterable, Optional, Tuple
 

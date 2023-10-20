@@ -1,5 +1,5 @@
-from src.nn.data.schema.tcr import Tcr
-from src.nn.data.schema.pmhc import Pmhc
+from src.schema import Tcr
+from src.schema import Pmhc
 
 
 class TcrPmhcPair:

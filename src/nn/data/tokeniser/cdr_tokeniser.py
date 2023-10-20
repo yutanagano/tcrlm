@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple
 
 from src.nn.data.tokeniser.tokeniser import Tokeniser
 from src.nn.data.tokeniser.token_indices import AminoAcidTokenIndex, CdrCompartmentIndex
-from src.nn.data.schema.tcr import Tcr
+from src.schema import Tcr
 
 
 class CdrTokeniser(Tokeniser):

@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from src.nn.data import schema
+from src import schema
 from src.nn.data.tokeniser import BetaCdr3Tokeniser
 
 

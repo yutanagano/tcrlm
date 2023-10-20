@@ -1,6 +1,6 @@
 import pytest
 
-from src.nn.data import schema
+from src import schema
 
 
 def test_cdr1a_sequence(mock_tcr):

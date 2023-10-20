@@ -6,8 +6,8 @@ from typing import Iterable
 from src.nn.data.tcr_dataset import TcrDataset
 from src.nn.data.tcr_dataloader import DoubleDatasetDataLoader
 from src.nn.data.batch_collator import BatchCollator
-from src.nn.data import schema
-from src.nn.data.schema.tcr_pmhc_pair import TcrPmhcPair
+from src import schema
+from src.schema import TcrPmhcPair
 
 
 BATCH_SIZE_1 = 2

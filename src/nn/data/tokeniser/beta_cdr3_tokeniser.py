@@ -7,7 +7,7 @@ from src.nn.data.tokeniser.token_indices import (
     AminoAcidTokenIndex,
     DefaultTokenIndex
 )
-from src.nn.data.schema.tcr import Tcr
+from src.schema import Tcr
 
 
 class BetaCdr3Tokeniser(Tokeniser):

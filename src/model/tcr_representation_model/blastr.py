@@ -50,22 +50,6 @@ class Blastr(TcrRepresentationModel):
         ]
         return torch.concat(batched_representations).cpu()
 
-    def calc_cdist_matrix_from_representations(
-        self,
-        anchor_tcr_representations: ndarray,
-        comparison_tcr_representations: ndarray,
-    ) -> ndarray:
-        return distance.cdist(
-            anchor_tcr_representations,
-            comparison_tcr_representations,
-            metric="euclidean",
-        )
-
-    def calc_pdist_vector_from_representations(
-        self, tcr_representations: ndarray
-    ) -> ndarray:
-        return distance.pdist(tcr_representations, metric="euclidean")
-
 
 def load_blastr_save(path: Path) -> Blastr:
     with open(path / "config.json", "r") as f:
