@@ -48,14 +48,14 @@ class MetricCalibrationAnalysis(Analysis):
             self._run_deorphanisation_analysis(dataset, cospecific_dist_cdf, dataset_name)
 
         return AnalysisResult("metric_calibration", results=self._results, figures=self._figures)
-    
+
     def _set_up_results_dicts(self) -> None:
         self._results = dict()
         self._figures = dict()
-    
+
     def _characterise_background_distance_distribution(self) -> None:
         bg_dist_sample = self._get_background_distance_sample()
-        
+
         self._bg_dist_pdf = self._generate_distance_pdf_from_sample(bg_dist_sample)
         self._bg_dist_cdf = self._generate_distance_cdf_from_sample(bg_dist_sample)
 
@@ -82,7 +82,7 @@ class MetricCalibrationAnalysis(Analysis):
     def _run_deorphanisation_analysis(self, dataset: DataFrame, cospecific_dist_cdf: EmpiricalFunction, dataset_name: str) -> None:
         pdist_matrix = self._get_pdist_matrix_with_diagonal_and_cross_epitope_distances_set_to_inifinite(dataset)
         deorphanisation_rate = self._get_deorphanisation_rate(pdist_matrix)
-        
+
         deorphanisation_rate_plot = self._plot_deorphanisation_rate(deorphanisation_rate, cospecific_dist_cdf)
 
         self._results[f"deorphanisation_rate_{dataset_name}"] = deorphanisation_rate.to_dict()
