@@ -1,14 +1,14 @@
 from abc import ABC, abstractmethod
 from pandas import DataFrame
-from src.model.tcr_representation_model import TcrRepresentationModel
+from src.model.tcr_metric import TcrMetric
 from typing import Set, Tuple
 
 
 class ClusteringMachine(ABC):
-    _tcr_representation_model: TcrRepresentationModel
+    _tcr_metric: TcrMetric
 
-    def __init__(self, tcr_representation_model: TcrRepresentationModel) -> None:
-        self._tcr_representation_model = tcr_representation_model
+    def __init__(self, tcr_metric: TcrMetric) -> None:
+        self._tcr_metric = tcr_metric
 
     @abstractmethod
     def cluster(self, tcrs: DataFrame, distance_threshold: float) -> Set[Tuple[int]]:

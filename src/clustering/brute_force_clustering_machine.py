@@ -2,16 +2,30 @@ import itertools
 import numpy as np
 from pandas import DataFrame
 from src.clustering import ClusteringMachine
+from tqdm import tqdm
 from typing import Set
 
 
 class BruteForceClusteringMachine(ClusteringMachine):
-    def cluster(self, tcrs: DataFrame, distance_threshold: float) -> Set:
-        tcr_indices = range(len(tcrs))
-        possible_pairs = list(itertools.combinations(tcr_indices, 2))
+    def cluster(self, tcrs: DataFrame, distance_threshold: float, batch_size: int = 10_000) -> Set:
+        tcrs = tcrs.reset_index(drop=True)
 
-        pdist_vector = self._tcr_representation_model.calc_pdist_vector(tcrs)
-        (indices_of_pairs_within_threshold,) = np.nonzero(pdist_vector <= distance_threshold)
-        pairs_within_threshold = [possible_pairs[index] for index in indices_of_pairs_within_threshold]
+        range_over_batch_indices = range(0, len(tcrs), batch_size)
+        pairs_within_threshold = []
+
+        for (anchor_start_index, comparison_start_index) in tqdm(itertools.combinations_with_replacement(range_over_batch_indices, r=2)):
+            anchor_tcrs = tcrs.iloc[anchor_start_index:anchor_start_index+batch_size]
+            comparison_tcrs = tcrs.iloc[comparison_start_index:comparison_start_index+batch_size]
+            cdist_matrix = self._tcr_metric.calc_cdist_matrix(anchor_tcrs, comparison_tcrs)
+
+            print(cdist_matrix)
+
+            (anchor_indices, comparison_indices) = np.nonzero(cdist_matrix <= distance_threshold)
+            anchor_indices += anchor_start_index
+            comparison_indices += comparison_start_index
+            in_batch_pairs_within_threshold = list(zip(anchor_indices, comparison_indices))
+            pairs_within_threshold.extend(
+                [(i, j) for (i, j) in in_batch_pairs_within_threshold if i < j]
+            )
 
         return set(pairs_within_threshold)
