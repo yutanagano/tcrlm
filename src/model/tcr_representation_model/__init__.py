@@ -7,5 +7,5 @@ from .bag_of_amino_acids import (
     Cdr3BagOfAminoAcids,
     AlphaBagOfAminoAcids,
     BetaBagOfAminoAcids,
-    BagOfAminoAcids
+    BagOfAminoAcids,
 )

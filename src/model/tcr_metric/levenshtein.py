@@ -5,8 +5,7 @@ from rapidfuzz import process
 from rapidfuzz.distance import Levenshtein
 from scipy.spatial import distance
 from src.model.tcr_metric import TcrMetric
-from src import schema
-from tidytcells import tcr
+from tidytcells import tr
 from typing import Iterable, Optional, Tuple
 
 
@@ -83,19 +82,29 @@ class LevenshteinMetric(TcrMetric):
 
     def _get_cdrs_from_v_genes(self, v_genes: Series) -> DataFrame:
         df = DataFrame(columns=["CDR1X", "CDR2X"])
-        df.CDR1X = v_genes.map(self._get_cdr1_from_v_gene_if_possible)
-        df.CDR2X = v_genes.map(self._get_cdr2_from_v_gene_if_possible)
+        df.CDR1X = v_genes.map(
+            lambda v_gene: self._get_segment_sequence_from_v_gene_if_possible(
+                v_gene, "CDR1-IMGT"
+            )
+        )
+        df.CDR2X = v_genes.map(
+            lambda v_gene: self._get_segment_sequence_from_v_gene_if_possible(
+                v_gene, "CDR2-IMGT"
+            )
+        )
         return df
 
-    def _get_cdr1_from_v_gene_if_possible(self, v_gene: Optional[str]) -> Optional[str]:
+    def _get_segment_sequence_from_v_gene_if_possible(
+        self, v_gene: Optional[str], segment: str
+    ) -> Optional[str]:
         if not isinstance(v_gene, str):
             return None
-        return tcr.get_aa_sequence(v_gene)["CDR1-IMGT"]
+        sequence_dict = tr.get_aa_sequence(v_gene)
 
-    def _get_cdr2_from_v_gene_if_possible(self, v_gene: Optional[str]) -> Optional[str]:
-        if not isinstance(v_gene, str):
-            return None
-        return tcr.get_aa_sequence(v_gene)["CDR2-IMGT"]
+        if segment in sequence_dict:
+            return sequence_dict[segment]
+        else:
+            return ""
 
     def _calc_cdist_matrix_for_column(
         self, anchor_tcrs: DataFrame, comparison_tcrs: DataFrame, column: str

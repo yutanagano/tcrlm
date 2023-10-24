@@ -16,7 +16,10 @@ TOKEN_NUM_DIMS = 4
 
 def test_iter(tcr_dataset, default_batch_collator):
     dataloader = SingleDatasetDataLoader(
-        tcr_dataset, batch_collator=default_batch_collator, device=torch.device("cpu"), batch_size=BATCH_SIZE
+        tcr_dataset,
+        batch_collator=default_batch_collator,
+        device=torch.device("cpu"),
+        batch_size=BATCH_SIZE,
     )
 
     for (batch,) in dataloader:
@@ -30,7 +33,10 @@ def test_iter(tcr_dataset, default_batch_collator):
 def test_set_epoch(tcr_dataset, default_batch_collator):
     mock_sampler = MockSampler()
     dataloader = SingleDatasetDataLoader(
-        tcr_dataset, batch_collator=default_batch_collator, device=torch.device("cpu"), sampler=mock_sampler
+        tcr_dataset,
+        batch_collator=default_batch_collator,
+        device=torch.device("cpu"),
+        sampler=mock_sampler,
     )
     EPOCH = 420
 

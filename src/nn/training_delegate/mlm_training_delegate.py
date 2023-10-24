@@ -74,7 +74,9 @@ class MlmTrainingDelegate(TrainingDelegate):
 
             total_loss += loss.item() * num_samples
             total_acc += performance_measure.mlm_acc(logits, mlm_targets) * num_samples
-            total_top5_acc += performance_measure.mlm_topk_acc(logits, mlm_targets, 5) * num_samples
+            total_top5_acc += (
+                performance_measure.mlm_topk_acc(logits, mlm_targets, 5) * num_samples
+            )
             divisor += num_samples
 
         return {

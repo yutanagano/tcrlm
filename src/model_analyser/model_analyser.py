@@ -13,7 +13,7 @@ from src.model_analyser.analysis import (
     PrecisionRecallAnalysis,
     MetricCalibrationAnalysis,
     DistanceCorrelateAnalysis,
-    AucByLevenshteinGroups
+    AucByLevenshteinGroups,
 )
 from src.model_analyser.analysis_result import AnalysisResult
 
@@ -21,7 +21,7 @@ from src.model_analyser.analysis_result import AnalysisResult
 BACKGROUND_DATA_PATH = "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/tanno/test.csv"
 LABELLED_DATA_PATHS = {
     "gdb_holdout": "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/gdb/test.csv",
-    "minervina": "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/minervina/preprocessed.csv"
+    "minervina": "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/minervina/preprocessed.csv",
 }
 
 
@@ -39,7 +39,9 @@ class ModelAnalyser:
 
     def _load_data(self) -> None:
         self._background_data = self._load_tcr_csv(BACKGROUND_DATA_PATH)
-        self._background_pgen = self._background_data.copy()[["alpha_pgen", "beta_pgen"]]
+        self._background_pgen = self._background_data.copy()[
+            ["alpha_pgen", "beta_pgen"]
+        ]
         self._labelled_data = {
             name: self._load_tcr_csv(path) for name, path in LABELLED_DATA_PATHS.items()
         }

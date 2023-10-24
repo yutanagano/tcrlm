@@ -23,7 +23,9 @@ def test_tokenise(tokeniser, mock_tcr):
 
 
 def test_tokenise_tcr_with_empty_beta_junction(tokeniser):
-    tcr_with_empty_beta = schema.make_tcr_from_components("TRAV1-1*01", "CASQYF", "TRBV2*01", None)
+    tcr_with_empty_beta = schema.make_tcr_from_components(
+        "TRAV1-1*01", "CASQYF", "TRBV2*01", None
+    )
 
     with pytest.raises(RuntimeError):
         tokeniser.tokenise(tcr_with_empty_beta)

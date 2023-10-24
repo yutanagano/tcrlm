@@ -7,7 +7,7 @@ from src.model.tcr_representation_model import (
     Cdr3BagOfAminoAcids,
     AlphaBagOfAminoAcids,
     BetaBagOfAminoAcids,
-    BagOfAminoAcids
+    BagOfAminoAcids,
 )
 from src.schema import AminoAcid
 
@@ -21,8 +21,8 @@ from src.schema import AminoAcid
         Cdr3BagOfAminoAcids(),
         AlphaBagOfAminoAcids(),
         BetaBagOfAminoAcids(),
-        BagOfAminoAcids()
-    )
+        BagOfAminoAcids(),
+    ),
 )
 class TestBagOfAminoAcids:
     def test_calc_cdist_matrix(self, model, mock_data_df):

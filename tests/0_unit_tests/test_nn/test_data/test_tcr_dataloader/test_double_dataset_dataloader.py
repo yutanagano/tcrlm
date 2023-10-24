@@ -12,13 +12,24 @@ from src.schema import TcrPmhcPair
 
 BATCH_SIZE_1 = 2
 BATCH_SIZE_2 = 3
-TCR_FROM_DATASET_1 = schema.make_tcr_from_components("TRAV1-1*01", "CATQYF", "TRBV2*01", "CASQYF")
-TCR_FROM_DATASET_2 = schema.make_tcr_from_components("TRAV1-2*01", "CATQYF", "TRBV3-1*01", "CASQYF")
+TCR_FROM_DATASET_1 = schema.make_tcr_from_components(
+    "TRAV1-1*01", "CATQYF", "TRBV2*01", "CASQYF"
+)
+TCR_FROM_DATASET_2 = schema.make_tcr_from_components(
+    "TRAV1-2*01", "CATQYF", "TRBV3-1*01", "CASQYF"
+)
 
 
 def test_iter(tcr_dataset_1, tcr_dataset_2, no_op_batch_collator):
     dataloader = DoubleDatasetDataLoader(
-        dataset_1=tcr_dataset_1, dataset_2=tcr_dataset_2, batch_collator=no_op_batch_collator, device=torch.device("cpu"), batch_size_1=BATCH_SIZE_1, batch_size_2=BATCH_SIZE_2, num_workers_per_dataset=1, distributed=False
+        dataset_1=tcr_dataset_1,
+        dataset_2=tcr_dataset_2,
+        batch_collator=no_op_batch_collator,
+        device=torch.device("cpu"),
+        batch_size_1=BATCH_SIZE_1,
+        batch_size_2=BATCH_SIZE_2,
+        num_workers_per_dataset=1,
+        distributed=False,
     )
 
     for (batch,) in dataloader:
@@ -71,5 +82,7 @@ def no_op_batch_collator():
 
 
 class NoOpCollator(BatchCollator):
-    def collate_fn(self, tcr_pmhc_pairs: Iterable[TcrPmhcPair]) -> Iterable[TcrPmhcPair]:
+    def collate_fn(
+        self, tcr_pmhc_pairs: Iterable[TcrPmhcPair]
+    ) -> Iterable[TcrPmhcPair]:
         return (tcr_pmhc_pairs,)

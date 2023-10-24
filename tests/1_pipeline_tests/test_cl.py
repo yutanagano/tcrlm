@@ -108,22 +108,16 @@ def config():
             "training_data": {
                 "dataloader": {
                     "class": "SingleDatasetDataLoader",
-                    "initargs": {
-                        "batch_size": 3,
-                        "num_workers": 1
-                    }
+                    "initargs": {"batch_size": 3, "num_workers": 1},
                 },
-                "csv_paths": ["tests/resources/mock_data.csv"]
+                "csv_paths": ["tests/resources/mock_data.csv"],
             },
             "validation_data": {
                 "dataloader": {
                     "class": "SingleDatasetDataLoader",
-                    "initargs": {
-                        "batch_size": 3,
-                        "num_workers": 1
-                    }
+                    "initargs": {"batch_size": 3, "num_workers": 1},
                 },
-                "csv_paths": ["tests/resources/mock_data.csv"]
+                "csv_paths": ["tests/resources/mock_data.csv"],
             },
             "tokeniser": {"class": "BetaCdrTokeniser", "initargs": {}},
             "batch_collator": {"class": "ClBatchCollator", "initargs": {}},
@@ -133,7 +127,10 @@ def config():
                 "class": "AdjustedCrossEntropyLoss",
                 "initargs": {"label_smoothing": 0.1},
             },
-            "contrastive_loss": {"class": "BatchContrastiveLoss", "initargs": {"temp": 0.05}},
+            "contrastive_loss": {
+                "class": "BatchContrastiveLoss",
+                "initargs": {"temp": 0.05},
+            },
         },
         "optimiser": {"initargs": {"n_warmup_steps": 10, "d_model": D_MODEL}},
         "num_epochs": 3,

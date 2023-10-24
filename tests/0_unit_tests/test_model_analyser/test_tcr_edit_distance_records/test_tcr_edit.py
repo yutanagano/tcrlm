@@ -1,5 +1,9 @@
 from src.model_analyser.tcr_edit_distance_records import tcr_edit
-from src.model_analyser.tcr_edit_distance_records.tcr_edit import TcrEdit, Position, Residue
+from src.model_analyser.tcr_edit_distance_records.tcr_edit import (
+    TcrEdit,
+    Position,
+    Residue,
+)
 
 
 def test_is_at():

@@ -3,7 +3,9 @@ import torch
 from torch import Tensor
 
 from src.nn.self_attention_stack import SelfAttentionStackWithBuiltins
-from src.nn.vector_representation_delegate import AveragePoolVectorRepresentationDelegate
+from src.nn.vector_representation_delegate import (
+    AveragePoolVectorRepresentationDelegate,
+)
 
 
 D_MODEL = 4
