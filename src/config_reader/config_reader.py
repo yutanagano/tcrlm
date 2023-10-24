@@ -15,7 +15,11 @@ import src.nn.token_embedder as token_embedder_module
 import src.nn.data.batch_collator as batch_collator_module
 import src.nn.training_delegate as training_delegate_module
 
-from src.nn.data.tcr_dataloader import TcrDataLoader, SingleDatasetDataLoader, DoubleDatasetDataLoader
+from src.nn.data.tcr_dataloader import (
+    TcrDataLoader,
+    SingleDatasetDataLoader,
+    DoubleDatasetDataLoader,
+)
 from src.nn.data.tokeniser import Tokeniser
 from src.nn.data.tcr_dataset import TcrDataset
 from src.nn.trainable_model import TrainableModel
@@ -159,12 +163,18 @@ class ConfigReader:
             dataloader = self._get_double_dataset_training_dataloader_on_device(device)
         else:
             raise ValueError(f"Unrecognised dataloader class: {data_loader_class}")
-        
+
         return dataloader
-        
-    def _get_single_dataset_training_dataloader_on_device(self, device: torch.device) -> SingleDatasetDataLoader:
-        path_to_training_data_csv_as_str = self._config["data"]["training_data"]["csv_paths"][0]
-        dataloader_initargs = self._config["data"]["training_data"]["dataloader"]["initargs"]
+
+    def _get_single_dataset_training_dataloader_on_device(
+        self, device: torch.device
+    ) -> SingleDatasetDataLoader:
+        path_to_training_data_csv_as_str = self._config["data"]["training_data"][
+            "csv_paths"
+        ][0]
+        dataloader_initargs = self._config["data"]["training_data"]["dataloader"][
+            "initargs"
+        ]
 
         tokeniser = self.get_tokeniser()
         dataset = self._get_dataset(Path(path_to_training_data_csv_as_str))
@@ -175,12 +185,18 @@ class ConfigReader:
             sampler=DistributedSampler(dataset, shuffle=True),
             batch_collator=batch_collator,
             device=device,
-            **dataloader_initargs
+            **dataloader_initargs,
         )
-    
-    def _get_double_dataset_training_dataloader_on_device(self, device: torch.device) -> DoubleDatasetDataLoader:
-        paths_to_training_data_csvs_as_str = self._config["data"]["training_data"]["csv_paths"]
-        dataloader_initargs = self._config["data"]["training_data"]["dataloader"]["initargs"]
+
+    def _get_double_dataset_training_dataloader_on_device(
+        self, device: torch.device
+    ) -> DoubleDatasetDataLoader:
+        paths_to_training_data_csvs_as_str = self._config["data"]["training_data"][
+            "csv_paths"
+        ]
+        dataloader_initargs = self._config["data"]["training_data"]["dataloader"][
+            "initargs"
+        ]
 
         tokeniser = self.get_tokeniser()
         dataset_1 = self._get_dataset(Path(paths_to_training_data_csvs_as_str[0]))
@@ -192,19 +208,28 @@ class ConfigReader:
             dataset_2=dataset_2,
             batch_collator=batch_collator,
             device=device,
-            **dataloader_initargs
+            **dataloader_initargs,
         )
 
-    def _get_validation_dataloader_on_device(self, device: torch.device) -> TcrDataLoader:
-        path_to_validation_data_csv_as_str = self._config["data"]["validation_data"]["csv_paths"][0]
-        dataloader_initargs = self._config["data"]["validation_data"]["dataloader"]["initargs"]
+    def _get_validation_dataloader_on_device(
+        self, device: torch.device
+    ) -> TcrDataLoader:
+        path_to_validation_data_csv_as_str = self._config["data"]["validation_data"][
+            "csv_paths"
+        ][0]
+        dataloader_initargs = self._config["data"]["validation_data"]["dataloader"][
+            "initargs"
+        ]
 
         tokeniser = self.get_tokeniser()
         dataset = self._get_dataset(Path(path_to_validation_data_csv_as_str))
         batch_collator = self._get_batch_collator_with_tokeniser(tokeniser)
 
         return SingleDatasetDataLoader(
-            dataset=dataset, batch_collator=batch_collator, device=device, **dataloader_initargs
+            dataset=dataset,
+            batch_collator=batch_collator,
+            device=device,
+            **dataloader_initargs,
         )
 
     def get_tokeniser(self) -> Tokeniser:
@@ -214,7 +239,17 @@ class ConfigReader:
     def _get_dataset(self, path_to_training_data_csv: Path) -> TcrDataset:
         df = pd.read_csv(path_to_training_data_csv)
 
-        for column in ("TRAV", "CDR3A", "TRAJ", "TRBV", "CDR3B", "TRBJ", "Epitope", "MHCA", "MHCB"):
+        for column in (
+            "TRAV",
+            "CDR3A",
+            "TRAJ",
+            "TRBV",
+            "CDR3B",
+            "TRBJ",
+            "Epitope",
+            "MHCA",
+            "MHCB",
+        ):
             if column not in df:
                 df[column] = pd.NA
 
@@ -230,7 +265,9 @@ class ConfigReader:
     def _get_loss_functions(self) -> dict:
         loss_function_configs = self._config["loss"]
         loss_functions = {
-            name: self._get_object_from_module_using_config(performance_measure_module, config)
+            name: self._get_object_from_module_using_config(
+                performance_measure_module, config
+            )
             for name, config in loss_function_configs.items()
         }
         return loss_functions

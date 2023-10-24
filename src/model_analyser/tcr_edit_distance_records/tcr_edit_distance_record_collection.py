@@ -1,5 +1,9 @@
-from src.model_analyser.tcr_edit_distance_records.coverage_summary import CoverageSummary
-from src.model_analyser.tcr_edit_distance_records.tcr_edit_distance_record import TcrEditDistanceRecord
+from src.model_analyser.tcr_edit_distance_records.coverage_summary import (
+    CoverageSummary,
+)
+from src.model_analyser.tcr_edit_distance_records.tcr_edit_distance_record import (
+    TcrEditDistanceRecord,
+)
 from src.model_analyser.tcr_edit_distance_records import tcr_edit
 from src.model_analyser.tcr_edit_distance_records.tcr_edit import TcrEdit
 

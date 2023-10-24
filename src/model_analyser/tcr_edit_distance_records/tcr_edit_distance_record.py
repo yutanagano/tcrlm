@@ -26,7 +26,7 @@ class TcrEditDistanceRecord:
     @property
     def max_distance(self):
         return max(self.distance_sample)
-    
+
     @property
     def is_overfilled(self):
         return self.num_distances_sampled > self.DISTANCE_SAMPLES_CAPACITY

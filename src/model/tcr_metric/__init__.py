@@ -6,7 +6,7 @@ from .levenshtein import (
     Cdr3Levenshtein,
     AlphaCdrLevenshtein,
     BetaCdrLevenshtein,
-    CdrLevenshtein
+    CdrLevenshtein,
 )
 
 from .tcrdist.tcrdist_metric import (
@@ -15,5 +15,5 @@ from .tcrdist.tcrdist_metric import (
     Cdr3Tcrdist,
     AlphaTcrdist,
     BetaTcrdist,
-    Tcrdist
+    Tcrdist,
 )

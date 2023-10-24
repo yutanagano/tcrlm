@@ -2,9 +2,15 @@ from collections import deque
 import pickle
 import pytest
 
-from src.model_analyser.tcr_edit_distance_records.tcr_edit import TcrEdit, Position, Residue
+from src.model_analyser.tcr_edit_distance_records.tcr_edit import (
+    TcrEdit,
+    Position,
+    Residue,
+)
 from src.model_analyser.tcr_edit_distance_records import tcr_edit
-from src.model_analyser.tcr_edit_distance_records.tcr_edit_distance_record_collection import TcrEditDistanceRecordCollection
+from src.model_analyser.tcr_edit_distance_records.tcr_edit_distance_record_collection import (
+    TcrEditDistanceRecordCollection,
+)
 
 
 @pytest.fixture
@@ -20,7 +26,9 @@ def sufficiently_fill_and_return(record_collection) -> TcrEditDistanceRecordColl
     return record_collection
 
 
-def test_update_edit_record(tcr_edit_record_collection: TcrEditDistanceRecordCollection):
+def test_update_edit_record(
+    tcr_edit_record_collection: TcrEditDistanceRecordCollection,
+):
     edit = TcrEdit(Position.M2, Residue.A, Residue.C)
 
     tcr_edit_record_collection.update_edit_record(edit, 1.0)
@@ -46,7 +54,9 @@ def test_print_current_estimation_coverage(
     )
 
 
-def test_has_sufficient_coverage(tcr_edit_record_collection: TcrEditDistanceRecordCollection):
+def test_has_sufficient_coverage(
+    tcr_edit_record_collection: TcrEditDistanceRecordCollection,
+):
     filled_edit_record_collection = sufficiently_fill_and_return(
         tcr_edit_record_collection
     )
@@ -54,7 +64,9 @@ def test_has_sufficient_coverage(tcr_edit_record_collection: TcrEditDistanceReco
     assert filled_edit_record_collection.has_sufficient_coverage()
 
 
-def test_save_load(tcr_edit_record_collection: TcrEditDistanceRecordCollection, tmp_path):
+def test_save_load(
+    tcr_edit_record_collection: TcrEditDistanceRecordCollection, tmp_path
+):
     edit = TcrEdit(Position.M2, Residue.A, Residue.C)
     tcr_edit_record_collection.update_edit_record(edit, 1.0)
 

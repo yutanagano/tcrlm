@@ -9,34 +9,34 @@ from src import schema
         (
             schema.make_pmhc_from_components("AAA", "HLA-A*01:01", "B2M"),
             schema.make_pmhc_from_components("AAA", "HLA-A*01:01", "B2M"),
-            True
+            True,
         ),
         (
             schema.make_pmhc_from_components("AAA", "HLA-A*01:01", "B2M"),
             schema.make_pmhc_from_components("CCC", "HLA-DRA*01:01", "HLA-DRB1*01:01"),
-            False
+            False,
         ),
         (
             schema.make_pmhc_from_components("AAA", "HLA-A*01:01", "B2M"),
             schema.make_pmhc_from_components("AAA", None, None),
-            True
+            True,
         ),
         (
             schema.make_pmhc_from_components("CCC", "HLA-DRA*01:01", "HLA-DRB1*01:01"),
             schema.make_pmhc_from_components("CCC", "HLA-DRA", "HLA-DRB1"),
-            True
+            True,
         ),
         (
             schema.make_pmhc_from_components(None, "HLA-DRA*01:01", "HLA-DRB1*01:01"),
             schema.make_pmhc_from_components(None, "HLA-DRA*01:01", "HLA-DRB1*01:01"),
-            False
+            False,
         ),
         (
             schema.make_pmhc_from_components("AAA", None, None),
             schema.make_pmhc_from_components("AAA", None, None),
-            True
+            True,
         ),
-    )
+    ),
 )
 def test_equality(anchor, comparison, expected):
     result = anchor == comparison

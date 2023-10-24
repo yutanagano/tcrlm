@@ -28,9 +28,12 @@ class ClTrainingDelegate(TrainingDelegate):
         total_lr = 0
         divisor = 0
 
-        for double_view_batch, double_view_positives_mask, masked_tcrs, mlm_targets in tqdm(
-            dataloader, disable=current_process_not_on_first_gpu
-        ):
+        for (
+            double_view_batch,
+            double_view_positives_mask,
+            masked_tcrs,
+            mlm_targets,
+        ) in tqdm(dataloader, disable=current_process_not_on_first_gpu):
             num_samples = len(double_view_batch)
 
             double_view_batch = double_view_batch.to(device)
@@ -79,9 +82,12 @@ class ClTrainingDelegate(TrainingDelegate):
         total_mlm_acc = 0
         divisor = 0
 
-        for double_view_batch, double_view_positives_mask, masked_tcrs, mlm_targets in tqdm(
-            dataloader, disable=current_process_not_on_first_gpu
-        ):
+        for (
+            double_view_batch,
+            double_view_positives_mask,
+            masked_tcrs,
+            mlm_targets,
+        ) in tqdm(dataloader, disable=current_process_not_on_first_gpu):
             num_samples = len(double_view_batch)
 
             double_view_batch = double_view_batch.to(device)
@@ -89,7 +95,9 @@ class ClTrainingDelegate(TrainingDelegate):
             masked_tcrs = masked_tcrs.to(device)
             mlm_targets = mlm_targets.to(device)
 
-            double_view_batch_embeddings, mlm_logits = model(double_view_batch, masked_tcrs)
+            double_view_batch_embeddings, mlm_logits = model(
+                double_view_batch, masked_tcrs
+            )
 
             contrastive_loss = contrastive_loss_fn(
                 double_view_batch_embeddings, double_view_positives_mask
@@ -99,10 +107,22 @@ class ClTrainingDelegate(TrainingDelegate):
             )
 
             total_cont_loss += contrastive_loss.item() * num_samples
-            total_positive_distance += performance_measure.average_positive_distance(double_view_batch_embeddings, double_view_positives_mask) * num_samples
-            total_negative_distance += performance_measure.average_negative_distance(double_view_batch_embeddings, double_view_positives_mask) * num_samples
+            total_positive_distance += (
+                performance_measure.average_positive_distance(
+                    double_view_batch_embeddings, double_view_positives_mask
+                )
+                * num_samples
+            )
+            total_negative_distance += (
+                performance_measure.average_negative_distance(
+                    double_view_batch_embeddings, double_view_positives_mask
+                )
+                * num_samples
+            )
             total_mlm_loss += mlm_loss.item() * num_samples
-            total_mlm_acc += performance_measure.mlm_acc(mlm_logits, mlm_targets) * num_samples
+            total_mlm_acc += (
+                performance_measure.mlm_acc(mlm_logits, mlm_targets) * num_samples
+            )
             divisor += num_samples
 
         return {

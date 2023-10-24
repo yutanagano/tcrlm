@@ -29,7 +29,9 @@ def mlm_acc(logits: FloatTensor, y: LongTensor, mask: Optional[Tensor] = None) -
 
 
 @torch.no_grad()
-def mlm_topk_acc(logits: FloatTensor, y: LongTensor, k: int, mask: Tensor = None) -> float:
+def mlm_topk_acc(
+    logits: FloatTensor, y: LongTensor, k: int, mask: Tensor = None
+) -> float:
     """
     Calculate the top-5 accuracy of model mlm predictions ignoring any padding
     tokens, where a prediction is considered correct if the correct option is

@@ -46,29 +46,39 @@ class AbstractBagOfAminoAcids(TcrRepresentationModel):
         return np.sum(constituent_vectors, axis=0)
 
     def _represent_alpha_chain_as_vectors(self, tcr: Tcr) -> List[ndarray]:
-        constituent_vectors = [self._represent_aa_sequence_as_vector(tcr.junction_a_sequence)]
+        constituent_vectors = [
+            self._represent_aa_sequence_as_vector(tcr.junction_a_sequence)
+        ]
 
         if self._scope == ModelScope.FULL:
-            constituent_vectors.extend([
-                self._represent_aa_sequence_as_vector(tcr.cdr1a_sequence),
-                self._represent_aa_sequence_as_vector(tcr.cdr2a_sequence)
-            ])
+            constituent_vectors.extend(
+                [
+                    self._represent_aa_sequence_as_vector(tcr.cdr1a_sequence),
+                    self._represent_aa_sequence_as_vector(tcr.cdr2a_sequence),
+                ]
+            )
 
         return constituent_vectors
 
     def _represent_beta_chain_as_vectors(self, tcr: Tcr) -> List[ndarray]:
-        constituent_vectors = [self._represent_aa_sequence_as_vector(tcr.junction_b_sequence)]
+        constituent_vectors = [
+            self._represent_aa_sequence_as_vector(tcr.junction_b_sequence)
+        ]
 
         if self._scope == ModelScope.FULL:
-            constituent_vectors.extend([
-                self._represent_aa_sequence_as_vector(tcr.cdr1b_sequence),
-                self._represent_aa_sequence_as_vector(tcr.cdr2b_sequence)
-            ])
+            constituent_vectors.extend(
+                [
+                    self._represent_aa_sequence_as_vector(tcr.cdr1b_sequence),
+                    self._represent_aa_sequence_as_vector(tcr.cdr2b_sequence),
+                ]
+            )
 
         return constituent_vectors
 
     def _represent_aa_sequence_as_vector(self, aa_seq: str) -> ndarray:
-        amino_acids_as_one_hot_encodings = list(map(self._amino_acid_as_one_hot_encoding, aa_seq))
+        amino_acids_as_one_hot_encodings = list(
+            map(self._amino_acid_as_one_hot_encoding, aa_seq)
+        )
         return np.sum(amino_acids_as_one_hot_encodings, axis=0)
 
     def _amino_acid_as_one_hot_encoding(self, amino_acid_as_string: str) -> ndarray:
@@ -78,41 +88,41 @@ class AbstractBagOfAminoAcids(TcrRepresentationModel):
 
 class AlphaCdr3BagOfAminoAcids(AbstractBagOfAminoAcids):
     name = "Alpha CDR3 Bag of Amino Acids"
-    distance_bins = range(25+1)
+    distance_bins = range(25 + 1)
     _chains_to_consider = [TcrChain.ALPHA]
     _scope = ModelScope.CDR3_ONLY
 
 
 class BetaCdr3BagOfAminoAcids(AbstractBagOfAminoAcids):
     name = "Beta CDR3 Bag of Amino Acids"
-    distance_bins = range(25+1)
+    distance_bins = range(25 + 1)
     _chains_to_consider = [TcrChain.BETA]
     _scope = ModelScope.CDR3_ONLY
 
 
 class Cdr3BagOfAminoAcids(AbstractBagOfAminoAcids):
     name = "CDR3 Bag of Amino Acids"
-    distance_bins = range(25+1)
+    distance_bins = range(25 + 1)
     _chains_to_consider = [TcrChain.ALPHA, TcrChain.BETA]
     _scope = ModelScope.CDR3_ONLY
 
 
 class AlphaBagOfAminoAcids(AbstractBagOfAminoAcids):
     name = "Alpha Bag of Amino Acids"
-    distance_bins = range(25+1)
+    distance_bins = range(25 + 1)
     _chains_to_consider = [TcrChain.ALPHA]
     _scope = ModelScope.FULL
 
 
 class BetaBagOfAminoAcids(AbstractBagOfAminoAcids):
     name = "Beta Bag of Amino Acids"
-    distance_bins = range(25+1)
+    distance_bins = range(25 + 1)
     _chains_to_consider = [TcrChain.BETA]
     _scope = ModelScope.FULL
 
 
 class BagOfAminoAcids(AbstractBagOfAminoAcids):
     name = "Bag of Amino Acids"
-    distance_bins = range(25+1)
+    distance_bins = range(25 + 1)
     _chains_to_consider = [TcrChain.ALPHA, TcrChain.BETA]
     _scope = ModelScope.FULL

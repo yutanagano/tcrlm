@@ -22,8 +22,6 @@ class ClTrainableModel(TrainableModel):
         tokenised_tcrs: LongTensor,
         tokenised_and_masked_tcrs: LongTensor,
     ) -> Tuple[FloatTensor]:
-        tcr_representations = self.bert.get_vector_representations_of(
-            tokenised_tcrs
-        )
+        tcr_representations = self.bert.get_vector_representations_of(tokenised_tcrs)
         mlm_logits = self.bert.get_mlm_token_predictions_for(tokenised_and_masked_tcrs)
         return tcr_representations, mlm_logits

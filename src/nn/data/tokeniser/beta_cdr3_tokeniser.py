@@ -3,10 +3,7 @@ from torch import Tensor
 from typing import List, Optional, Tuple
 
 from src.nn.data.tokeniser.tokeniser import Tokeniser
-from src.nn.data.tokeniser.token_indices import (
-    AminoAcidTokenIndex,
-    DefaultTokenIndex
-)
+from src.nn.data.tokeniser.token_indices import AminoAcidTokenIndex, DefaultTokenIndex
 from src.schema import Tcr
 
 
@@ -25,7 +22,7 @@ class BetaCdr3Tokeniser(Tokeniser):
         initial_cls_vector = (
             AminoAcidTokenIndex.CLS,
             DefaultTokenIndex.NULL,
-            DefaultTokenIndex.NULL
+            DefaultTokenIndex.NULL,
         )
         cdr3b = self._convert_to_numerical_form(tcr.junction_b_sequence)
 
@@ -37,7 +34,9 @@ class BetaCdr3Tokeniser(Tokeniser):
 
         return torch.tensor(tokenised, dtype=torch.long)
 
-    def _convert_to_numerical_form(self, aa_sequence: Optional[str]) -> List[Tuple[int]]:
+    def _convert_to_numerical_form(
+        self, aa_sequence: Optional[str]
+    ) -> List[Tuple[int]]:
         if aa_sequence is None:
             return []
 

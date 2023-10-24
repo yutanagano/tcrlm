@@ -1,6 +1,6 @@
 from enum import Enum
 import re
-from tidytcells import tcr
+from tidytcells import tr
 from typing import Optional, Union
 
 
@@ -13,8 +13,12 @@ def get_v_gene_indices(gene_symbol):
     return (group_num, sub_num_if_any)
 
 
-functional_travs = tcr.query(contains="TRAV", functionality="F", precision="gene")
-functional_trbvs = tcr.query(contains="TRBV", functionality="F", precision="gene")
+functional_travs = tr.query(
+    contains_pattern="TRAV", functionality="F", precision="gene"
+)
+functional_trbvs = tr.query(
+    contains_pattern="TRBV", functionality="F", precision="gene"
+)
 
 
 TravGene = Enum(
@@ -41,7 +45,7 @@ class Tcrv:
             return None
 
         allele_symbol = self.__repr__()
-        cdr1 = tcr.get_aa_sequence(allele_symbol)["CDR1-IMGT"]
+        cdr1 = tr.get_aa_sequence(allele_symbol)["CDR1-IMGT"]
         return cdr1
 
     @property
@@ -50,10 +54,10 @@ class Tcrv:
             return None
 
         allele_symbol = self.__repr__()
-        aa_sequence_dictionary = tcr.get_aa_sequence(allele_symbol)
+        aa_sequence_dictionary = tr.get_aa_sequence(allele_symbol)
 
         if "CDR2-IMGT" not in aa_sequence_dictionary:
-            return None
+            return ""
 
         return aa_sequence_dictionary["CDR2-IMGT"]
 
@@ -118,7 +122,9 @@ class Tcr:
         junction_a_repr = self._represent_junction_sequence(self.junction_a_sequence)
         junction_b_repr = self._represent_junction_sequence(self.junction_b_sequence)
 
-        return f"Tra({self._trav}/{junction_a_repr})/Trb({self._trbv}/{junction_b_repr})"
+        return (
+            f"Tra({self._trav}/{junction_a_repr})/Trb({self._trbv}/{junction_b_repr})"
+        )
 
     def _represent_junction_sequence(self, sequence: Optional[str]) -> str:
         if sequence is None:

@@ -106,25 +106,19 @@ def config():
             "training_data": {
                 "dataloader": {
                     "class": "SingleDatasetDataLoader",
-                    "initargs": {
-                        "batch_size": 3,
-                        "num_workers": 1
-                    }
+                    "initargs": {"batch_size": 3, "num_workers": 1},
                 },
-                "csv_paths": ["tests/resources/mock_data.csv"]
+                "csv_paths": ["tests/resources/mock_data.csv"],
             },
             "validation_data": {
                 "dataloader": {
                     "class": "SingleDatasetDataLoader",
-                    "initargs": {
-                        "batch_size": 3,
-                        "num_workers": 1
-                    }
+                    "initargs": {"batch_size": 3, "num_workers": 1},
                 },
-                "csv_paths": ["tests/resources/mock_data.csv"]
+                "csv_paths": ["tests/resources/mock_data.csv"],
             },
             "tokeniser": {"class": "BetaCdrTokeniser", "initargs": {}},
-            "batch_collator": {"class": "MlmBatchCollator", "initargs": {}}
+            "batch_collator": {"class": "MlmBatchCollator", "initargs": {}},
         },
         "loss": {
             "cross_entropy_loss": {

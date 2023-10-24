@@ -1,4 +1,6 @@
-from src.model_analyser.tcr_edit_distance_records.coverage_summary import CoverageSummary
+from src.model_analyser.tcr_edit_distance_records.coverage_summary import (
+    CoverageSummary,
+)
 
 
 def test_repr():

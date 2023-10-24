@@ -1,7 +1,9 @@
 from collections import deque
 import pytest
 
-from src.model_analyser.tcr_edit_distance_records.tcr_edit_distance_record import TcrEditDistanceRecord
+from src.model_analyser.tcr_edit_distance_records.tcr_edit_distance_record import (
+    TcrEditDistanceRecord,
+)
 
 
 @pytest.fixture

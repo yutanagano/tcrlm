@@ -10,13 +10,7 @@ REPRESENTATION_DIM = 5
 def test_loss():
     dummy_representations = torch.rand((BATCH_SIZE, REPRESENTATION_DIM))
     dummy_mask = torch.tensor(
-        [
-            [0,0,1,0],
-            [0,0,0,1],
-            [1,0,0,0],
-            [0,1,0,0]
-        ],
-        dtype=torch.bool
+        [[0, 0, 1, 0], [0, 0, 0, 1], [1, 0, 0, 0], [0, 1, 0, 0]], dtype=torch.bool
     )
     temp = 0.05
     loss_fn = BatchContrastiveLoss(temp)

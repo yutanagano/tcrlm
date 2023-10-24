@@ -18,16 +18,22 @@ class DoubleDatasetDataLoader:
         batch_size_1: int,
         batch_size_2: int,
         num_workers_per_dataset: int,
-        distributed: bool
+        distributed: bool,
     ) -> None:
         self._batch_collator = batch_collator
         self._device = device
-        self._dataloader_1 = self._make_internal_dataloader_for_dataset(dataset_1, batch_size_1, num_workers_per_dataset, distributed)
-        self._dataloader_2 = self._make_internal_dataloader_for_dataset(dataset_2, batch_size_2, num_workers_per_dataset, distributed)
+        self._dataloader_1 = self._make_internal_dataloader_for_dataset(
+            dataset_1, batch_size_1, num_workers_per_dataset, distributed
+        )
+        self._dataloader_2 = self._make_internal_dataloader_for_dataset(
+            dataset_2, batch_size_2, num_workers_per_dataset, distributed
+        )
 
         self._len = max(len(self._dataloader_1), len(self._dataloader_2))
 
-    def _make_internal_dataloader_for_dataset(self, dataset: TcrDataset, batch_size: int, num_workers: int, distributed: bool) -> DataLoader:
+    def _make_internal_dataloader_for_dataset(
+        self, dataset: TcrDataset, batch_size: int, num_workers: int, distributed: bool
+    ) -> DataLoader:
         if distributed:
             sampler = DistributedSampler(dataset=dataset, shuffle=True)
         else:
@@ -38,11 +44,13 @@ class DoubleDatasetDataLoader:
             sampler=sampler,
             batch_size=batch_size,
             num_workers=num_workers,
-            collate_fn=self._no_op_collation
+            collate_fn=self._no_op_collation,
         )
-    
+
     @staticmethod
-    def _no_op_collation(tcr_pmhc_pairs: Iterable[TcrPmhcPair]) -> Iterable[TcrPmhcPair]:
+    def _no_op_collation(
+        tcr_pmhc_pairs: Iterable[TcrPmhcPair],
+    ) -> Iterable[TcrPmhcPair]:
         return tcr_pmhc_pairs
 
     def __len__(self) -> int:

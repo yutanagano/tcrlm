@@ -22,9 +22,7 @@ class PrecisionRecallAnalysis(Analysis):
             results_dict[f"avg_precision_{dataset_name}"] = pr_stats["avg_precision"]
             figures[f"{dataset_name}_pr_curve"] = pr_figure
 
-        return AnalysisResult(
-            "precision_recall", results=results_dict, figures=figures
-        )
+        return AnalysisResult("precision_recall", results=results_dict, figures=figures)
 
     def _evaluate_pr_curve(self, dataset: DataFrame) -> dict:
         pdist_vector = self._model_computation_cacher.calc_pdist_vector(dataset)
