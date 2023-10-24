@@ -9,7 +9,7 @@ from typing import Set
 
 class BruteForceClusteringMachine(ClusteringMachine):
     def cluster(
-        self, tcrs: DataFrame, distance_threshold: float, batch_size: int = 10_000
+        self, tcrs: DataFrame, distance_threshold: float, batch_size: int = 1000
     ) -> Set:
         tcrs = tcrs.reset_index(drop=True)
 
