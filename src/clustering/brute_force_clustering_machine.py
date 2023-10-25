@@ -8,6 +8,10 @@ from typing import Set
 
 
 class BruteForceClusteringMachine(ClusteringMachine):
+    @property
+    def name(self) -> str:
+        return self._tcr_metric.name
+
     def cluster(
         self, tcrs: DataFrame, distance_threshold: float, batch_size: int = 1000
     ) -> Set:

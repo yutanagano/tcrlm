@@ -10,6 +10,11 @@ class ClusteringMachine(ABC):
     def __init__(self, tcr_metric: TcrMetric) -> None:
         self._tcr_metric = tcr_metric
 
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        pass
+
     @abstractmethod
     def cluster(self, tcrs: DataFrame, distance_threshold: float) -> Set[Tuple[int]]:
         pass
