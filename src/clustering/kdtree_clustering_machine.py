@@ -13,6 +13,10 @@ class KdTreeClusteringMachine(ClusteringMachine):
 
         super().__init__(tcr_metric)
 
+    @property
+    def name(self) -> str:
+        return f"{self._tcr_metric.name} (KD Tree)"
+
     def cluster(self, tcrs: DataFrame, distance_threshold: float) -> Set:
         tcrs_as_vectors = self._tcr_metric.calc_vector_representations(tcrs)
         kd_tree = KDTree(data=tcrs_as_vectors, compact_nodes=True, balanced_tree=True)
