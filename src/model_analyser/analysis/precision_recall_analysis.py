@@ -19,7 +19,7 @@ class PrecisionRecallAnalysis(Analysis):
             pr_stats = self._evaluate_pr_curve(dataset)
             pr_figure = self._plot_pr_curve(pr_stats, dataset_name)
 
-            results_dict[f"avg_precision_{dataset_name}"] = pr_stats["avg_precision"]
+            results_dict[f"avg_precision_{dataset_name}"] = pr_stats
             figures[f"{dataset_name}_pr_curve"] = pr_figure
 
         return AnalysisResult("precision_recall", results=results_dict, figures=figures)
@@ -40,10 +40,17 @@ class PrecisionRecallAnalysis(Analysis):
             positive_pair_mask, similarity_scores
         )
 
+        if len(precisions) > 1000:
+            precisions = self._subsample_to_around_n_indices(precisions, 1000)
+            recalls = self._subsample_to_around_n_indices(recalls, 1000)
+        else:
+            precisions = precisions.tolist()
+            recalls = recalls.tolist()
+
         return {
             "avg_precision": avg_precision,
-            "precisions": precisions.tolist(),
-            "recalls": recalls.tolist(),
+            "precisions": precisions,
+            "recalls": recalls,
         }
 
     def _get_epitope_cat_codes(self, dataset: DataFrame) -> ndarray:
@@ -61,6 +68,18 @@ class PrecisionRecallAnalysis(Analysis):
         return distance.squareform(
             where_comparisons_are_between_same_epitope_group, checks=False
         )
+    
+    def _subsample_to_around_n_indices(self, array: ndarray, n: int) -> list:
+        array_length = len(array)
+        skip_size = int(array_length / n)
+        remainder = array_length % skip_size
+
+        subsampled = array[::skip_size].tolist()
+
+        if remainder != 1:
+            subsampled.append(array[-1])
+
+        return subsampled
 
     def _plot_pr_curve(self, pr_stats: dict, dataset_name: str) -> Figure:
         fig, ax = plt.subplots()
@@ -69,6 +88,8 @@ class PrecisionRecallAnalysis(Analysis):
         ax.set_title(f"Precision-Recall Curve ({dataset_name})")
         ax.set_ylabel("Precision")
         ax.set_xlabel("Recall")
+        ax.set_xscale("log")
+        ax.set_yscale("log")
         fig.tight_layout()
 
         return fig

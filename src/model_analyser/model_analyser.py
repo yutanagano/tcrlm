@@ -65,8 +65,8 @@ class ModelAnalyser:
         analyses = [
             # AucByLevenshteinGroups,
             # MetricCalibrationAnalysis,
-            KnnAnalysis,
-            # PrecisionRecallAnalysis,
+            # KnnAnalysis,
+            PrecisionRecallAnalysis,
             # PgenAnalysis,
             # DistanceCorrelateAnalysis,
         ]

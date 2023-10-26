@@ -101,6 +101,10 @@ class LevenshteinMetric(TcrMetric):
     ) -> Optional[str]:
         if not isinstance(v_gene, str):
             return None
+        
+        if "*" not in v_gene:
+            v_gene += "*01"
+
         sequence_dict = tr.get_aa_sequence(v_gene)
 
         if segment in sequence_dict:
