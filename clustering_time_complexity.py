@@ -48,7 +48,7 @@ def get_time_complexity_stats_for_model(model: ClusteringMachine) -> dict:
         num_repeats = math.ceil(10_000 / num_tcrs)
 
         print(f"Benchmarking {num_tcrs} TCRs...")
-        if "KD Tree" not in model.name and num_tcrs > 100_000:
+        if "KD Tree" not in model.name and num_tcrs > 10_000:
             time_in_seconds = None
         else:
             repeated_times = timeit.repeat(lambda: model.cluster(data[:num_tcrs], 1), number=1, repeat=num_repeats)
