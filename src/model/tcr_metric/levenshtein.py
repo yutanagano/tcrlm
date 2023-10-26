@@ -76,8 +76,10 @@ class LevenshteinMetric(TcrMetric):
 
     def _expand_v_gene_cdrs(self, df: DataFrame) -> DataFrame:
         df = df.copy()
-        df[["CDR1A", "CDR2A"]] = self._get_cdrs_from_v_genes(df.TRAV)
-        df[["CDR1B", "CDR2B"]] = self._get_cdrs_from_v_genes(df.TRBV)
+        if any(["A" in column for column in self._columns_to_compare]):
+            df[["CDR1A", "CDR2A"]] = self._get_cdrs_from_v_genes(df.TRAV)
+        if any(["B" in column for column in self._columns_to_compare]):
+            df[["CDR1B", "CDR2B"]] = self._get_cdrs_from_v_genes(df.TRBV)
         return df
 
     def _get_cdrs_from_v_genes(self, v_genes: Series) -> DataFrame:

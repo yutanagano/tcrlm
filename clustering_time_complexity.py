@@ -1,10 +1,11 @@
 import json
-from matplotlib.figure import Figure
+import math
 import pandas as pd
 from pathlib import Path
 from pandas import DataFrame
 from src.clustering import ClusteringMachine, BruteForceClusteringMachine, KdTreeClusteringMachine
 from src.model import tcr_metric, tcr_representation_model
+import statistics
 import timeit
 
 
@@ -29,7 +30,7 @@ def get_time_complexity_stats() -> dict:
         levenshtein_bf,
         tcrdist_bf,
         blastr_bf,
-        blastr_kdt
+        blastr_kdt,
     ):
         model_stats = get_time_complexity_stats_for_model(model)
         stats[model.name] = model_stats
@@ -38,18 +39,28 @@ def get_time_complexity_stats() -> dict:
 
 
 def get_time_complexity_stats_for_model(model: ClusteringMachine) -> dict:
+    print(f"Benchmarking {model.name}...")
+
     data = load_tcr_data()
     model_stats = dict()
 
     for num_tcrs in (100, 500, 1_000, 5_000, 10_000, 50_000, 100_000):
-        time_in_seconds = timeit.timeit(lambda: model.cluster(data[:num_tcrs], 1), number=1)
+        num_repeats = math.ceil(10_000 / num_tcrs)
+
+        print(f"Benchmarking {num_tcrs} TCRs...")
+        if "KD Tree" not in model.name and num_tcrs > 100_000:
+            time_in_seconds = None
+        else:
+            repeated_times = timeit.repeat(lambda: model.cluster(data[:num_tcrs], 1), number=1, repeat=num_repeats)
+            time_in_seconds = statistics.mean(repeated_times)
+        print(f"{time_in_seconds} seconds.")
         model_stats[num_tcrs] = time_in_seconds
 
     return model_stats
 
 
 def load_tcr_data() -> DataFrame:
-    data = pd.read_csv("/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/tanno/test.csv")
+    data = pd.read_csv("/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/olga/olga.csv")
     data.TRAV = data.TRAV.map(lambda x: x+"*01")
     data.TRBV = data.TRBV.map(lambda x: x+"*01")
     return data
