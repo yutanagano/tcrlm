@@ -18,10 +18,13 @@ from src.model_analyser.analysis import (
 from src.model_analyser.analysis_result import AnalysisResult
 
 
-BACKGROUND_DATA_PATH = "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/tanno/test.csv"
+project_root = Path("/")/"home"/"yutanagano"/"Projects"/"tcr_embedder"
+
+
+BACKGROUND_DATA_PATH = project_root/"tcr_data"/"preprocessed"/"tanno"/"test.csv"
 LABELLED_DATA_PATHS = {
-    "gdb_holdout": "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/gdb/test.csv",
-    "minervina": "/home/yutanagano/UCLOneDrive/MBPhD/projects/tcr_embedder/data/preprocessed/minervina/preprocessed.csv",
+    "gdb_holdout": project_root/"tcr_data"/"preprocessed"/"gdb"/"test.csv",
+    "minervina": project_root/"tcr_data"/"preprocessed"/"minervina"/"preprocessed.csv",
 }
 
 
