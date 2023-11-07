@@ -8,7 +8,6 @@ from sklearn import metrics
 
 from src.model_analyser.analysis import Analysis
 from src.model_analyser.analysis_result import AnalysisResult
-from typing import Iterable
 
 
 class PrecisionRecallAnalysis(Analysis):
@@ -28,8 +27,10 @@ class PrecisionRecallAnalysis(Analysis):
         return AnalysisResult("precision_recall", results=results_dict, figures=figures)
 
     def _evaluate_pr_curve(self, dataset: DataFrame) -> dict:
-        pdist_vector = self._model_computation_cacher.calc_pdist_vector(dataset)
-        epitope_cat_codes = self._get_epitope_cat_codes(dataset)
+        dataset_expanded = self._expand_dataset_for_repeated_clones(dataset)
+
+        pdist_vector = self._model_computation_cacher.calc_pdist_vector(dataset_expanded)
+        epitope_cat_codes = self._get_epitope_cat_codes(dataset_expanded)
 
         similarity_scores = self._get_similarity_scores_from_distances(pdist_vector)
         positive_pair_mask = self._get_positive_pair_mask_from_epitope_cat_codes(
@@ -58,6 +59,10 @@ class PrecisionRecallAnalysis(Analysis):
             "recalls": recalls,
             "background_discovery_rates": background_discovery_rates
         }
+    
+    def _expand_dataset_for_repeated_clones(self, dataset: DataFrame) -> DataFrame:
+        index_expanding_repeated_clones = dataset.index.repeat(dataset.clone_count)
+        return dataset.loc[index_expanding_repeated_clones]
 
     def _get_epitope_cat_codes(self, dataset: DataFrame) -> ndarray:
         return dataset.Epitope.astype("category").cat.codes.to_numpy()
@@ -87,37 +92,40 @@ class PrecisionRecallAnalysis(Analysis):
         return (precisions, recalls, thresholds)
     
     def _subsample_to_around_n_indices(self, l: list, n: int) -> list:
-        list_length = len(l)
-        skip_size = int(list_length / n)
-        remainder = list_length % skip_size
+        first_1000_points = l[:1000]
+        remaining_points = l[1000:]
 
-        subsampled = l[::skip_size]
+        remaining_length = len(remaining_points)
+        skip_size = int(remaining_length / n)
+        remainder = remaining_length % skip_size
+
+        remaining_subsampled = remaining_points[::skip_size]
 
         if remainder != 1:
-            subsampled = l[0:1] + subsampled
+            remaining_subsampled.append(remaining_points[-1])
 
-        return subsampled
+        return first_1000_points + remaining_subsampled
     
-    def _get_background_discovery_rates(self, thresholds: ndarray, reference_tcrs: DataFrame) -> list:
+    def _get_background_discovery_rates(self, thresholds: list, reference_tcrs: DataFrame) -> list:
+        BG_SAMPLE_SIZE = 10_000
         cdist_matrix = self._model_computation_cacher.calc_cdist_matrix(
-            self._background_data.sample(n=10_000, random_state=420), reference_tcrs
+            self._background_data.sample(n=BG_SAMPLE_SIZE, random_state=420), reference_tcrs
         )
         similarity_scores = self._get_similarity_scores_from_distances(cdist_matrix)
-        discovery_rate_for_infinitessimal_threshold = 0
-        discovery_rates = [discovery_rate_for_infinitessimal_threshold]
         thresholds_except_infinitessimal = thresholds[1:]
 
-        for threshold in thresholds_except_infinitessimal:
-            previous_rate = discovery_rates[-1]
+        discovery_rates = [0]
 
-            if previous_rate == 1:
+        for threshold in thresholds_except_infinitessimal:
+            last_discovery_rate = discovery_rates[-1]
+            if last_discovery_rate == 1:
                 discovery_rate = 1
-            else:
-                within_threshold = similarity_scores >= threshold
-                num_discoveries_per_bg_tcr = within_threshold.sum(axis=1)
-                deorphanised = num_discoveries_per_bg_tcr > 0
-                discovery_rate = deorphanised.sum() / len(deorphanised)
-            
+
+            within_threshold = similarity_scores >= threshold
+            num_discoveries_per_bg_tcr = within_threshold.sum(axis=1)
+            deorphanised = num_discoveries_per_bg_tcr > 0
+            discovery_rate = deorphanised.sum() / BG_SAMPLE_SIZE
+
             discovery_rates.append(discovery_rate)
 
         return discovery_rates
