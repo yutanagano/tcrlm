@@ -17,3 +17,5 @@ from .tcrdist.tcrdist_metric import (
     BetaTcrdist,
     Tcrdist,
 )
+
+from .ml_tcrdist.ml_tcrdist import BetaMlTcrDist
