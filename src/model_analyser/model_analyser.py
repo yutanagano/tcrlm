@@ -23,7 +23,8 @@ project_root = Path("/")/"home"/"yutanagano"/"Projects"/"tcr_embedder"
 
 BACKGROUND_DATA_PATH = project_root/"tcr_data"/"preprocessed"/"tanno"/"test.csv"
 LABELLED_DATA_PATHS = {
-    "gdb_holdout": project_root/"tcr_data"/"preprocessed"/"gdb"/"test.csv",
+    # "mira": project_root/"tcr_data"/"preprocessed"/"mira"/"test.csv"
+    # "gdb_holdout": project_root/"tcr_data"/"preprocessed"/"gdb"/"test.csv",
     "minervina": project_root/"tcr_data"/"preprocessed"/"minervina"/"preprocessed.csv",
 }
 

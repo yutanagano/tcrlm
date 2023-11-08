@@ -1,5 +1,4 @@
 from src.model_analyser.analysis import PgenAnalysis
-
 from tests.resources.analysis_result_checker import AnalysisResultChecker
 
 
@@ -10,7 +9,6 @@ def test_run(
     beta_cdr3_levenshtein_model,
     tmp_path,
 ):
-    print(mock_bg_data)
     analysis = PgenAnalysis(
         background_data=mock_bg_data,
         background_pgen=mock_pgens,
