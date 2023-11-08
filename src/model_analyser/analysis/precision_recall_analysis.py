@@ -11,7 +11,12 @@ from src.model_analyser.analysis_result import AnalysisResult
 
 
 class PrecisionRecallAnalysis(Analysis):
-    def run(self) -> AnalysisResult:
+    BG_SAMPLE_SIZE = 10_000
+
+    def run(self, testing: bool = False) -> AnalysisResult:
+        if testing:
+            self.BG_SAMPLE_SIZE = 2
+
         results_dict = dict()
         figures = dict()
 
@@ -42,9 +47,9 @@ class PrecisionRecallAnalysis(Analysis):
         )
 
         if len(precisions) > 10_000:
-            precisions = self._subsample_to_around_n_indices(precisions, 10_000)
-            recalls = self._subsample_to_around_n_indices(recalls, 10_000)
-            thresholds = self._subsample_to_around_n_indices(thresholds, 10_000)
+            precisions = self._intelligently_subsample_list(precisions)
+            recalls = self._intelligently_subsample_list(recalls)
+            thresholds = self._intelligently_subsample_list(thresholds)
 
         background_discovery_rates = self._get_background_discovery_rates(
             thresholds, dataset
@@ -91,25 +96,45 @@ class PrecisionRecallAnalysis(Analysis):
 
         return (precisions, recalls, thresholds)
     
-    def _subsample_to_around_n_indices(self, l: list, n: int) -> list:
-        first_1000_points = l[:1000]
-        remaining_points = l[1000:]
+    def _intelligently_subsample_list(self, l: list) -> list:
+        length = len(l)
 
-        remaining_length = len(remaining_points)
-        skip_size = int(remaining_length / n)
-        remainder = remaining_length % skip_size
+        first_chunk_size = int(length * 0.001)
+        second_chunk_size = int(length * 0.01)
+        third_chunk_size = int(length * 0.1)
 
-        remaining_subsampled = remaining_points[::skip_size]
+        first_chunk_boundary = first_chunk_size
+        second_chunk_boundary = first_chunk_boundary + second_chunk_size
+        third_chunk_boundary = second_chunk_boundary + third_chunk_size
+
+        first_chunk = l[:first_chunk_boundary]
+        second_chunk = l[first_chunk_boundary:second_chunk_boundary]
+        third_chunk = l[second_chunk_boundary:third_chunk_boundary]
+        remaining_points = l[third_chunk_boundary:]
+
+        first_chunk = self._subsample_to_about_n_elements(first_chunk, 500)
+        second_chunk = self._subsample_to_about_n_elements(second_chunk, 500)
+        third_chunk = self._subsample_to_about_n_elements(third_chunk, 500)
+        remaining_points = self._subsample_to_about_n_elements(remaining_points, 500)
+
+        return first_chunk + second_chunk + third_chunk + remaining_points
+    
+    def _subsample_to_about_n_elements(self, l: list, n: int) -> list:
+        list_length = len(l)
+
+        skip_size = int(list_length / n)
+        remainder = list_length % skip_size
+
+        subsampled = l[::skip_size]
 
         if remainder != 1:
-            remaining_subsampled.append(remaining_points[-1])
+            subsampled.append(l[-1])
 
-        return first_1000_points + remaining_subsampled
+        return subsampled
     
     def _get_background_discovery_rates(self, thresholds: list, reference_tcrs: DataFrame) -> list:
-        BG_SAMPLE_SIZE = 10_000
         cdist_matrix = self._model_computation_cacher.calc_cdist_matrix(
-            self._background_data.sample(n=BG_SAMPLE_SIZE, random_state=420), reference_tcrs
+            self._background_data.sample(n=self.BG_SAMPLE_SIZE, random_state=420), reference_tcrs
         )
         similarity_scores = self._get_similarity_scores_from_distances(cdist_matrix)
         thresholds_except_infinitessimal = thresholds[1:]
@@ -124,7 +149,7 @@ class PrecisionRecallAnalysis(Analysis):
             within_threshold = similarity_scores >= threshold
             num_discoveries_per_bg_tcr = within_threshold.sum(axis=1)
             deorphanised = num_discoveries_per_bg_tcr > 0
-            discovery_rate = deorphanised.sum() / BG_SAMPLE_SIZE
+            discovery_rate = deorphanised.sum() / self.BG_SAMPLE_SIZE
 
             discovery_rates.append(discovery_rate)
 

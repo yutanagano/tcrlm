@@ -1,5 +1,4 @@
 from src.model_analyser.analysis import PrecisionRecallAnalysis
-
 from tests.resources.analysis_result_checker import AnalysisResultChecker
 
 
@@ -18,7 +17,7 @@ def test_run(
         working_directory=tmp_path,
     )
 
-    result = analysis.run()
+    result = analysis.run(testing=True)
     result_checker = AnalysisResultChecker(result)
 
     assert result_checker.name_is("precision_recall")
