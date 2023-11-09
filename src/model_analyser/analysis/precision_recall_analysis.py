@@ -121,8 +121,11 @@ class PrecisionRecallAnalysis(Analysis):
     
     def _subsample_to_about_n_elements(self, l: list, n: int) -> list:
         list_length = len(l)
-
         skip_size = int(list_length / n)
+
+        if skip_size == 0:
+            return l
+
         remainder = list_length % skip_size
 
         subsampled = l[::skip_size]
