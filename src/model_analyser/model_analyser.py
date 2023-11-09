@@ -24,8 +24,7 @@ project_root = Path("/")/"home"/"yutanagano"/"Projects"/"tcr_embedder"
 BACKGROUND_DATA_PATH = project_root/"tcr_data"/"preprocessed"/"tanno"/"test.csv"
 LABELLED_DATA_PATHS = {
     "mira": project_root/"tcr_data"/"preprocessed"/"mira"/"test.csv",
-    "gdb_holdout": project_root/"tcr_data"/"preprocessed"/"gdb"/"test.csv",
-    "minervina": project_root/"tcr_data"/"preprocessed"/"minervina"/"preprocessed.csv",
+    "mira_training_epitopes": project_root/"tcr_data"/"preprocessed"/"mira"/"test_training_epitopes_subset.csv"
 }
 
 
