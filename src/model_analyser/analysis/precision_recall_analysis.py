@@ -25,7 +25,7 @@ class PrecisionRecallAnalysis(Analysis):
             pr_figure = self._plot_pr_curve(pr_stats, dataset_name)
             bg_discovery_rate_figure = self._plot_background_discovery_rate(pr_stats, dataset_name)
 
-            results_dict[f"avg_precision_{dataset_name}"] = pr_stats
+            results_dict[f"pr_stats_{dataset_name}"] = pr_stats
             figures[f"{dataset_name}_pr_curve"] = pr_figure
             figures[f"{dataset_name}_bg_discovery_rates"] = bg_discovery_rate_figure
 
@@ -60,6 +60,7 @@ class PrecisionRecallAnalysis(Analysis):
 
         return {
             "avg_precision": avg_precision,
+            "thresholds": thresholds,
             "precisions": precisions,
             "recalls": recalls,
             "background_discovery_rates": background_discovery_rates
@@ -91,8 +92,8 @@ class PrecisionRecallAnalysis(Analysis):
         )
         precisions = list(reversed(precisions))
         recalls = list(reversed(recalls))
-        infinitessimal_threshold = 1
-        thresholds = [infinitessimal_threshold] + list(reversed(thresholds))
+        infinitessimal_threshold = 1.0
+        thresholds = [infinitessimal_threshold] + list(reversed(thresholds.astype(float)))
 
         return (precisions, recalls, thresholds)
     
@@ -150,9 +151,7 @@ class PrecisionRecallAnalysis(Analysis):
                 discovery_rate = 1
 
             within_threshold = similarity_scores >= threshold
-            num_discoveries_per_bg_tcr = within_threshold.sum(axis=1)
-            deorphanised = num_discoveries_per_bg_tcr > 0
-            discovery_rate = deorphanised.sum() / self.BG_SAMPLE_SIZE
+            discovery_rate = within_threshold.mean()
 
             discovery_rates.append(discovery_rate)
 
