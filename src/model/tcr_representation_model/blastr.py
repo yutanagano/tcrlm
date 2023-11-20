@@ -5,7 +5,6 @@ from torch import Tensor
 import numpy as np
 from numpy import ndarray
 from pandas import DataFrame
-from scipy.spatial import distance
 
 from src.nn.bert import Bert
 from src.nn.data.tcr_dataset import TcrDataset
@@ -14,6 +13,8 @@ from src.model.tcr_representation_model import TcrRepresentationModel
 from src.nn.data.tokeniser.tokeniser import Tokeniser
 from src.config_reader import ConfigReader
 from src.nn.data.batch_collator import DefaultBatchCollator
+
+from typing import Union
 
 
 class Blastr(TcrRepresentationModel):
@@ -28,12 +29,27 @@ class Blastr(TcrRepresentationModel):
         self._bert = bert.eval()
         self._device = device
 
-    def calc_vector_representations(self, tcrs: DataFrame) -> ndarray:
-        tcr_dataloader = self._make_dataloader_for(tcrs)
-        bert_representations = self._get_bert_representations_of_tcrs_in(tcr_dataloader)
-        bert_representations_as_ndarray = bert_representations.numpy()
+    def calc_cdist_matrix(
+        self, anchor_tcrs: DataFrame, comparison_tcrs: DataFrame
+    ) -> ndarray:
+        anchor_tcr_representations = self._calc_torch_representations(anchor_tcrs)
+        comparison_tcr_representations = self._calc_torch_representations(comparison_tcrs)
+        return torch.cdist(anchor_tcr_representations, comparison_tcr_representations, p=2).cpu().numpy()
 
-        return bert_representations_as_ndarray
+    def calc_pdist_vector(self, tcrs: DataFrame) -> ndarray:
+        tcr_representations = self._calc_torch_representations(tcrs)
+        return torch.pdist(tcr_representations, p=2).cpu().numpy()
+
+    def calc_vector_representations(self, tcrs: DataFrame) -> ndarray:
+        return self._calc_torch_representations(tcrs).cpu().numpy()
+
+    @torch.no_grad()
+    def _calc_torch_representations(self, tcrs: DataFrame) -> Tensor:
+        dataloader = self._make_dataloader_for(tcrs)
+        batched_representations = [
+            self._bert.get_vector_representations_of(batch) for (batch,) in dataloader
+        ]
+        return torch.concat(batched_representations)
 
     def _make_dataloader_for(self, tcrs: DataFrame) -> SingleDatasetDataLoader:
         tcrs = tcrs.copy()
@@ -52,27 +68,21 @@ class Blastr(TcrRepresentationModel):
             shuffle=False,
         )
 
-    @torch.no_grad()
-    def _get_bert_representations_of_tcrs_in(
-        self, dataloader: SingleDatasetDataLoader
-    ) -> Tensor:
-        batched_representations = [
-            self._bert.get_vector_representations_of(batch) for (batch,) in dataloader
-        ]
-        return torch.concat(batched_representations).cpu()
 
-
-def load_blastr_save(path: Path) -> Blastr:
+def load_blastr_save(path: Path, device: Union[torch.device, str, int, None] = None) -> Blastr:
     with open(path / "config.json", "r") as f:
         config = json.load(f)
     config_reader = ConfigReader(config)
 
     state_dict = torch.load(path / "state_dict.pt")
 
-    if torch.cuda.is_available():
-        device = torch.device("cuda:0")
+    if device is None:
+        if torch.cuda.is_available():
+            device = torch.device("cuda:0")
+        else:
+            device = torch.device("cpu")
     else:
-        device = torch.device("cpu")
+        device = torch.device(device)
 
     name = config_reader.get_model_name()
     tokeniser = config_reader.get_tokeniser()

@@ -24,7 +24,8 @@ project_root = Path("/")/"home"/"yutanagano"/"Projects"/"tcr_embedder"
 BACKGROUND_DATA_PATH = project_root/"tcr_data"/"preprocessed"/"tanno"/"test.csv"
 LABELLED_DATA_PATHS = {
     "mira": project_root/"tcr_data"/"preprocessed"/"mira"/"test.csv",
-    "mira_training_epitopes": project_root/"tcr_data"/"preprocessed"/"mira"/"test_training_epitopes_subset.csv"
+    "mira_training_epitopes": project_root/"tcr_data"/"preprocessed"/"mira"/"test_training_epitopes_subset.csv",
+    "mira_unseen_epitopes": project_root/"tcr_data"/"preprocessed"/"mira"/"test_unseen_epitopes_subset.csv"
 }
 
 
@@ -68,7 +69,7 @@ class ModelAnalyser:
         analyses = [
             # AucByLevenshteinGroups,
             # MetricCalibrationAnalysis,
-            # KnnAnalysis,
+            KnnAnalysis,
             PrecisionRecallAnalysis,
             # PgenAnalysis,
             # DistanceCorrelateAnalysis,
