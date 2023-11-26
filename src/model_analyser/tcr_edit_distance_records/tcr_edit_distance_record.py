@@ -1,4 +1,5 @@
 from collections import deque
+import statistics
 
 
 class TcrEditDistanceRecord:
@@ -17,7 +18,18 @@ class TcrEditDistanceRecord:
         if sum(self.distance_sample) == 0:
             return 0.0
 
-        return sum(self.distance_sample) / len(self.distance_sample)
+        return statistics.mean(self.distance_sample)
+    
+    @property
+    def var_distance(self):
+        if self.num_distances_sampled <= 1:
+            return 0.0
+
+        return statistics.variance(self.distance_sample)
+
+    @property
+    def std_distance(self):
+        return statistics.stdev(self.distance_sample)
 
     @property
     def min_distance(self):

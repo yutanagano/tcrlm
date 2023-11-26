@@ -34,21 +34,18 @@ class DistanceCorrelateAnalysis(Analysis):
             filled_edit_record_collection
         )
 
+        results = dict()
+        results["edit_distance_summary"] = analyser.make_summary_dict()
+
         figures = dict()
         figures[
-            "beta_junction_insertion_distances"
-        ] = analyser.make_beta_junction_insertion_figure()
-        figures[
-            "beta_junction_deletion_distances"
-        ] = analyser.make_beta_junction_deletion_figure()
-        figures[
-            "beta_junction_substitution_distances"
-        ] = analyser.make_beta_junction_substitution_figure()
+            "edit_distance_summary"
+        ] = analyser.make_summary_figure()
         figures[
             "substitution_distance_vs_blosum"
         ] = analyser.make_substitution_distance_vs_blosum_figure()
 
-        return AnalysisResult("distance_correlate_analysis", figures=figures)
+        return AnalysisResult("distance_correlate_analysis", results=results, figures=figures)
 
     def _current_model_is_irrelevant_for_this_analysis(self) -> bool:
         return not isinstance(self._model, Blastr)

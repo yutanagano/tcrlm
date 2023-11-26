@@ -3,6 +3,8 @@ import itertools
 from itertools import chain
 from matplotlib.figure import Figure
 from matplotlib import pyplot as plt
+import math
+import numpy as np
 import random
 from typing import Iterable, List, Optional, Set
 
@@ -25,50 +27,84 @@ class TcrEditDistanceRecordCollectionAnalyser:
     ) -> None:
         self.edit_record_collection = tcr_edit_record_collection
 
-    def make_beta_junction_insertion_figure(self) -> Figure:
+    def make_summary_dict(self) -> dict:
+        insertion_distances = self._get_insertion_distances_over_positions()
+        deletion_distances = self._get_deletion_distances_over_positions()
+        substitution_distances = self._get_substitution_distances_over_positions()
+
+        def get_distance_std_dict(mean_distances, standard_deviations) -> dict:
+            return {
+                "mean_distances": mean_distances,
+                "standard_deviations": standard_deviations
+            }
+
+        summary = dict()
+
+        summary["insertions"] = get_distance_std_dict(*insertion_distances)
+        summary["deletions"] = get_distance_std_dict(*deletion_distances)
+        summary["substitutions"] = get_distance_std_dict(*substitution_distances)
+
+        return summary
+
+    def make_summary_figure(self) -> Figure:
+        insertion_distances = self._get_insertion_distances_over_positions()
+        deletion_distances = self._get_deletion_distances_over_positions()
+        substitution_distances = self._get_substitution_distances_over_positions()
+
+        violin_position_array = np.arange(len(Position)) * 6
+
+        fig, ax = plt.subplots()
+
+        ax.errorbar(violin_position_array, insertion_distances[0], yerr=insertion_distances[1], fmt="o")
+        ax.errorbar(violin_position_array+1, deletion_distances[0], yerr=deletion_distances[1], fmt="o")
+        ax.errorbar(violin_position_array+2, substitution_distances[0], yerr=substitution_distances[1], fmt="o")
+        ax.set_xticks(violin_position_array+1, [position.name for position in Position])
+
+        ax.set_ylim(0)
+
+        ax.set_ylabel("distance")
+        ax.set_xlabel("CDR3 region")
+
+        return fig
+
+    def _get_insertion_distances_over_positions(self) -> List[List[float]]:
         all_insertions = self._get_all_junction_aa_insertions()
         insertions_over_positions = [
             edits.intersection(all_insertions)
             for edits in self._get_all_junction_edits_over_positions()
         ]
         distances_over_positions = [
-            self._get_distance_sample_from_specified_edits(edits)
+            self._get_mean_std_distance_from_specified_edits(edits)
             for edits in insertions_over_positions
         ]
 
-        return self._generate_distance_violinplot_over_junction_positions(
-            distances_over_positions, title="Distance Incurred (Insertions)"
-        )
+        return list(zip(*distances_over_positions))
 
-    def make_beta_junction_deletion_figure(self) -> Figure:
+    def _get_deletion_distances_over_positions(self) -> List[List[float]]:
         all_deletions = self._get_all_junction_aa_deletions()
         deletions_over_positions = [
             edits.intersection(all_deletions)
             for edits in self._get_all_junction_edits_over_positions()
         ]
         distances_over_positions = [
-            self._get_distance_sample_from_specified_edits(edits)
+            self._get_mean_std_distance_from_specified_edits(edits)
             for edits in deletions_over_positions
         ]
 
-        return self._generate_distance_violinplot_over_junction_positions(
-            distances_over_positions, title="Distance Incurred (Deletions)"
-        )
+        return list(zip(*distances_over_positions))
 
-    def make_beta_junction_substitution_figure(self) -> Figure:
+    def _get_substitution_distances_over_positions(self) -> List[List[float]]:
         all_substitutions = self._get_all_junction_aa_substitutions()
         substitutions_over_positions = [
             edits.intersection(all_substitutions)
             for edits in self._get_all_junction_edits_over_positions()
         ]
         distances_over_positions = [
-            self._get_distance_sample_from_specified_edits(edits)
+            self._get_mean_std_distance_from_specified_edits(edits)
             for edits in substitutions_over_positions
         ]
 
-        return self._generate_distance_violinplot_over_junction_positions(
-            distances_over_positions, title="Distance Incurred (Substitutions)"
-        )
+        return list(zip(*distances_over_positions))
 
     def _generate_distance_violinplot_over_junction_positions(
         self, distances_over_junction_positions: List[Iterable[float]], title: str
@@ -161,6 +197,20 @@ class TcrEditDistanceRecordCollectionAnalyser:
         ]
 
         return list(chain.from_iterable(weighted_distance_samples))
+    
+    def _get_mean_std_distance_from_specified_edits(self, edits: Iterable[TcrEdit]) -> tuple:
+        edit_records = [
+            self.edit_record_collection.edit_record_dictionary[edit] for edit in edits
+        ]
+        mean_distances = [edit_record.average_distance for edit_record in edit_records]
+        var_distances = [edit_record.var_distance for edit_record in edit_records]
+        num_samples = [edit_record.num_distances_sampled for edit_record in edit_records]
+        weights = [num / sum(num_samples) for num in num_samples]
+
+        mean_distance = sum([weight * mean_distance for (weight, mean_distance) in zip(weights, mean_distances)])
+        var_distance = sum([weight * var for (weight, var) in zip(weights, var_distances)])
+
+        return (mean_distance, math.sqrt(var_distance))
 
     def _get_sample_weights(
         self, edit_records: Iterable[TcrEditDistanceRecord]
