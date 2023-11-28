@@ -1,3 +1,4 @@
+import copy
 from enum import Enum
 import re
 from tidytcells import tr
@@ -109,6 +110,17 @@ class Tcr:
     @property
     def cdr2b_sequence(self) -> Optional[str]:
         return self._trbv.cdr2_sequence
+    
+    def copy(self) -> "Tcr":
+        return copy.deepcopy(self)
+    
+    def drop_tra(self) -> None:
+        self._trav = Tcrv(None, None)
+        self.junction_a_sequence = None
+
+    def drop_trb(self) -> None:
+        self._trbv = Tcrv(None, None)
+        self.junction_b_sequence = None
 
     def __eq__(self, __value: object) -> bool:
         return (

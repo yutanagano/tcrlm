@@ -1,15 +1,18 @@
 import numpy as np
+import random
 from typing import Iterable, Tuple, List
 import torch
 from torch import BoolTensor, LongTensor, Tensor
 
 from src.nn.data.batch_collator import MlmBatchCollator
 from src.nn.data.tokeniser.token_indices import DefaultTokenIndex
-from src.schema import TcrPmhcPair
+from src.schema import TcrPmhcPair, Tcr
 
 
 class ClBatchCollator(MlmBatchCollator):
     PROPORTION_OF_TOKENS_TO_CENSOR = 0.2
+    PROB_DROP_CHAIN = 0.5
+    PROB_DROP_ALPHA_GIVEN_DROP_CHAIN = 0.5
 
     def collate_fn(self, tcr_pmhc_pairs: Iterable[TcrPmhcPair]) -> Tuple[Tensor]:
         double_view_batch = self._generate_double_view_batch(tcr_pmhc_pairs)
@@ -28,13 +31,31 @@ class ClBatchCollator(MlmBatchCollator):
     def _generate_double_view_batch(
         self, tcr_pmhc_pairs: Iterable[TcrPmhcPair]
     ) -> LongTensor:
-        tokenised_tcrs = [self._tokeniser.tokenise(pair.tcr) for pair in tcr_pmhc_pairs]
-        tokenised_tcrs_view_1 = self._randomly_censor(tokenised_tcrs)
-        tokenised_tcrs_view_2 = self._randomly_censor(tokenised_tcrs)
+        tokenised_tcrs_view_1 = self._generate_tcr_view(tcr_pmhc_pairs)
+        tokenised_tcrs_view_2 = self._generate_tcr_view(tcr_pmhc_pairs)
         double_view_batch = self._pad_tokenised_sequences(
             tokenised_tcrs_view_1 + tokenised_tcrs_view_2
         )
         return double_view_batch
+    
+    def _generate_tcr_view(self, tcr_pmhc_pairs: Iterable[TcrPmhcPair]) -> LongTensor:
+        tcrs_with_chains_maybe_dropped = [self._maybe_drop_chain(pair.tcr) for pair in tcr_pmhc_pairs]
+        tokenised_tcrs = [self._tokeniser.tokenise(tcr) for tcr in tcrs_with_chains_maybe_dropped]
+        censored_tcrs = self._randomly_censor(tokenised_tcrs)
+        return censored_tcrs
+    
+    def _maybe_drop_chain(self, tcr: Tcr) -> Tcr:
+        new_tcr = tcr.copy()
+
+        will_drop_chain = random.random() < self.PROB_DROP_CHAIN
+        if will_drop_chain:
+            will_drop_alpha = random.random() < self.PROB_DROP_ALPHA_GIVEN_DROP_CHAIN
+            if will_drop_alpha:
+                new_tcr.drop_tra()
+            else:
+                new_tcr.drop_trb()
+        
+        return new_tcr
 
     def _randomly_censor(self, tokenised_tcrs: LongTensor) -> LongTensor:
         indices_of_tokens_to_drop = [
