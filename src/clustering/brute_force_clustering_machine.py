@@ -19,7 +19,10 @@ class BruteForceClusteringMachine(ClusteringMachine):
         range_over_batch_indices = list(range(0, len(tcrs), batch_size))
         pairs_within_threshold = []
 
-        for anchor_start_index, comparison_start_index in itertools.combinations_with_replacement(range_over_batch_indices, r=2):
+        for (
+            anchor_start_index,
+            comparison_start_index,
+        ) in itertools.combinations_with_replacement(range_over_batch_indices, r=2):
             anchor_tcrs = tcrs.iloc[
                 anchor_start_index : anchor_start_index + batch_size
             ]

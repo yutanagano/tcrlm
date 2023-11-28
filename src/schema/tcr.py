@@ -110,10 +110,10 @@ class Tcr:
     @property
     def cdr2b_sequence(self) -> Optional[str]:
         return self._trbv.cdr2_sequence
-    
+
     def copy(self) -> "Tcr":
         return copy.deepcopy(self)
-    
+
     def drop_tra(self) -> None:
         self._trav = Tcrv(None, None)
         self.junction_a_sequence = None

@@ -19,7 +19,7 @@ class TcrEditDistanceRecord:
             return 0.0
 
         return statistics.mean(self.distance_sample)
-    
+
     @property
     def var_distance(self):
         if self.num_distances_sampled <= 1:

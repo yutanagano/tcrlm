@@ -33,8 +33,14 @@ class Blastr(TcrRepresentationModel):
         self, anchor_tcrs: DataFrame, comparison_tcrs: DataFrame
     ) -> ndarray:
         anchor_tcr_representations = self._calc_torch_representations(anchor_tcrs)
-        comparison_tcr_representations = self._calc_torch_representations(comparison_tcrs)
-        return torch.cdist(anchor_tcr_representations, comparison_tcr_representations, p=2).cpu().numpy()
+        comparison_tcr_representations = self._calc_torch_representations(
+            comparison_tcrs
+        )
+        return (
+            torch.cdist(anchor_tcr_representations, comparison_tcr_representations, p=2)
+            .cpu()
+            .numpy()
+        )
 
     def calc_pdist_vector(self, tcrs: DataFrame) -> ndarray:
         tcr_representations = self._calc_torch_representations(tcrs)
@@ -57,7 +63,7 @@ class Blastr(TcrRepresentationModel):
         for col in ("Epitope", "MHCA", "MHCB"):
             if col not in tcrs:
                 tcrs[col] = None
-        
+
         dataset = TcrDataset(tcrs)
         batch_collator = DefaultBatchCollator(self._tokeniser)
         return SingleDatasetDataLoader(
@@ -69,7 +75,9 @@ class Blastr(TcrRepresentationModel):
         )
 
 
-def load_blastr_save(path: Path, device: Union[torch.device, str, int, None] = None) -> Blastr:
+def load_blastr_save(
+    path: Path, device: Union[torch.device, str, int, None] = None
+) -> Blastr:
     with open(path / "config.json", "r") as f:
         config = json.load(f)
     config_reader = ConfigReader(config)
