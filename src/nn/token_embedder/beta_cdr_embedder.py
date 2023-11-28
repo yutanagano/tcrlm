@@ -9,10 +9,12 @@ from src.nn.data.tokeniser.token_indices import (
     BetaCdrCompartmentIndex,
 )
 from src.nn.token_embedder.token_embedder import TokenEmbedder
-from src.nn.token_embedder.simple_relative_position_embedding import SimpleRelativePositionEmbedding
+from src.nn.token_embedder.simple_relative_position_embedding import (
+    SimpleRelativePositionEmbedding,
+)
 from src.nn.token_embedder.sin_position_embedding import SinPositionEmbedding
 from src.nn.token_embedder.one_hot_token_index_embedding import (
-    OneHotTokenIndexEmbedding
+    OneHotTokenIndexEmbedding,
 )
 
 
@@ -64,7 +66,7 @@ class BetaCdrEmbedderWithRelativePositions(TokenEmbedder):
         self._token_embedding = Embedding(
             num_embeddings=VOCABULARY_SIZE,
             embedding_dim=embedding_dim,
-            padding_idx=DefaultTokenIndex.NULL
+            padding_idx=DefaultTokenIndex.NULL,
         )
         self._position_embedding = SimpleRelativePositionEmbedding()
         self._compartment_embedding = OneHotTokenIndexEmbedding(BetaCdrCompartmentIndex)

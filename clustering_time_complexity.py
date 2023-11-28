@@ -4,7 +4,11 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from pandas import DataFrame
-from src.clustering import ClusteringMachine, BruteForceClusteringMachine, KdTreeClusteringMachine
+from src.clustering import (
+    ClusteringMachine,
+    BruteForceClusteringMachine,
+    KdTreeClusteringMachine,
+)
 from src.model import tcr_metric, tcr_representation_model
 import statistics
 import timeit
@@ -20,10 +24,14 @@ def get_time_complexity_stats() -> dict:
     beta_cdr3_levenshtein = tcr_metric.BetaCdr3Levenshtein()
     beta_tcrdist = tcr_metric.BetaTcrdist()
 
-    sceptr_cpu = tcr_representation_model.load_blastr_save(Path("model_saves/SCEPTR"), device="cpu")
+    sceptr_cpu = tcr_representation_model.load_blastr_save(
+        Path("model_saves/SCEPTR"), device="cpu"
+    )
     sceptr_cpu.name = "SCEPTR CPU"
 
-    sceptr_gpu = tcr_representation_model.load_blastr_save(Path("model_saves/SCEPTR"), device=0)
+    sceptr_gpu = tcr_representation_model.load_blastr_save(
+        Path("model_saves/SCEPTR"), device=0
+    )
     sceptr_gpu.name = "SCEPTR GPU"
 
     levenshtein_bf = BruteForceClusteringMachine(beta_cdr3_levenshtein)
@@ -41,7 +49,7 @@ def get_time_complexity_stats() -> dict:
         sceptr_cpu_bf,
         sceptr_gpu_bf,
         sceptr_cpu_kdt,
-        sceptr_gpu_kdt
+        sceptr_gpu_kdt,
     ):
         model_stats = get_time_complexity_stats_for_model(model)
         stats[model.name] = model_stats
@@ -59,7 +67,9 @@ def get_time_complexity_stats_for_model(model: ClusteringMachine) -> dict:
         num_repeats = math.ceil(10_000 / num_tcrs)
 
         print(f"Benchmarking {num_tcrs} TCRs...")
-        repeated_times = timeit.repeat(lambda: model.cluster(data[:num_tcrs], 1), number=1, repeat=num_repeats)
+        repeated_times = timeit.repeat(
+            lambda: model.cluster(data[:num_tcrs], 1), number=1, repeat=num_repeats
+        )
         time_in_seconds = statistics.mean(repeated_times)
         print(f"{time_in_seconds} seconds.")
         model_stats[int(num_tcrs)] = time_in_seconds
@@ -69,8 +79,8 @@ def get_time_complexity_stats_for_model(model: ClusteringMachine) -> dict:
 
 def load_tcr_data() -> DataFrame:
     data = pd.read_csv("tcr_data/preprocessed/olga/olga.csv")
-    data.TRAV = data.TRAV.map(lambda x: x+"*01")
-    data.TRBV = data.TRBV.map(lambda x: x+"*01")
+    data.TRAV = data.TRAV.map(lambda x: x + "*01")
+    data.TRBV = data.TRBV.map(lambda x: x + "*01")
     return data
 
 

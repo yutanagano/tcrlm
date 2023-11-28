@@ -37,13 +37,17 @@ class ClBatchCollator(MlmBatchCollator):
             tokenised_tcrs_view_1 + tokenised_tcrs_view_2
         )
         return double_view_batch
-    
+
     def _generate_tcr_view(self, tcr_pmhc_pairs: Iterable[TcrPmhcPair]) -> LongTensor:
-        tcrs_with_chains_maybe_dropped = [self._maybe_drop_chain(pair.tcr) for pair in tcr_pmhc_pairs]
-        tokenised_tcrs = [self._tokeniser.tokenise(tcr) for tcr in tcrs_with_chains_maybe_dropped]
+        tcrs_with_chains_maybe_dropped = [
+            self._maybe_drop_chain(pair.tcr) for pair in tcr_pmhc_pairs
+        ]
+        tokenised_tcrs = [
+            self._tokeniser.tokenise(tcr) for tcr in tcrs_with_chains_maybe_dropped
+        ]
         censored_tcrs = self._randomly_censor(tokenised_tcrs)
         return censored_tcrs
-    
+
     def _maybe_drop_chain(self, tcr: Tcr) -> Tcr:
         new_tcr = tcr.copy()
 
@@ -54,7 +58,7 @@ class ClBatchCollator(MlmBatchCollator):
                 new_tcr.drop_tra()
             else:
                 new_tcr.drop_trb()
-        
+
         return new_tcr
 
     def _randomly_censor(self, tokenised_tcrs: LongTensor) -> LongTensor:

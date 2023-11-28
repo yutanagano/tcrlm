@@ -35,7 +35,7 @@ class TcrEditDistanceRecordCollectionAnalyser:
         def get_distance_std_dict(mean_distances, standard_deviations) -> dict:
             return {
                 "mean_distances": mean_distances,
-                "standard_deviations": standard_deviations
+                "standard_deviations": standard_deviations,
             }
 
         summary = dict()
@@ -55,10 +55,27 @@ class TcrEditDistanceRecordCollectionAnalyser:
 
         fig, ax = plt.subplots()
 
-        ax.errorbar(violin_position_array, insertion_distances[0], yerr=insertion_distances[1], fmt="o")
-        ax.errorbar(violin_position_array+1, deletion_distances[0], yerr=deletion_distances[1], fmt="o")
-        ax.errorbar(violin_position_array+2, substitution_distances[0], yerr=substitution_distances[1], fmt="o")
-        ax.set_xticks(violin_position_array+1, [position.name for position in Position])
+        ax.errorbar(
+            violin_position_array,
+            insertion_distances[0],
+            yerr=insertion_distances[1],
+            fmt="o",
+        )
+        ax.errorbar(
+            violin_position_array + 1,
+            deletion_distances[0],
+            yerr=deletion_distances[1],
+            fmt="o",
+        )
+        ax.errorbar(
+            violin_position_array + 2,
+            substitution_distances[0],
+            yerr=substitution_distances[1],
+            fmt="o",
+        )
+        ax.set_xticks(
+            violin_position_array + 1, [position.name for position in Position]
+        )
 
         ax.set_ylim(0)
 
@@ -197,18 +214,29 @@ class TcrEditDistanceRecordCollectionAnalyser:
         ]
 
         return list(chain.from_iterable(weighted_distance_samples))
-    
-    def _get_mean_std_distance_from_specified_edits(self, edits: Iterable[TcrEdit]) -> tuple:
+
+    def _get_mean_std_distance_from_specified_edits(
+        self, edits: Iterable[TcrEdit]
+    ) -> tuple:
         edit_records = [
             self.edit_record_collection.edit_record_dictionary[edit] for edit in edits
         ]
         mean_distances = [edit_record.average_distance for edit_record in edit_records]
         var_distances = [edit_record.var_distance for edit_record in edit_records]
-        num_samples = [edit_record.num_distances_sampled for edit_record in edit_records]
+        num_samples = [
+            edit_record.num_distances_sampled for edit_record in edit_records
+        ]
         weights = [num / sum(num_samples) for num in num_samples]
 
-        mean_distance = sum([weight * mean_distance for (weight, mean_distance) in zip(weights, mean_distances)])
-        var_distance = sum([weight * var for (weight, var) in zip(weights, var_distances)])
+        mean_distance = sum(
+            [
+                weight * mean_distance
+                for (weight, mean_distance) in zip(weights, mean_distances)
+            ]
+        )
+        var_distance = sum(
+            [weight * var for (weight, var) in zip(weights, var_distances)]
+        )
 
         return (mean_distance, math.sqrt(var_distance))
 

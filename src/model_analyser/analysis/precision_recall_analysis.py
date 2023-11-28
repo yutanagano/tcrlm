@@ -23,7 +23,9 @@ class PrecisionRecallAnalysis(Analysis):
         for dataset_name, dataset in self._labelled_data.items():
             pr_stats = self._evaluate_pr_curve(dataset)
             pr_figure = self._plot_pr_curve(pr_stats, dataset_name)
-            bg_discovery_rate_figure = self._plot_background_discovery_rate(pr_stats, dataset_name)
+            bg_discovery_rate_figure = self._plot_background_discovery_rate(
+                pr_stats, dataset_name
+            )
 
             results_dict[f"pr_stats_{dataset_name}"] = pr_stats
             figures[f"{dataset_name}_pr_curve"] = pr_figure
@@ -34,7 +36,9 @@ class PrecisionRecallAnalysis(Analysis):
     def _evaluate_pr_curve(self, dataset: DataFrame) -> dict:
         dataset_expanded = self._expand_dataset_for_repeated_clones(dataset)
 
-        pdist_vector = self._model_computation_cacher.calc_pdist_vector(dataset_expanded)
+        pdist_vector = self._model_computation_cacher.calc_pdist_vector(
+            dataset_expanded
+        )
         epitope_cat_codes = self._get_epitope_cat_codes(dataset_expanded)
 
         similarity_scores = self._get_similarity_scores_from_distances(pdist_vector)
@@ -63,9 +67,9 @@ class PrecisionRecallAnalysis(Analysis):
             "thresholds": thresholds,
             "precisions": precisions,
             "recalls": recalls,
-            "background_discovery_rates": background_discovery_rates
+            "background_discovery_rates": background_discovery_rates,
         }
-    
+
     def _expand_dataset_for_repeated_clones(self, dataset: DataFrame) -> DataFrame:
         index_expanding_repeated_clones = dataset.index.repeat(dataset.clone_count)
         return dataset.loc[index_expanding_repeated_clones]
@@ -85,18 +89,22 @@ class PrecisionRecallAnalysis(Analysis):
         return distance.squareform(
             where_comparisons_are_between_same_epitope_group, checks=False
         )
-    
-    def _get_precision_recall_curve(self, positive_pair_mask: ndarray, similarity_scores: ndarray) -> (list, list, list):
+
+    def _get_precision_recall_curve(
+        self, positive_pair_mask: ndarray, similarity_scores: ndarray
+    ) -> (list, list, list):
         precisions, recalls, thresholds = metrics.precision_recall_curve(
             positive_pair_mask, similarity_scores
         )
         precisions = list(reversed(precisions))
         recalls = list(reversed(recalls))
         infinitessimal_threshold = 1.0
-        thresholds = [infinitessimal_threshold] + list(reversed(thresholds.astype(float)))
+        thresholds = [infinitessimal_threshold] + list(
+            reversed(thresholds.astype(float))
+        )
 
         return (precisions, recalls, thresholds)
-    
+
     def _intelligently_subsample_list(self, l: list) -> list:
         length = len(l)
 
@@ -119,7 +127,7 @@ class PrecisionRecallAnalysis(Analysis):
         remaining_points = self._subsample_to_about_n_elements(remaining_points, 500)
 
         return first_chunk + second_chunk + third_chunk + remaining_points
-    
+
     def _subsample_to_about_n_elements(self, l: list, n: int) -> list:
         list_length = len(l)
         skip_size = int(list_length / n)
@@ -135,10 +143,13 @@ class PrecisionRecallAnalysis(Analysis):
             subsampled.append(l[-1])
 
         return subsampled
-    
-    def _get_background_discovery_rates(self, thresholds: list, reference_tcrs: DataFrame) -> list:
+
+    def _get_background_discovery_rates(
+        self, thresholds: list, reference_tcrs: DataFrame
+    ) -> list:
         cdist_matrix = self._model_computation_cacher.calc_cdist_matrix(
-            self._background_data.sample(n=self.BG_SAMPLE_SIZE, random_state=420), reference_tcrs
+            self._background_data.sample(n=self.BG_SAMPLE_SIZE, random_state=420),
+            reference_tcrs,
         )
         similarity_scores = self._get_similarity_scores_from_distances(cdist_matrix)
         thresholds_except_infinitessimal = thresholds[1:]
@@ -170,7 +181,9 @@ class PrecisionRecallAnalysis(Analysis):
 
         return fig
 
-    def _plot_background_discovery_rate(self, pr_stats: dict, dataset_name: str) -> Figure:
+    def _plot_background_discovery_rate(
+        self, pr_stats: dict, dataset_name: str
+    ) -> Figure:
         fig, ax = plt.subplots()
 
         ax.step(pr_stats["recalls"], pr_stats["background_discovery_rates"])
