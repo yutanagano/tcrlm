@@ -120,7 +120,7 @@ def config():
                 "csv_paths": ["tests/resources/mock_data.csv"],
             },
             "tokeniser": {"class": "BetaCdrTokeniser", "initargs": {}},
-            "batch_collator": {"class": "ClBatchCollator", "initargs": {}},
+            "batch_collator": {"class": "ClBatchCollator", "initargs": {"drop_chains": False}},
         },
         "loss": {
             "cross_entropy_loss": {

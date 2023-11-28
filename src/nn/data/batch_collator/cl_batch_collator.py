@@ -6,6 +6,7 @@ from torch import BoolTensor, LongTensor, Tensor
 
 from src.nn.data.batch_collator import MlmBatchCollator
 from src.nn.data.tokeniser.token_indices import DefaultTokenIndex
+from src.nn.data.tokeniser.tokeniser import Tokeniser
 from src.schema import TcrPmhcPair, Tcr
 
 
@@ -13,6 +14,10 @@ class ClBatchCollator(MlmBatchCollator):
     PROPORTION_OF_TOKENS_TO_CENSOR = 0.2
     PROB_DROP_CHAIN = 0.5
     PROB_DROP_ALPHA_GIVEN_DROP_CHAIN = 0.5
+
+    def __init__(self, tokeniser: Tokeniser, drop_chains: bool) -> None:
+        super().__init__(tokeniser)
+        self._drop_chains = drop_chains
 
     def collate_fn(self, tcr_pmhc_pairs: Iterable[TcrPmhcPair]) -> Tuple[Tensor]:
         double_view_batch = self._generate_double_view_batch(tcr_pmhc_pairs)
@@ -49,6 +54,9 @@ class ClBatchCollator(MlmBatchCollator):
         return censored_tcrs
 
     def _maybe_drop_chain(self, tcr: Tcr) -> Tcr:
+        if not tcr.both_chains_specified or not self._drop_chains:
+            return tcr
+
         new_tcr = tcr.copy()
 
         will_drop_chain = random.random() < self.PROB_DROP_CHAIN
