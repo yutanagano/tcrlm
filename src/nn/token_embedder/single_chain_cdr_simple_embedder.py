@@ -3,7 +3,7 @@ from torch import FloatTensor, LongTensor
 
 from src.nn.data.tokeniser.token_indices import (
     AminoAcidTokenIndex,
-    BetaCdrCompartmentIndex,
+    SingleChainCdrCompartmentIndex,
 )
 from src.nn.token_embedder import TokenEmbedder
 from src.nn.token_embedder.simple_relative_position_embedding import (
@@ -14,12 +14,12 @@ from src.nn.token_embedder.one_hot_token_index_embedding import (
 )
 
 
-class BetaCdrSimpleEmbedder(TokenEmbedder):
+class SingleChainCdrSimpleEmbedder(TokenEmbedder):
     def __init__(self) -> None:
         super().__init__()
         self._token_embedding = OneHotTokenIndexEmbedding(AminoAcidTokenIndex)
         self._position_embedding = SimpleRelativePositionEmbedding()
-        self._compartment_embedding = OneHotTokenIndexEmbedding(BetaCdrCompartmentIndex)
+        self._compartment_embedding = OneHotTokenIndexEmbedding(SingleChainCdrCompartmentIndex)
 
     def forward(self, tokenised_tcrs: LongTensor) -> FloatTensor:
         token_component = self._token_embedding.forward(tokenised_tcrs[:, :, 0])

@@ -3,14 +3,14 @@ import torch
 from torch import Tensor
 
 from src.nn.data.tokeniser import BetaCdrTokeniser
-from src.nn.token_embedder import BetaCdrSimpleEmbedder
+from src.nn.token_embedder import SingleChainCdrSimpleEmbedder
 
 
 def test_forward(mock_batch_of_tokenised_tcrs):
     BATCH_DIMENSIONALITY = 3
     BATCH_SIZE = 2
 
-    embedder = BetaCdrSimpleEmbedder()
+    embedder = SingleChainCdrSimpleEmbedder()
     batch_of_embedded_mock_tcrs = embedder.forward(mock_batch_of_tokenised_tcrs)
     embedded_mock_tcr = batch_of_embedded_mock_tcrs[0]
     expected_embedded_mock_tcr = torch.tensor(
