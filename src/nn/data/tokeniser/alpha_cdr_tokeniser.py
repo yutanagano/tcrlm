@@ -1,3 +1,6 @@
+# TODO: Merge with beta tokeniser
+
+
 import torch
 from torch import Tensor
 from typing import List, Optional, Tuple
@@ -10,9 +13,9 @@ from src.nn.data.tokeniser.token_indices import (
 from src.schema import Tcr
 
 
-class BetaCdrTokeniser(Tokeniser):
+class AlphaCdrTokeniser(Tokeniser):
     """
-    Tokenise TCR in terms of its beta chain CDRs 1 2 and 3.
+    Tokenise TCR in terms of its alpha chain CDRs 1 2 and 3.
 
     Dim 0: token index
     Dim 1: topen position
@@ -31,20 +34,20 @@ class BetaCdrTokeniser(Tokeniser):
         )
 
         cdr1b = self._convert_to_numerical_form(
-            tcr.cdr1b_sequence, SingleChainCdrCompartmentIndex.CDR1
+            tcr.cdr1a_sequence, SingleChainCdrCompartmentIndex.CDR1
         )
         cdr2b = self._convert_to_numerical_form(
-            tcr.cdr2b_sequence, SingleChainCdrCompartmentIndex.CDR2
+            tcr.cdr2a_sequence, SingleChainCdrCompartmentIndex.CDR2
         )
         cdr3b = self._convert_to_numerical_form(
-            tcr.junction_b_sequence, SingleChainCdrCompartmentIndex.CDR3
+            tcr.junction_a_sequence, SingleChainCdrCompartmentIndex.CDR3
         )
 
         all_cdrs_tokenised = [initial_cls_vector] + cdr1b + cdr2b + cdr3b
 
         number_of_tokens_other_than_initial_cls = len(all_cdrs_tokenised) - 1
         if number_of_tokens_other_than_initial_cls == 0:
-            raise RuntimeError(f"tcr {tcr} does not contain any TRB information")
+            raise RuntimeError(f"tcr {tcr} does not contain any TRA information")
 
         return torch.tensor(all_cdrs_tokenised, dtype=torch.long)
 

@@ -6,7 +6,7 @@ from torch.nn import Embedding
 from src.nn.data.tokeniser.token_indices import (
     DefaultTokenIndex,
     AminoAcidTokenIndex,
-    BetaCdrCompartmentIndex,
+    SingleChainCdrCompartmentIndex,
 )
 from src.nn.token_embedder.token_embedder import TokenEmbedder
 from src.nn.token_embedder.simple_relative_position_embedding import (
@@ -20,7 +20,7 @@ from src.nn.token_embedder.one_hot_token_index_embedding import (
 
 MAX_PLAUSIBLE_CDR_LENGTH = 100
 VOCABULARY_SIZE = len(AminoAcidTokenIndex)
-NUMBER_OF_COMPARTMENTS = len(BetaCdrCompartmentIndex)
+NUMBER_OF_COMPARTMENTS = len(SingleChainCdrCompartmentIndex)
 
 
 class BetaCdrEmbedder(TokenEmbedder):
@@ -69,7 +69,7 @@ class BetaCdrEmbedderWithRelativePositions(TokenEmbedder):
             padding_idx=DefaultTokenIndex.NULL,
         )
         self._position_embedding = SimpleRelativePositionEmbedding()
-        self._compartment_embedding = OneHotTokenIndexEmbedding(BetaCdrCompartmentIndex)
+        self._compartment_embedding = OneHotTokenIndexEmbedding(SingleChainCdrCompartmentIndex)
 
     def forward(self, tokenised_tcrs: Tensor) -> Tensor:
         token_component = self._token_embedding.forward(tokenised_tcrs[:, :, 0])
