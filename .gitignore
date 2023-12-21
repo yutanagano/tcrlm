@@ -10,3 +10,5 @@ __pycache__
 /ignore
 /run_local_training.sh
 /.ropeproject
+/model_saves
+/tcr_data
