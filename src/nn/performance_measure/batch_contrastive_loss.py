@@ -105,5 +105,6 @@ class AngularDistanceLoss(BatchContrastiveLoss):
     @staticmethod
     def pdist_squareform(tcr_representations: FloatTensor) -> FloatTensor:
         cosine_similarity = torch.matmul(tcr_representations, tcr_representations.T) # note that all representations are l2-normed beforehand
-        cosine_similarity = torch.clamp(cosine_similarity, min=-1, max=1)
-        return torch.acos(cosine_similarity)
+        cosine_similarity = torch.clamp(cosine_similarity, min=-0.9999, max=0.9999)
+        acos = torch.acos(cosine_similarity)
+        return acos
