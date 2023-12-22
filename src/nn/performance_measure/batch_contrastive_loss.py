@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
 import torch
 from torch import BoolTensor, FloatTensor
+from torch.nn import Module
 
 
-class BatchContrastiveLoss(ABC):
+class BatchContrastiveLoss(ABC, Module):
     """
             1    N
     Loss = --- * Σ (Loss_i)
@@ -45,6 +46,7 @@ class BatchContrastiveLoss(ABC):
         pass
 
     def __init__(self, temp: float = 0.05) -> None:
+        super().__init__()
         self._temp = temp
 
     def forward(
@@ -55,12 +57,13 @@ class BatchContrastiveLoss(ABC):
         positives_term = self._get_positives_term(exponent_terms, positives_mask)
         background_term = self._get_background_term(exponent_terms)
         loss_per_sample = background_term - positives_term
+
         return loss_per_sample.mean()
 
     @staticmethod
     def _adjust_to_prevent_overflow(exponent_terms: FloatTensor) -> FloatTensor:
         ALONG_ROWS = 1
-        value_guaranteed_to_be_small = exponent_terms.min()
+        value_guaranteed_to_be_small = exponent_terms.min().item()
         exponent_terms.fill_diagonal_(value_guaranteed_to_be_small)
         max_off_diagonal_value_from_each_row, _ = exponent_terms.max(dim=ALONG_ROWS, keepdim=True)
         return exponent_terms - max_off_diagonal_value_from_each_row
@@ -92,8 +95,15 @@ class DotProductLoss(BatchContrastiveLoss):
         return -torch.matmul(tcr_representations, tcr_representations.T)
     
 
+class EuclideanDistanceLoss(BatchContrastiveLoss):
+    @staticmethod
+    def pdist_squareform(tcr_representations: FloatTensor) -> FloatTensor:
+        return torch.cdist(tcr_representations, tcr_representations, p=2)
+
+
 class AngularDistanceLoss(BatchContrastiveLoss):
     @staticmethod
     def pdist_squareform(tcr_representations: FloatTensor) -> FloatTensor:
         cosine_similarity = torch.matmul(tcr_representations, tcr_representations.T) # note that all representations are l2-normed beforehand
+        cosine_similarity = torch.clamp(cosine_similarity, min=-1, max=1)
         return torch.acos(cosine_similarity)
