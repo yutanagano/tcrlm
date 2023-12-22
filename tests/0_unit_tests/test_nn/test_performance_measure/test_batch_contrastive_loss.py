@@ -1,6 +1,6 @@
 import torch
 
-from src.nn.performance_measure import BatchContrastiveLoss
+from src.nn.performance_measure import DotProductLoss
 
 
 BATCH_SIZE = 4
@@ -13,7 +13,7 @@ def test_loss():
         [[0, 0, 1, 0], [0, 0, 0, 1], [1, 0, 0, 0], [0, 1, 0, 0]], dtype=torch.bool
     )
     temp = 0.05
-    loss_fn = BatchContrastiveLoss(temp)
+    loss_fn = DotProductLoss(temp)
 
     result = loss_fn.forward(dummy_representations, dummy_mask)
     expected = alternate_loss_computation(dummy_representations, dummy_mask, temp)
