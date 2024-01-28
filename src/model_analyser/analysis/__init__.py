@@ -6,3 +6,4 @@ from .pgen_analysis import PgenAnalysis
 from .precision_recall_analysis import PrecisionRecallAnalysis
 from .distance_correlate_analysis import DistanceCorrelateAnalysis
 from .auc_by_levenshtein_groups import AucByLevenshteinGroups
+from .representation_space_analysis import RepresentationSpaceAnalysis

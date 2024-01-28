@@ -14,6 +14,7 @@ from src.model_analyser.analysis import (
     MetricCalibrationAnalysis,
     DistanceCorrelateAnalysis,
     AucByLevenshteinGroups,
+    RepresentationSpaceAnalysis
 )
 from src.model_analyser.analysis_result import AnalysisResult
 
@@ -61,10 +62,7 @@ class ModelAnalyser:
     def _load_tcr_csv(self, path_to_csv: str) -> DataFrame:
         df = pd.read_csv(path_to_csv)
 
-        for column in ("TRAV", "CDR3A", "TRAJ"):
-            df[column] = pd.NA
-
-        for column in ("TRBV", "CDR3B", "TRBJ"):
+        for column in ("TRAV", "CDR3A", "TRAJ", "TRBV", "CDR3B", "TRBJ"):
             if column not in df:
                 df[column] = pd.NA
 
@@ -79,8 +77,9 @@ class ModelAnalyser:
             # MetricCalibrationAnalysis,
             KnnAnalysis,
             PrecisionRecallAnalysis,
-            # PgenAnalysis,
-            # DistanceCorrelateAnalysis,
+            PgenAnalysis,
+            DistanceCorrelateAnalysis,
+            # RepresentationSpaceAnalysis
         ]
 
         analysis_results = [
