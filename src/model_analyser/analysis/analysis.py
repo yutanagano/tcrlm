@@ -6,13 +6,14 @@ from src.model.tcr_metric import TcrMetric
 from src.model_analyser.model_computation_cacher import ModelComputationCacher
 from src.model_analyser.analysis_result import AnalysisResult
 
+from typing import Dict
 
 class Analysis(ABC):
     def __init__(
         self,
         background_data: DataFrame,
         background_pgen: DataFrame,
-        labelled_data: DataFrame,
+        labelled_data: Dict[str, DataFrame],
         tcr_model: TcrMetric,
         working_directory: Path,
     ) -> None:
