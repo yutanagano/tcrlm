@@ -14,7 +14,9 @@ from src.model_analyser.analysis import (
     MetricCalibrationAnalysis,
     DistanceCorrelateAnalysis,
     AucByLevenshteinGroups,
-    RepresentationSpaceAnalysis
+    RepresentationSpaceAnalysis,
+    OneVsRest,
+    OneVsBackground
 )
 from src.model_analyser.analysis_result import AnalysisResult
 
@@ -24,17 +26,8 @@ project_root = Path("/") / "home" / "yutanagano" / "Projects" / "tcr_embedder"
 
 BACKGROUND_DATA_PATH = project_root / "tcr_data" / "preprocessed" / "tanno" / "test.csv"
 LABELLED_DATA_PATHS = {
-    "mira": project_root / "tcr_data" / "preprocessed" / "mira" / "test.csv",
-    "mira_training_epitopes": project_root
-    / "tcr_data"
-    / "preprocessed"
-    / "mira"
-    / "test_training_epitopes_subset.csv",
-    "mira_unseen_epitopes": project_root
-    / "tcr_data"
-    / "preprocessed"
-    / "mira"
-    / "test_unseen_epitopes_subset.csv",
+    "benchmarking_training": project_root / "tcr_data" / "preprocessed" / "benchmarking" / "training.csv",
+    "benchmarking_testing": project_root / "tcr_data" / "preprocessed" / "benchmarking" / "testing.csv"
 }
 
 
@@ -73,12 +66,14 @@ class ModelAnalyser:
 
     def analyse(self, tcr_model: TcrMetric) -> None:
         analyses = [
+            OneVsRest,
+            OneVsBackground,
             # AucByLevenshteinGroups,
             # MetricCalibrationAnalysis,
-            KnnAnalysis,
-            PrecisionRecallAnalysis,
-            PgenAnalysis,
-            DistanceCorrelateAnalysis,
+            # KnnAnalysis,
+            # PrecisionRecallAnalysis,
+            # PgenAnalysis,
+            # DistanceCorrelateAnalysis,
             # RepresentationSpaceAnalysis
         ]
 
