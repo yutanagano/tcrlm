@@ -4,6 +4,7 @@ from pandas import DataFrame
 from sklearn import metrics
 from src.model_analyser.analysis import Analysis
 from src.model_analyser.analysis_result import AnalysisResult
+import statistics
 from tqdm import tqdm
 
 
@@ -13,19 +14,27 @@ class EpitopeRanking(Analysis):
 
         reference_data = self._labelled_data["benchmarking_training"]
         test_data = self._labelled_data["benchmarking_testing"]
+        test_data_epitope_catcodes = test_data["Epitope"].astype("category").cat.codes.to_numpy()[:,np.newaxis]
 
         epitopes = reference_data["Epitope"].unique()
         dists_to_nn = []
         for epitope in tqdm(epitopes):
-            ground_truth = test_data["Epitope"] == epitope
             predictive_distance = self._get_dists_to_nn(test_data, reference_data, epitope)
-            similarity_scores = np.exp(-predictive_distance/50)
+            dists_to_nn.append(predictive_distance)
+        dists_to_nn = np.stack(dists_to_nn)
+        epitopes_ranked = np.argsort(dists_to_nn, axis=0).T
+        epitope_rankings = np.nonzero(epitopes_ranked == test_data_epitope_catcodes)[1]
 
-        dists_to_nn = DataFrame(dists_to_nn)
+        avg_ranks = []
+        for epitope in epitopes:
+            mask = (test_data["Epitope"] == epitope).to_numpy()
+            rankings = epitope_rankings[mask]
+            avg_rank = rankings.mean()
+            avg_ranks.append(avg_rank)
 
+        results_dict["avg_rank"] = statistics.mean(avg_ranks)
 
-
-        return AnalysisResult("one_vs_rest", results=results_dict)
+        return AnalysisResult("epitope_ranking", results=results_dict)
     
     def _get_dists_to_nn(self, test_data: DataFrame, reference_data: DataFrame, epitope: str) -> ndarray:
         epitope_reference = reference_data[reference_data["Epitope"] == epitope]
