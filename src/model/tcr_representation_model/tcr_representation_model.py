@@ -10,6 +10,11 @@ class TcrRepresentationModel(TcrMetric):
     See TcrMetric for specs of input DataFrames.
     """
 
+    @property
+    @abstractmethod
+    def d_model(self) -> int:
+        pass
+
     def calc_cdist_matrix(
         self, anchor_tcrs: DataFrame, comparison_tcrs: DataFrame
     ) -> ndarray:

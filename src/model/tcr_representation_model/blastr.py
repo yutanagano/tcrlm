@@ -29,6 +29,10 @@ class Blastr(TcrRepresentationModel):
         self._bert = bert.eval()
         self._device = device
 
+    @property
+    def d_model(self) -> int:
+        return self._bert.d_model
+
     def calc_cdist_matrix(
         self, anchor_tcrs: DataFrame, comparison_tcrs: DataFrame
     ) -> ndarray:
