@@ -16,7 +16,8 @@ from src.model_analyser.analysis import (
     AucByLevenshteinGroups,
     RepresentationSpaceAnalysis,
     OneVsRest,
-    OneVsBackground
+    OneVsBackground,
+    EpitopeRanking
 )
 from src.model_analyser.analysis_result import AnalysisResult
 
@@ -68,6 +69,7 @@ class ModelAnalyser:
         analyses = [
             OneVsRest,
             OneVsBackground,
+            EpitopeRanking,
             # AucByLevenshteinGroups,
             # MetricCalibrationAnalysis,
             # KnnAnalysis,
