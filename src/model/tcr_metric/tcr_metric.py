@@ -1,6 +1,7 @@
 from abc import abstractmethod, ABC
 from numpy import ndarray
 from pandas import DataFrame
+from scipy.spatial import distance
 from typing import Iterable, Union
 
 
@@ -24,16 +25,6 @@ class TcrMetric(ABC):
     def name(self) -> str:
         pass
 
-    @abstractmethod
-    def calc_cdist_matrix(
-        self, anchor_tcrs: DataFrame, comparison_tcrs: DataFrame
-    ) -> ndarray:
-        pass
-
-    @abstractmethod
-    def calc_pdist_vector(self, tcrs: DataFrame) -> ndarray:
-        pass
-
     @property
     @abstractmethod
     def distance_bins(self) -> Iterable[Union[float, int]]:
@@ -41,3 +32,14 @@ class TcrMetric(ABC):
         list representing the bins to use when generating tcr distance histograms.
         """
         pass
+
+    @abstractmethod
+    def calc_cdist_matrix(
+        self, anchor_tcrs: DataFrame, comparison_tcrs: DataFrame
+    ) -> ndarray:
+        pass
+
+    def calc_pdist_vector(self, tcrs: DataFrame) -> ndarray:
+        pdist_matrix = self.calc_cdist_matrix(tcrs, tcrs)
+        pdist_vector = distance.squareform(pdist_matrix, checks=False)
+        return pdist_vector

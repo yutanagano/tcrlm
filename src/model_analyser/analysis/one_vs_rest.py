@@ -16,8 +16,7 @@ class OneVsRest(Analysis):
         self.test_data = self._labelled_data["benchmarking_testing"]
 
         results_dict["nn_classification"] = self._benchmark_nn_classification()
-        if isinstance(self._model, TcrRepresentationModel):
-            results_dict["svc_classification"] = self._benchmark_svc_classification()
+        results_dict["svc_classification"] = self._benchmark_svc_classification()
 
         return AnalysisResult("one_vs_rest", results=results_dict)
     
@@ -40,20 +39,36 @@ class OneVsRest(Analysis):
             }
         
         return results_dict
+    
+    def _get_dists_to_nn(self, epitope: str) -> ndarray:
+        epitope_reference = self.training_data[self.training_data["Epitope"] == epitope]
+        cdist_matrix = self._model_computation_cacher.calc_cdist_matrix(self.test_data, epitope_reference)
+        return cdist_matrix.min(axis=1)
 
     def _benchmark_svc_classification(self) -> dict:
         results_dict = dict()
-        training_tcr_representations = self._model_computation_cacher.calc_vector_representations(self.training_data)
-        test_tcr_representations = self._model_computation_cacher.calc_vector_representations(self.test_data)
+
+        training_cdist_matrix = self._model_computation_cacher.calc_cdist_matrix(self.training_data, self.training_data)
+        test_cdist_matrix = self._model_computation_cacher.calc_cdist_matrix(self.test_data, self.training_data)
+        cospecific_distances = self._get_cospecific_dists()
+        characteristic_length = np.median(cospecific_distances)
+        print(characteristic_length)
+
+        def rbf_kernel(cdist: ndarray, characteristic_length: float) -> ndarray:
+            return np.exp(- (cdist / characteristic_length) ** 2)
+        
+        training_kernel_matrix = rbf_kernel(training_cdist_matrix, characteristic_length)
+        test_kernel_matrix = rbf_kernel(test_cdist_matrix, characteristic_length)
 
         epitopes = self.training_data["Epitope"].unique()
         for epitope in tqdm(epitopes):
-            training_target = self.training_data["Epitope"] == epitope
-            svc = SVC()
-            svc.fit(training_tcr_representations, training_target)
+            training_target = (self.training_data["Epitope"] == epitope).to_numpy()
+            
+            svc = SVC(kernel="precomputed")
+            svc.fit(training_kernel_matrix, training_target)
 
             test_target = self.test_data["Epitope"] == epitope
-            test_preds = svc.decision_function(test_tcr_representations)
+            test_preds = svc.decision_function(test_kernel_matrix)
             
             auc = metrics.roc_auc_score(test_target, test_preds)
             auc_01 = metrics.roc_auc_score(test_target, test_preds, max_fpr=0.1)
@@ -66,46 +81,14 @@ class OneVsRest(Analysis):
         
         return results_dict
     
-    def _representation_classifier_on_epitope(self, epitope: str) -> dict:
-        # if torch.cuda.is_available():
-        #     device = torch.device("cuda:0")
-        # else:
-        #     device = torch.device("cpu")
+    def _get_cospecific_dists(self) -> ndarray:
+        pdists = []
+        training_data_groupby = self.training_data.groupby("Epitope")
+
+        epitopes = self.training_data["Epitope"].unique()
+        for epitope in epitopes:
+            training_data_for_epitope = training_data_groupby.get_group(epitope)
+            pdist = self._model_computation_cacher.calc_pdist_vector(training_data_for_epitope)
+            pdists.append(pdist)
         
-        # tcr_representations = torch.tensor(
-        #     self._model_computation_cacher.calc_vector_representations(self.training_data),
-        #     device=device
-        # )
-
-        # target = torch.tensor(
-        #     self.training_data["Epitope"] == epitope,
-        #     dtype=torch.long,
-        #     device=device
-        # )
-        # fraction_positive = target.sum().item() / len(target)
-
-        # simple_classifier = Linear(in_features=self._model.d_model, out_features=2).to(device=device)
-        # criterion = CrossEntropyLoss(weight=torch.tensor([fraction_positive, 1-fraction_positive]))
-        # optimiser = Adam(simple_classifier.parameters())
-        
-        # for i in range(5_000):
-        #     optimiser.zero_grad()
-        #     preds = simple_classifier(tcr_representations)
-        #     loss = criterion(preds, target)
-        #     loss.backward()
-        #     optimiser.step()
-
-        # test_tcr_representations = torch.tensor(
-        #     self._model_computation_cacher.calc_vector_representations(self.test_data),
-        #     device=device
-        # )
-        # test_target = self.test_data["Epitope"] == epitope
-        # with torch.no_grad():
-        #     test_preds = simple_classifier(test_tcr_representations)[:,1]
-        pass
-
-    
-    def _get_dists_to_nn(self, epitope: str) -> ndarray:
-        epitope_reference = self.training_data[self.training_data["Epitope"] == epitope]
-        cdist_matrix = self._model_computation_cacher.calc_cdist_matrix(self.test_data, epitope_reference)
-        return cdist_matrix.min(axis=1)
+        return np.concatenate(pdists)

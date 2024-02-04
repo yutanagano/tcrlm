@@ -4,7 +4,6 @@ from numpy import ndarray
 from pandas import DataFrame
 from src.model.tcr_metric import TcrMetric
 from src.model.tcr_metric.tcrdist.simplified_tcrdist_interface import TcrdistInterface
-from scipy.spatial import distance
 from typing import Iterable
 
 
@@ -67,11 +66,6 @@ class AbstractTcrdist(TcrMetric):
             return result["cdr3_b_aa"]
         else:
             return result["tcrdist"]
-
-    def calc_pdist_vector(self, tcrs: DataFrame) -> ndarray:
-        pdist_matrix = self.calc_cdist_matrix(tcrs, tcrs)
-        pdist_vector = distance.squareform(pdist_matrix, checks=False)
-        return pdist_vector
 
 
 class AlphaCdr3Tcrdist(AbstractTcrdist):
