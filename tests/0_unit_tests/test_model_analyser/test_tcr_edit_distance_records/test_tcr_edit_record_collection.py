@@ -3,7 +3,8 @@ import pickle
 import pytest
 
 from src.model_analyser.tcr_edit_distance_records.tcr_edit import (
-    TcrEdit,
+    JunctionEdit,
+    Chain,
     Position,
     Residue,
 )
@@ -29,7 +30,7 @@ def sufficiently_fill_and_return(record_collection) -> TcrEditDistanceRecordColl
 def test_update_edit_record(
     tcr_edit_record_collection: TcrEditDistanceRecordCollection,
 ):
-    edit = TcrEdit(Position.M2, Residue.A, Residue.C)
+    edit = JunctionEdit(Chain.Alpha, Position.M2, Residue.A, Residue.C)
 
     tcr_edit_record_collection.update_edit_record(edit, 1.0)
 
@@ -67,7 +68,7 @@ def test_has_sufficient_coverage(
 def test_save_load(
     tcr_edit_record_collection: TcrEditDistanceRecordCollection, tmp_path
 ):
-    edit = TcrEdit(Position.M2, Residue.A, Residue.C)
+    edit = JunctionEdit(Chain.Alpha, Position.M2, Residue.A, Residue.C)
     tcr_edit_record_collection.update_edit_record(edit, 1.0)
 
     with open(tmp_path / "save", "wb") as f:
