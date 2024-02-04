@@ -14,7 +14,7 @@ from src.model_analyser.tcr_edit_distance_records.tcr_edit_distance_record_colle
 from src.model_analyser.tcr_edit_distance_records.tcr_edit import (
     Position,
     Residue,
-    TcrEdit,
+    JunctionEdit,
 )
 from src.model_analyser.tcr_edit_distance_records.tcr_edit_distance_record import (
     TcrEditDistanceRecord,
@@ -83,6 +83,12 @@ class TcrEditDistanceRecordCollectionAnalyser:
         ax.set_xlabel("CDR3 region")
 
         return fig
+
+    def get_average_distance_over_central_substitutions(self) -> float:
+        all_substitutions = self._get_all_junction_aa_substitutions()
+        all_central_subs = [sub for sub in all_substitutions if sub.is_central]
+        mean_dist, _ = self._get_mean_std_distance_from_specified_edits(all_central_subs)
+        return mean_dist
 
     def _get_insertion_distances_over_positions(self) -> List[List[float]]:
         all_insertions = self._get_all_junction_aa_insertions()
@@ -159,64 +165,39 @@ class TcrEditDistanceRecordCollectionAnalyser:
 
         return fig
 
-    def _get_all_junction_aa_insertions(self) -> Set[TcrEdit]:
+    def _get_all_junction_aa_insertions(self) -> Set[JunctionEdit]:
         return {
             edit
             for edit in self.edit_record_collection.edit_record_dictionary
             if edit.is_from(Residue.null)
         }
 
-    def _get_all_junction_aa_deletions(self) -> Set[TcrEdit]:
+    def _get_all_junction_aa_deletions(self) -> Set[JunctionEdit]:
         return {
             edit
             for edit in self.edit_record_collection.edit_record_dictionary
             if edit.is_to(Residue.null)
         }
 
-    def _get_all_junction_aa_substitutions(self) -> Set[TcrEdit]:
+    def _get_all_junction_aa_substitutions(self) -> Set[JunctionEdit]:
         return {
             edit
             for edit in self.edit_record_collection.edit_record_dictionary
             if not (edit.is_from(Residue.null) or edit.is_to(Residue.null))
         }
 
-    def _get_all_junction_edits_over_positions(self) -> List[Set[TcrEdit]]:
+    def _get_all_junction_edits_over_positions(self) -> List[Set[JunctionEdit]]:
         return [self._get_all_edits_at_position(position) for position in Position]
 
-    def _get_all_edits_at_position(self, position: Position) -> Set[TcrEdit]:
+    def _get_all_edits_at_position(self, position: Position) -> Set[JunctionEdit]:
         return {
             edit
             for edit in self.edit_record_collection.edit_record_dictionary
-            if edit.is_at(position)
+            if edit.is_at_position(position)
         }
 
-    def _get_distance_sample_from_specified_edits(
-        self, edits: Iterable[TcrEdit]
-    ) -> List:
-        edit_records = [
-            self.edit_record_collection.edit_record_dictionary[edit] for edit in edits
-        ]
-        distance_samples = [edit_record.distance_sample for edit_record in edit_records]
-
-        if not any([edit_record.is_overfilled for edit_record in edit_records]):
-            return list(chain.from_iterable(distance_samples))
-
-        sample_weights = self._get_sample_weights(edit_records)
-        num_distances_to_keep_from_each_sample = [
-            round(sample_weight * TcrEditDistanceRecord.DISTANCE_SAMPLES_CAPACITY)
-            for sample_weight in sample_weights
-        ]
-        weighted_distance_samples = [
-            random.sample(distances, num_to_sample)
-            for distances, num_to_sample in zip(
-                distance_samples, num_distances_to_keep_from_each_sample
-            )
-        ]
-
-        return list(chain.from_iterable(weighted_distance_samples))
-
     def _get_mean_std_distance_from_specified_edits(
-        self, edits: Iterable[TcrEdit]
+        self, edits: Iterable[JunctionEdit]
     ) -> tuple:
         edit_records = [
             self.edit_record_collection.edit_record_dictionary[edit] for edit in edits

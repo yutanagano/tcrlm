@@ -5,9 +5,9 @@ from src.model_analyser.tcr_edit_distance_records.tcr_edit_distance_record impor
     TcrEditDistanceRecord,
 )
 from src.model_analyser.tcr_edit_distance_records import tcr_edit
-from src.model_analyser.tcr_edit_distance_records.tcr_edit import TcrEdit
+from src.model_analyser.tcr_edit_distance_records.tcr_edit import JunctionEdit
 
-from itertools import permutations
+from itertools import permutations, product
 import pickle
 from typing import Dict, Iterable, List
 
@@ -19,12 +19,12 @@ class TcrEditDistanceRecordCollection:
         self.initialise_edit_record_dictionary()
 
     def initialise_edit_record_dictionary(self) -> None:
-        self.edit_record_dictionary: Dict[TcrEdit, TcrEditDistanceRecord] = dict()
+        self.edit_record_dictionary: Dict[JunctionEdit, TcrEditDistanceRecord] = dict()
 
         for edit in tcr_edit.get_all_tcr_edits():
             self.edit_record_dictionary[edit] = TcrEditDistanceRecord()
 
-    def update_edit_record(self, edit: TcrEdit, distance: float):
+    def update_edit_record(self, edit: JunctionEdit, distance: float):
         relevant_edit_record = self.edit_record_dictionary[edit]
         relevant_edit_record.add_distance_sample(distance)
 
@@ -44,36 +44,32 @@ class TcrEditDistanceRecordCollection:
     def has_sufficient_coverage(self) -> bool:
         return (
             self.has_sufficient_junction_coverage()
-            and self.has_sufficient_trbv_coverage()
+            and self.has_sufficient_v_gene_coverage()
         )
 
     def has_sufficient_junction_coverage(self) -> bool:
-        return (
-            self.has_sufficient_coverage_over_junction_positions()
-            and self.has_sufficient_coverage_over_aa_indelsubs()
-        )
-
-    def has_sufficient_coverage_over_junction_positions(self) -> bool:
-        return all(
+        has_sufficient_coverage_over_junction_positions = all(
             num_estimates_made >= self.MARGINAL_NUM_ESTIMATES_REQUIRED
             for num_estimates_made in self.get_num_estimates_over_junction_positions()
         )
 
-    def has_sufficient_coverage_over_aa_indelsubs(self) -> bool:
-        return all(
+        has_sufficient_coverage_over_aa_indelsubs = all(
             num_estimates_made >= self.MARGINAL_NUM_ESTIMATES_REQUIRED
             for num_estimates_made in self.get_num_estimates_over_aa_indelsubs()
         )
 
+        return has_sufficient_coverage_over_junction_positions and has_sufficient_coverage_over_aa_indelsubs
+
     def get_num_estimates_over_junction_positions(self) -> List[int]:
         return [
-            self.get_num_estimates_at_junction_position(position)
-            for position in tcr_edit.Position
+            self.get_num_estimates_at_junction_position(chain, position)
+            for chain, position in product(tcr_edit.Chain, tcr_edit.Position)
         ]
 
-    def get_num_estimates_at_junction_position(self, position: str) -> int:
+    def get_num_estimates_at_junction_position(self, chain: str, position: str) -> int:
         edits_at_position = [
-            edit for edit in self.edit_record_dictionary if edit.is_at(position)
+            edit for edit in self.edit_record_dictionary if
+            edit.is_on_chain(chain) and edit.is_at_position(position)
         ]
         return self.get_num_estimates_accross_specified_edits(edits_at_position)
 
@@ -100,9 +96,27 @@ class TcrEditDistanceRecordCollection:
             [edit_record.num_distances_sampled for edit_record in relevant_edit_records]
         )
 
-    def has_sufficient_trbv_coverage(self) -> bool:
+    def has_sufficient_v_gene_coverage(self) -> bool:
         # TODO
         return True
+    
+    def has_sufficient_central_sub_coverage(self) -> bool:
+        central_positions = [tcr_edit.Position.M1, tcr_edit.Position.M2, tcr_edit.Position.M3]
+        num_estimates_over_central_positions = [
+            self.get_num_estimates_for_subs_at_junction_position(chain, position)
+            for chain, position in product(tcr_edit.Chain, central_positions)
+        ]
+        return all(
+            num_estimates_made >= 10_000
+            for num_estimates_made in num_estimates_over_central_positions
+        )
+    
+    def get_num_estimates_for_subs_at_junction_position(self, chain: str, position: str) -> int:
+        edits_at_position = [
+            edit for edit in self.edit_record_dictionary if
+            edit.is_on_chain(chain) and edit.is_at_position(position) and not edit.is_from(tcr_edit.Residue.null) and not edit.is_to(tcr_edit.Residue.null)
+        ]
+        return self.get_num_estimates_accross_specified_edits(edits_at_position)
 
     def save(self, f) -> None:
         state_dict = self.get_state_dict()
@@ -126,7 +140,7 @@ class TcrEditDistanceRecordCollection:
         edit_record_collection = TcrEditDistanceRecordCollection()
 
         for edit_str, edit_record_state_dict in state_dict.items():
-            edit = TcrEdit.from_str(edit_str)
+            edit = JunctionEdit.from_str(edit_str)
             edit_record = TcrEditDistanceRecord.from_state_dict(edit_record_state_dict)
 
             edit_record_collection.edit_record_dictionary[edit] = edit_record

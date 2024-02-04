@@ -1,11 +1,16 @@
 import numpy as np
 from numpy import ndarray
+from pandas import DataFrame
 from sklearn import metrics
 from sklearn.svm import SVC
-from src.model.tcr_representation_model import TcrRepresentationModel
 from src.model_analyser.analysis import Analysis
 from src.model_analyser.analysis_result import AnalysisResult
+from src.model_analyser.tcr_edit_distance_records.tcr_edit import JunctionEdit, Residue
+from src.model_analyser.tcr_edit_distance_records.tcr_edit_distance_record_collection import TcrEditDistanceRecordCollection
+from src.model_analyser.tcr_edit_distance_records.tcr_edit_distance_record_collection_analyser import TcrEditDistanceRecordCollectionAnalyser
+from src.model_analyser.tcr_edit_distance_records import tcr_edit_generator
 from tqdm import tqdm
+from typing import Iterable, Tuple
 
 
 class OneVsRest(Analysis):
@@ -50,8 +55,7 @@ class OneVsRest(Analysis):
 
         training_cdist_matrix = self._model_computation_cacher.calc_cdist_matrix(self.training_data, self.training_data)
         test_cdist_matrix = self._model_computation_cacher.calc_cdist_matrix(self.test_data, self.training_data)
-        cospecific_distances = self._get_cospecific_dists()
-        characteristic_length = np.median(cospecific_distances)
+        characteristic_length = self._get_characteristic_distance()
         print(characteristic_length)
 
         def rbf_kernel(cdist: ndarray, characteristic_length: float) -> ndarray:
@@ -81,14 +85,43 @@ class OneVsRest(Analysis):
         
         return results_dict
     
-    def _get_cospecific_dists(self) -> ndarray:
-        pdists = []
-        training_data_groupby = self.training_data.groupby("Epitope")
+    def _get_characteristic_distance(self) -> float:
+        ed_record_collection = self._model_computation_cacher.get_tcr_edit_record_collection()
+        ed_record_collection = self._catalogue_distances_of_junction_subs(ed_record_collection)
+        self._model_computation_cacher.save_tcr_edit_record_collection(ed_record_collection)
 
-        epitopes = self.training_data["Epitope"].unique()
-        for epitope in epitopes:
-            training_data_for_epitope = training_data_groupby.get_group(epitope)
-            pdist = self._model_computation_cacher.calc_pdist_vector(training_data_for_epitope)
-            pdists.append(pdist)
-        
-        return np.concatenate(pdists)
+        analyser = TcrEditDistanceRecordCollectionAnalyser(ed_record_collection)
+        return analyser.get_average_distance_over_central_substitutions()
+
+    def _catalogue_distances_of_junction_subs(self, ed_record_collection: TcrEditDistanceRecordCollection) -> TcrEditDistanceRecordCollection:
+        num_tcrs_processed = 0
+
+        while not ed_record_collection.has_sufficient_central_sub_coverage():
+            tcr = self._background_data.sample(n=1)
+            edits_and_resulting_distances = self._get_all_central_subs_and_resulting_distances(tcr)
+
+            for edit, distance in edits_and_resulting_distances:
+                ed_record_collection.update_edit_record(edit, distance)
+
+            num_tcrs_processed += 1
+
+            if (num_tcrs_processed % 10) == 0:
+                print(f"{num_tcrs_processed} TCRs processed...")
+                ed_record_collection.print_current_estimation_coverage()
+
+        return ed_record_collection
+    
+    def _get_all_central_subs_and_resulting_distances(
+        self, tcr: DataFrame
+    ) -> Iterable[Tuple[JunctionEdit, float]]:
+        original_tcr = tcr
+        junction_variants = tcr_edit_generator.get_junction_variants(tcr)
+        central_sub_variants = junction_variants[
+            junction_variants["edit"].map(lambda x: x.is_central and not x.is_from(Residue.null) and not x.is_to(Residue.null))
+        ]
+
+        distances_between_original_and_edited_tcrs = self._model.calc_cdist_matrix(
+            original_tcr, central_sub_variants
+        ).squeeze()
+
+        return zip(central_sub_variants["edit"], distances_between_original_and_edited_tcrs)

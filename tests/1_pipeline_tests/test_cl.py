@@ -128,7 +128,7 @@ def config():
                 "initargs": {"label_smoothing": 0.1},
             },
             "contrastive_loss": {
-                "class": "BatchContrastiveLoss",
+                "class": "EuclideanDistanceLoss",
                 "initargs": {"temp": 0.05},
             },
         },
