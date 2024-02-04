@@ -3,7 +3,6 @@ from numpy import ndarray
 from pandas import DataFrame, Series
 from rapidfuzz import process
 from rapidfuzz.distance import Levenshtein
-from scipy.spatial import distance
 from src.model.tcr_metric import TcrMetric
 from tidytcells import tr
 from typing import Iterable, Optional, Tuple
@@ -137,11 +136,6 @@ class LevenshteinMetric(TcrMetric):
         return Levenshtein.distance(
             *args, **kwargs, weights=self._edit_type_weights.to_tuple()
         )
-
-    def calc_pdist_vector(self, tcrs: DataFrame) -> ndarray:
-        pdist_matrix = self.calc_cdist_matrix(tcrs, tcrs)
-        pdist_vector = distance.squareform(pdist_matrix, checks=False)
-        return pdist_vector
 
 
 class AlphaCdr3Levenshtein(LevenshteinMetric):

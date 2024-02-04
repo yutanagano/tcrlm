@@ -22,6 +22,9 @@ class ModelScope(Enum):
 class AbstractBagOfAminoAcids(TcrRepresentationModel):
     _one_hot_amino_acid_encodings = np.eye(len(AminoAcid))
 
+    d_model = len(AminoAcid)
+    distance_bins = range(25 + 1)
+
     @abstractmethod
     def _chains_to_consider(self) -> List[TcrChain]:
         pass
@@ -88,41 +91,35 @@ class AbstractBagOfAminoAcids(TcrRepresentationModel):
 
 class AlphaCdr3BagOfAminoAcids(AbstractBagOfAminoAcids):
     name = "Alpha CDR3 Bag of Amino Acids"
-    distance_bins = range(25 + 1)
     _chains_to_consider = [TcrChain.ALPHA]
     _scope = ModelScope.CDR3_ONLY
 
 
 class BetaCdr3BagOfAminoAcids(AbstractBagOfAminoAcids):
     name = "Beta CDR3 Bag of Amino Acids"
-    distance_bins = range(25 + 1)
     _chains_to_consider = [TcrChain.BETA]
     _scope = ModelScope.CDR3_ONLY
 
 
 class Cdr3BagOfAminoAcids(AbstractBagOfAminoAcids):
     name = "CDR3 Bag of Amino Acids"
-    distance_bins = range(25 + 1)
     _chains_to_consider = [TcrChain.ALPHA, TcrChain.BETA]
     _scope = ModelScope.CDR3_ONLY
 
 
 class AlphaBagOfAminoAcids(AbstractBagOfAminoAcids):
     name = "Alpha Bag of Amino Acids"
-    distance_bins = range(25 + 1)
     _chains_to_consider = [TcrChain.ALPHA]
     _scope = ModelScope.FULL
 
 
 class BetaBagOfAminoAcids(AbstractBagOfAminoAcids):
     name = "Beta Bag of Amino Acids"
-    distance_bins = range(25 + 1)
     _chains_to_consider = [TcrChain.BETA]
     _scope = ModelScope.FULL
 
 
 class BagOfAminoAcids(AbstractBagOfAminoAcids):
     name = "Bag of Amino Acids"
-    distance_bins = range(25 + 1)
     _chains_to_consider = [TcrChain.ALPHA, TcrChain.BETA]
     _scope = ModelScope.FULL
