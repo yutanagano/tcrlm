@@ -5,7 +5,7 @@ from sklearn import metrics
 from sklearn.svm import SVC
 from src.model_analyser.analysis import Analysis
 from src.model_analyser.analysis_result import AnalysisResult
-from src.model_analyser.tcr_edit_distance_records.tcr_edit import JunctionEdit, Residue
+from src.model_analyser.tcr_edit_distance_records.tcr_edit import JunctionEdit
 from src.model_analyser.tcr_edit_distance_records.tcr_edit_distance_record_collection import TcrEditDistanceRecordCollection
 from src.model_analyser.tcr_edit_distance_records.tcr_edit_distance_record_collection_analyser import TcrEditDistanceRecordCollectionAnalyser
 from src.model_analyser.tcr_edit_distance_records import tcr_edit_generator
@@ -56,7 +56,6 @@ class OneVsRest(Analysis):
         training_cdist_matrix = self._model_computation_cacher.calc_cdist_matrix(self.training_data, self.training_data)
         test_cdist_matrix = self._model_computation_cacher.calc_cdist_matrix(self.test_data, self.training_data)
         characteristic_length = self._get_characteristic_distance()
-        print(characteristic_length)
 
         def rbf_kernel(cdist: ndarray, characteristic_length: float) -> ndarray:
             return np.exp(- (cdist / characteristic_length) ** 2)
@@ -91,12 +90,12 @@ class OneVsRest(Analysis):
         self._model_computation_cacher.save_tcr_edit_record_collection(ed_record_collection)
 
         analyser = TcrEditDistanceRecordCollectionAnalyser(ed_record_collection)
-        return analyser.get_average_distance_over_central_substitutions()
+        return analyser.get_average_distance_over_central_edits()
 
     def _catalogue_distances_of_junction_subs(self, ed_record_collection: TcrEditDistanceRecordCollection) -> TcrEditDistanceRecordCollection:
         num_tcrs_processed = 0
 
-        while not ed_record_collection.has_sufficient_central_sub_coverage():
+        while not ed_record_collection.has_sufficient_central_junction_edit_coverage():
             tcr = self._background_data.sample(n=1)
             edits_and_resulting_distances = self._get_all_central_subs_and_resulting_distances(tcr)
 
@@ -116,12 +115,12 @@ class OneVsRest(Analysis):
     ) -> Iterable[Tuple[JunctionEdit, float]]:
         original_tcr = tcr
         junction_variants = tcr_edit_generator.get_junction_variants(tcr)
-        central_sub_variants = junction_variants[
-            junction_variants["edit"].map(lambda x: x.is_central and not x.is_from(Residue.null) and not x.is_to(Residue.null))
+        central_variants = junction_variants[
+            junction_variants["edit"].map(lambda x: x.is_central)
         ]
 
         distances_between_original_and_edited_tcrs = self._model.calc_cdist_matrix(
-            original_tcr, central_sub_variants
+            original_tcr, central_variants
         ).squeeze()
 
-        return zip(central_sub_variants["edit"], distances_between_original_and_edited_tcrs)
+        return zip(central_variants["edit"], distances_between_original_and_edited_tcrs)
