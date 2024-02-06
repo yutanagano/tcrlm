@@ -16,7 +16,7 @@ from src.model_analyser.tcr_edit_distance_records.tcr_edit_distance_record_colle
     TcrEditDistanceRecordCollectionAnalyser,
 )
 from src.model_analyser.tcr_edit_distance_records import tcr_edit_generator
-from src.model.tcr_representation_model import Blastr
+from src.model.tcr_representation_model import Sceptr
 
 
 class DistanceCorrelateAnalysis(Analysis):
@@ -48,7 +48,7 @@ class DistanceCorrelateAnalysis(Analysis):
         )
 
     def _current_model_is_irrelevant_for_this_analysis(self) -> bool:
-        return not isinstance(self._model, Blastr)
+        return not isinstance(self._model, Sceptr)
 
     def _get_edit_record_collection(self) -> TcrEditDistanceRecordCollection:
         return self._model_computation_cacher.get_tcr_edit_record_collection()

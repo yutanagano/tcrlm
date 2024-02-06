@@ -17,7 +17,7 @@ from src.nn.data.batch_collator import DefaultBatchCollator
 from typing import Union
 
 
-class Blastr(TcrRepresentationModel):
+class Sceptr(TcrRepresentationModel):
     name: str = None
     distance_bins = np.linspace(0, 2, num=21)
 
@@ -79,9 +79,9 @@ class Blastr(TcrRepresentationModel):
         )
 
 
-def load_blastr_save(
+def load_sceptr_save(
     path: Path, device: Union[torch.device, str, int, None] = None
-) -> Blastr:
+) -> Sceptr:
     with open(path / "config.json", "r") as f:
         config = json.load(f)
     config_reader = ConfigReader(config)
@@ -101,4 +101,4 @@ def load_blastr_save(
     bert = config_reader.get_bert_on_device(device)
     bert.load_state_dict(state_dict)
 
-    return Blastr(name=name, tokeniser=tokeniser, bert=bert, device=device)
+    return Sceptr(name=name, tokeniser=tokeniser, bert=bert, device=device)
