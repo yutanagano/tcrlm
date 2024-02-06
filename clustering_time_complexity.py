@@ -24,12 +24,12 @@ def get_time_complexity_stats() -> dict:
     beta_cdr3_levenshtein = tcr_metric.BetaCdr3Levenshtein()
     beta_tcrdist = tcr_metric.BetaTcrdist()
 
-    sceptr_cpu = tcr_representation_model.load_blastr_save(
+    sceptr_cpu = tcr_representation_model.load_sceptr_save(
         Path("model_saves/SCEPTR"), device="cpu"
     )
     sceptr_cpu.name = "SCEPTR CPU"
 
-    sceptr_gpu = tcr_representation_model.load_blastr_save(
+    sceptr_gpu = tcr_representation_model.load_sceptr_save(
         Path("model_saves/SCEPTR"), device=0
     )
     sceptr_gpu.name = "SCEPTR GPU"
