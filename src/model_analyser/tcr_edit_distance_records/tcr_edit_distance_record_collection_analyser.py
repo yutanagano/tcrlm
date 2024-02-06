@@ -1,11 +1,9 @@
 import blosum
 import itertools
-from itertools import chain
 from matplotlib.figure import Figure
 from matplotlib import pyplot as plt
 import math
 import numpy as np
-import random
 from typing import Iterable, List, Optional, Set
 
 from src.model_analyser.tcr_edit_distance_records.tcr_edit_distance_record_collection import (
@@ -84,11 +82,16 @@ class TcrEditDistanceRecordCollectionAnalyser:
 
         return fig
 
-    def get_average_distance_over_central_substitutions(self) -> float:
-        all_substitutions = self._get_all_junction_aa_substitutions()
-        all_central_subs = [sub for sub in all_substitutions if sub.is_central]
-        mean_dist, _ = self._get_mean_std_distance_from_specified_edits(all_central_subs)
-        return mean_dist
+    def get_average_distance_over_central_edits(self) -> float:
+        central_insertions = [edit for edit in self._get_all_junction_aa_insertions() if edit.is_central]
+        central_deletions = [edit for edit in self._get_all_junction_aa_deletions() if edit.is_central]
+        central_substitutions = [edit for edit in self._get_all_junction_aa_substitutions() if edit.is_central]
+        
+        ins_dist, _ = self._get_mean_std_distance_from_specified_edits(central_insertions)
+        del_dist, _ = self._get_mean_std_distance_from_specified_edits(central_deletions)
+        sub_dist, _ = self._get_mean_std_distance_from_specified_edits(central_substitutions)
+
+        return (ins_dist + del_dist + sub_dist) / 3
 
     def _get_insertion_distances_over_positions(self) -> List[List[float]]:
         all_insertions = self._get_all_junction_aa_insertions()
