@@ -73,6 +73,7 @@ class ModelTrainer:
         if current_process_using_first_gpu:
             print("Saving results...")
             unwrapped_bert_model = training_object_collection.model.module.bert
+            unwrapped_bert_model.set_fine_tuning_mode(False)
             self._save_training_results(
                 model=unwrapped_bert_model, metric_log=metric_log
             )

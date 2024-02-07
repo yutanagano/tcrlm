@@ -25,3 +25,9 @@ class ClTrainableModel(TrainableModel):
         tcr_representations = self.bert.get_vector_representations_of(tokenised_tcrs)
         mlm_logits = self.bert.get_mlm_token_predictions_for(tokenised_and_masked_tcrs)
         return tcr_representations, mlm_logits
+
+
+class ClFineTunableModel(ClTrainableModel):
+    def __init__(self, bert: Bert) -> None:
+        super().__init__(bert)
+        self.bert.set_fine_tuning_mode(True)
