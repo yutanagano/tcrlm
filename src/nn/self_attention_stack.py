@@ -19,6 +19,10 @@ class SelfAttentionStack(ABC, Module):
     ) -> Tensor:
         pass
 
+    @abstractmethod
+    def set_fine_tuning_mode(self, turn_on: bool) -> None:
+        pass
+
 
 class SelfAttentionStackWithBuiltins(SelfAttentionStack):
     d_model: int = None
@@ -58,6 +62,13 @@ class SelfAttentionStackWithBuiltins(SelfAttentionStack):
             )
 
         return token_embeddings
+    
+    def set_fine_tuning_mode(self, turn_on: bool) -> None:
+        upper_layers_require_grad = not turn_on
+        penultimate_layer_index = self._num_layers_in_stack - 1
+
+        for layer in self._self_attention_stack.layers[:penultimate_layer_index]:
+            layer.requires_grad_(upper_layers_require_grad)
 
 
 class SelfAttentionStackWithInitialProjection(SelfAttentionStack):
@@ -93,3 +104,6 @@ class SelfAttentionStackWithInitialProjection(SelfAttentionStack):
         return self._standard_stack.get_token_embeddings_at_penultimate_layer(
             projected_embeddings, padding_mask
         )
+    
+    def set_fine_tuning_mode(self, turn_on: bool) -> None:
+        self._standard_stack.set_fine_tuning_mode(turn_on)

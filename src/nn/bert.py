@@ -26,6 +26,9 @@ class Bert(Module):
     @property
     def d_model(self) -> int:
         return self._self_attention_stack.d_model
+    
+    def set_fine_tuning_mode(self, turn_on: bool) -> None:
+        self._self_attention_stack.set_fine_tuning_mode(turn_on)
 
     def get_vector_representations_of(self, tokenised_tcrs: LongTensor) -> FloatTensor:
         raw_token_embeddings = self._embed(tokenised_tcrs)
