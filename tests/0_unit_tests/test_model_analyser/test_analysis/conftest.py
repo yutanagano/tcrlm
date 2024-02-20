@@ -48,7 +48,10 @@ def mock_pgens():
 
 @pytest.fixture
 def mock_labelled_data_dict(mock_data_df):
-    return {"mock": mock_data_df}
+    return {
+        "benchmarking_training": mock_data_df,
+        "benchmarking_testing": mock_data_df
+    }
 
 
 @pytest.fixture

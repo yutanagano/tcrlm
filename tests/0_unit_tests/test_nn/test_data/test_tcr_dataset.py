@@ -1,6 +1,6 @@
 import pytest
 
-from src.nn.data.tcr_dataset import TcrDataset
+from src.nn.data.dataset import TcrDataset
 from src import schema
 
 

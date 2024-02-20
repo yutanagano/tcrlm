@@ -42,6 +42,9 @@ class Pmhc:
             "?" if self.epitope_sequence is None else self.epitope_sequence
         )
         return f"{epitope_representation}/{self.mhc_a}/{self.mhc_b}"
+    
+    def __hash__(self) -> int:
+        return hash((self.epitope_sequence, self.mhc_a.symbol, self.mhc_b.symbol))
 
 
 def make_pmhc_from_components(

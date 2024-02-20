@@ -10,7 +10,7 @@ from src.model_analyser.analysis import (
     Analysis,
     KnnAnalysis,
     PgenAnalysis,
-    PrecisionRecallAnalysis,
+    CospecificityAnalysis,
     MetricCalibrationAnalysis,
     DistanceCorrelateAnalysis,
     AucByLevenshteinGroups,
@@ -73,7 +73,7 @@ class ModelAnalyser:
             # AucByLevenshteinGroups,
             # MetricCalibrationAnalysis,
             # KnnAnalysis,
-            # PrecisionRecallAnalysis,
+            CospecificityAnalysis,
             # PgenAnalysis,
             # DistanceCorrelateAnalysis,
             # RepresentationSpaceAnalysis

@@ -2,7 +2,7 @@ import pandas as pd
 from pathlib import Path
 import torch
 from torch.nn.parallel import DistributedDataParallel
-from torch.utils.data import DistributedSampler
+from torch.utils.data import DistributedSampler, Dataset
 from types import ModuleType
 
 import src.nn.performance_measure as performance_measure_module
@@ -14,6 +14,7 @@ import src.nn.vector_representation_delegate as vector_representation_delegate_m
 import src.nn.token_embedder as token_embedder_module
 import src.nn.data.batch_collator as batch_collator_module
 import src.nn.training_delegate as training_delegate_module
+import src.nn.data.dataset as dataset_module
 
 from src.nn.data.tcr_dataloader import (
     TcrDataLoader,
@@ -21,7 +22,6 @@ from src.nn.data.tcr_dataloader import (
     DoubleDatasetDataLoader,
 )
 from src.nn.data.tokeniser import Tokeniser
-from src.nn.data.tcr_dataset import TcrDataset
 from src.nn.trainable_model import TrainableModel
 from src.nn.bert import Bert
 from src.nn.token_embedder.token_embedder import TokenEmbedder
@@ -177,7 +177,7 @@ class ConfigReader:
         ]
 
         tokeniser = self.get_tokeniser()
-        dataset = self._get_dataset(Path(path_to_training_data_csv_as_str))
+        dataset = self._get_training_dataset(Path(path_to_training_data_csv_as_str))
         batch_collator = self._get_batch_collator_with_tokeniser(tokeniser)
 
         return SingleDatasetDataLoader(
@@ -199,8 +199,8 @@ class ConfigReader:
         ]
 
         tokeniser = self.get_tokeniser()
-        dataset_1 = self._get_dataset(Path(paths_to_training_data_csvs_as_str[0]))
-        dataset_2 = self._get_dataset(Path(paths_to_training_data_csvs_as_str[1]))
+        dataset_1 = self._get_training_dataset(Path(paths_to_training_data_csvs_as_str[0]))
+        dataset_2 = self._get_training_dataset(Path(paths_to_training_data_csvs_as_str[1]))
         batch_collator = self._get_batch_collator_with_tokeniser(tokeniser)
 
         return DoubleDatasetDataLoader(
@@ -222,7 +222,7 @@ class ConfigReader:
         ]
 
         tokeniser = self.get_tokeniser()
-        dataset = self._get_dataset(Path(path_to_validation_data_csv_as_str))
+        dataset = self._get_validation_dataset(Path(path_to_validation_data_csv_as_str))
         batch_collator = self._get_batch_collator_with_tokeniser(tokeniser)
 
         return SingleDatasetDataLoader(
@@ -236,7 +236,10 @@ class ConfigReader:
         config = self._config["data"]["tokeniser"]
         return self._get_object_from_module_using_config(tokeniser_module, config)
 
-    def _get_dataset(self, path_to_training_data_csv: Path) -> TcrDataset:
+    def _get_training_dataset(self, path_to_training_data_csv: Path) -> Dataset:
+        training_dataset_config = self._config["data"]["training_data"]["dataset"]
+        TrainingDatasetClass = getattr(dataset_module, training_dataset_config["class"])
+
         df = pd.read_csv(path_to_training_data_csv)
 
         for column in (
@@ -253,7 +256,29 @@ class ConfigReader:
             if column not in df:
                 df[column] = pd.NA
 
-        return TcrDataset(df)
+        return TrainingDatasetClass(df, **training_dataset_config["initargs"])
+    
+    def _get_validation_dataset(self, path_to_validation_data_csv: Path) -> Dataset:
+        validation_dataset_config = self._config["data"]["validation_data"]["dataset"]
+        ValidationDatasetClass = getattr(dataset_module, validation_dataset_config["class"])
+
+        df = pd.read_csv(path_to_validation_data_csv)
+
+        for column in (
+            "TRAV",
+            "CDR3A",
+            "TRAJ",
+            "TRBV",
+            "CDR3B",
+            "TRBJ",
+            "Epitope",
+            "MHCA",
+            "MHCB",
+        ):
+            if column not in df:
+                df[column] = pd.NA
+
+        return ValidationDatasetClass(df, **validation_dataset_config["initargs"])
 
     def _get_batch_collator_with_tokeniser(self, tokeniser: Tokeniser) -> BatchCollator:
         config = self._config["data"]["batch_collator"]

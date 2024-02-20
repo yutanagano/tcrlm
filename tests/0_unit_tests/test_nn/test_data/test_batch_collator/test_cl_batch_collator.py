@@ -4,7 +4,7 @@ import torch
 
 from src.nn.data.batch_collator import ClBatchCollator
 from src.nn.data.tokeniser import CdrTokeniser
-from src.nn.data.tcr_dataset import TcrDataset
+from src.nn.data.dataset import TcrDataset
 
 
 def test_collate_fn(

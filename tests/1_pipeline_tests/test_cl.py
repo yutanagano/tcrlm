@@ -106,6 +106,10 @@ def config():
         },
         "data": {
             "training_data": {
+                "dataset": {
+                    "class": "TcrDataset",
+                    "initargs": {}
+                },
                 "dataloader": {
                     "class": "SingleDatasetDataLoader",
                     "initargs": {"batch_size": 3, "num_workers": 1},
@@ -113,6 +117,10 @@ def config():
                 "csv_paths": ["tests/resources/mock_data.csv"],
             },
             "validation_data": {
+                "dataset": {
+                    "class": "TcrDataset",
+                    "initargs": {}
+                },
                 "dataloader": {
                     "class": "SingleDatasetDataLoader",
                     "initargs": {"batch_size": 3, "num_workers": 1},
