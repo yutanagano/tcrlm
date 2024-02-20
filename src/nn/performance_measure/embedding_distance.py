@@ -24,5 +24,5 @@ def average_negative_distance(
     negatives_mask = torch.logical_and(positives_mask.logical_not(), identity_mask)
     negative_distances = all_distances * negatives_mask
     negative_distances_summed = negative_distances.sum().item()
-    num_positive_distances_in_batch = negatives_mask.sum().item()
-    return negative_distances_summed / num_positive_distances_in_batch
+    num_negative_distances_in_batch = negatives_mask.sum().item()
+    return negative_distances_summed / num_negative_distances_in_batch

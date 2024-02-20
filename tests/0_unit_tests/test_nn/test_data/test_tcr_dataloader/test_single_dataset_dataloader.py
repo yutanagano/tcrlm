@@ -3,7 +3,7 @@ import torch
 from torch import Tensor
 
 from src.nn.data.tokeniser.cdr_tokeniser import CdrTokeniser
-from src.nn.data.tcr_dataset import TcrDataset
+from src.nn.data.dataset import TcrDataset
 from src.nn.data.tcr_dataloader import SingleDatasetDataLoader
 from src.nn.data.batch_collator import DefaultBatchCollator
 

@@ -7,7 +7,7 @@ from numpy import ndarray
 from pandas import DataFrame
 
 from src.nn.bert import Bert
-from src.nn.data.tcr_dataset import TcrDataset
+from src.nn.data.dataset import TcrDataset
 from src.nn.data.tcr_dataloader import SingleDatasetDataLoader
 from src.model.tcr_representation_model import TcrRepresentationModel
 from src.nn.data.tokeniser.tokeniser import Tokeniser

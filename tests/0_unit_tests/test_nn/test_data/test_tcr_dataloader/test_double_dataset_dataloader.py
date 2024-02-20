@@ -3,7 +3,7 @@ import pytest
 import torch
 from typing import Iterable
 
-from src.nn.data.tcr_dataset import TcrDataset
+from src.nn.data.dataset import TcrDataset
 from src.nn.data.tcr_dataloader import DoubleDatasetDataLoader
 from src.nn.data.batch_collator import BatchCollator
 from src import schema

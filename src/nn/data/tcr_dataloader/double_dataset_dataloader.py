@@ -1,9 +1,8 @@
 import torch
 from torch import Tensor
-from torch.utils.data import DataLoader, DistributedSampler
+from torch.utils.data import Dataset, DataLoader, DistributedSampler
 from typing import Iterable, Tuple
 
-from src.nn.data.tcr_dataset import TcrDataset
 from src.nn.data.batch_collator import BatchCollator
 from src.schema import TcrPmhcPair
 
@@ -11,8 +10,8 @@ from src.schema import TcrPmhcPair
 class DoubleDatasetDataLoader:
     def __init__(
         self,
-        dataset_1: TcrDataset,
-        dataset_2: TcrDataset,
+        dataset_1: Dataset,
+        dataset_2: Dataset,
         batch_collator: BatchCollator,
         device: torch.device,
         batch_size_1: int,
@@ -32,7 +31,7 @@ class DoubleDatasetDataLoader:
         self._len = max(len(self._dataloader_1), len(self._dataloader_2))
 
     def _make_internal_dataloader_for_dataset(
-        self, dataset: TcrDataset, batch_size: int, num_workers: int, distributed: bool
+        self, dataset: Dataset, batch_size: int, num_workers: int, distributed: bool
     ) -> DataLoader:
         if distributed:
             sampler = DistributedSampler(dataset=dataset, shuffle=True)

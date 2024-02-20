@@ -1,4 +1,4 @@
-from src.model_analyser.analysis import PrecisionRecallAnalysis
+from src.model_analyser.analysis import CospecificityAnalysis
 from tests.resources.analysis_result_checker import AnalysisResultChecker
 
 
@@ -9,7 +9,7 @@ def test_run(
     beta_cdr3_levenshtein_model,
     tmp_path,
 ):
-    analysis = PrecisionRecallAnalysis(
+    analysis = CospecificityAnalysis(
         background_data=mock_bg_data,
         background_pgen=mock_pgens,
         labelled_data=mock_labelled_data_dict,
@@ -20,6 +20,6 @@ def test_run(
     result = analysis.run(testing=True)
     result_checker = AnalysisResultChecker(result)
 
-    assert result_checker.name_is("precision_recall")
+    assert result_checker.name_is("cospecificity")
     assert result_checker.has_results_dict()
     assert result_checker.has_figures()
