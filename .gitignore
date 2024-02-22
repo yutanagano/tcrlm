@@ -12,3 +12,4 @@ __pycache__
 /.ropeproject
 /model_saves
 /tcr_data
+/benchmarks
