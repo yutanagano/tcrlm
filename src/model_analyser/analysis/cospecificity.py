@@ -24,7 +24,7 @@ class CospecificityAnalysis(Analysis):
 
         cross_reference_distances = self._model_computation_cacher.calc_cdist_matrix(testing_data, reference_data)
         cross_reference_ground_truth = self._get_cospecificity_ground_truth(testing_data, reference_data)
-        cross_reference_auc_stats = self._get_auc_stats(cross_reference_distances, cross_reference_ground_truth, testing_data["Epitope"])
+        cross_reference_auc_stats = self._get_auc_stats(cross_reference_distances, cross_reference_ground_truth, reference_data["Epitope"])
         cross_reference_pr_stats = self._get_pr_stats(cross_reference_distances, cross_reference_ground_truth)
 
         results["cross_reference_auc"] = cross_reference_auc_stats
@@ -59,8 +59,8 @@ class CospecificityAnalysis(Analysis):
 
         for epitope in epitopes.unique():
             mask = (epitopes == epitope).to_numpy()
-            similarity_scores_for_epitope = similarity_scores[mask, :].flatten()
-            ground_truth_for_epitope = ground_truth[mask, :].flatten()
+            similarity_scores_for_epitope = similarity_scores[:, mask].flatten()
+            ground_truth_for_epitope = ground_truth[:, mask].flatten()
 
             fpr, tpr, _ = metrics.roc_curve(ground_truth_for_epitope, similarity_scores_for_epitope, drop_intermediate=True)
             auc_roc = metrics.roc_auc_score(ground_truth_for_epitope, similarity_scores_for_epitope)

@@ -26,6 +26,7 @@ class EpitopeRanking(Analysis):
         }
 
         results_dict["nn_classification"] = self._benchmark_nn_classification()
+        results_dict["avg_dist_classification"] = self._benchmark_avg_dist_classification()
         results_dict["svc_classification"] = self._benchmark_svc_classification()
 
         return AnalysisResult("epitope_ranking", results=results_dict)
@@ -35,7 +36,8 @@ class EpitopeRanking(Analysis):
 
         dists_to_nn = []
         for epitope in tqdm(self.training_data_grouped_by_epitope.groups):
-            predictive_distance = self._get_dists_to_nn(epitope)
+            dists_to_references = self._get_dists_to_references(epitope)
+            predictive_distance = dists_to_references.min(axis=1)
             dists_to_nn.append(predictive_distance)
         dists_to_nn = np.stack(dists_to_nn)
 
@@ -53,6 +55,36 @@ class EpitopeRanking(Analysis):
             }
 
         return results_dict
+    
+    def _benchmark_avg_dist_classification(self) -> dict:
+        results_dict = dict()
+
+        dists_to_nn = []
+        for epitope in tqdm(self.training_data_grouped_by_epitope.groups):
+            dists_to_references = self._get_dists_to_references(epitope)
+            predictive_distance = dists_to_references.mean(axis=1)
+            dists_to_nn.append(predictive_distance)
+        dists_to_nn = np.stack(dists_to_nn)
+
+        test_data_epitope_catcodes = self.test_data["Epitope"].map(lambda x: self.epitope_to_catcode[x]).to_numpy()[:,np.newaxis]
+
+        epitopes_ranked = np.argsort(dists_to_nn, axis=0).T
+        epitope_rankings = np.nonzero(epitopes_ranked == test_data_epitope_catcodes)[1] + 1
+
+        for epitope in self.training_data_grouped_by_epitope.groups:
+            mask = (self.test_data["Epitope"] == epitope).to_numpy()
+            rankings = epitope_rankings[mask]
+            avg_rank = rankings.mean()
+            results_dict[epitope] = {
+                "avg_rank": avg_rank
+            }
+
+        return results_dict
+    
+    def _get_dists_to_references(self, epitope: str) -> ndarray:
+        epitope_reference = self.training_data[self.training_data["Epitope"] == epitope]
+        cdist_matrix = self._model_computation_cacher.calc_cdist_matrix(self.test_data, epitope_reference)
+        return cdist_matrix
     
     def _benchmark_svc_classification(self) -> dict:
         results_dict = dict()
@@ -97,11 +129,6 @@ class EpitopeRanking(Analysis):
             results_dict[epitope]["avg_rank"] = avg_rank
         
         return results_dict
-
-    def _get_dists_to_nn(self, epitope: str) -> ndarray:
-        epitope_reference = self.training_data_grouped_by_epitope.get_group(epitope)
-        cdist_matrix = self._model_computation_cacher.calc_cdist_matrix(self.test_data, epitope_reference)
-        return cdist_matrix.min(axis=1)
     
     def _get_characteristic_distance(self) -> float:
         ed_record_collection = self._model_computation_cacher.get_tcr_edit_record_collection()

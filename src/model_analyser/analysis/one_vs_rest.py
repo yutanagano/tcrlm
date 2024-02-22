@@ -21,6 +21,7 @@ class OneVsRest(Analysis):
         self.test_data = self._labelled_data["benchmarking_testing"]
 
         results_dict["nn_classification"] = self._benchmark_nn_classification()
+        results_dict["avg_dist_classification"] = self._benchmark_avg_dist_classification()
         results_dict["svc_classification"] = self._benchmark_svc_classification()
 
         return AnalysisResult("one_vs_rest", results=results_dict)
@@ -31,7 +32,8 @@ class OneVsRest(Analysis):
         epitopes = self.training_data["Epitope"].unique()
         for epitope in tqdm(epitopes):
             ground_truth = self.test_data["Epitope"] == epitope
-            predictive_distance = self._get_dists_to_nn(epitope)
+            distances_to_reference = self._get_dists_to_references(epitope)
+            predictive_distance = distances_to_reference.min(axis=1)
             similarity_scores = np.exp(-predictive_distance/50)
 
             auc = metrics.roc_auc_score(ground_truth, similarity_scores)
@@ -45,10 +47,31 @@ class OneVsRest(Analysis):
         
         return results_dict
     
-    def _get_dists_to_nn(self, epitope: str) -> ndarray:
+    def _benchmark_avg_dist_classification(self) -> dict:
+        results_dict = dict()
+
+        epitopes = self.training_data["Epitope"].unique()
+        for epitope in tqdm(epitopes):
+            ground_truth = self.test_data["Epitope"] == epitope
+            distances_to_reference = self._get_dists_to_references(epitope)
+            predictive_distance = distances_to_reference.mean(axis=1)
+            similarity_scores = np.exp(-predictive_distance/50)
+
+            auc = metrics.roc_auc_score(ground_truth, similarity_scores)
+            auc_01 = metrics.roc_auc_score(ground_truth, similarity_scores, max_fpr=0.1)
+
+            results_dict[epitope] = {
+                "reference_size": int((self.training_data["Epitope"] == epitope).sum()),
+                "auc": auc,
+                "auc0.1": auc_01,
+            }
+
+        return results_dict
+
+    def _get_dists_to_references(self, epitope: str) -> ndarray:
         epitope_reference = self.training_data[self.training_data["Epitope"] == epitope]
         cdist_matrix = self._model_computation_cacher.calc_cdist_matrix(self.test_data, epitope_reference)
-        return cdist_matrix.min(axis=1)
+        return cdist_matrix
 
     def _benchmark_svc_classification(self) -> dict:
         results_dict = dict()
