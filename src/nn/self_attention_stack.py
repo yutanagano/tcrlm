@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from torch import Tensor
 from torch.nn import Linear, Module, TransformerEncoder, TransformerEncoderLayer
+from typing import Optional
 
 
 class SelfAttentionStack(ABC, Module):
@@ -28,9 +29,12 @@ class SelfAttentionStackWithBuiltins(SelfAttentionStack):
     d_model: int = None
 
     def __init__(
-        self, num_layers: int, d_model: int, nhead: int, dropout: float = 0.1
+        self, num_layers: int, d_model: int, nhead: int, dim_feedforward: Optional[int] = None, dropout: float = 0.1
     ) -> None:
         super().__init__()
+
+        if dim_feedforward is None:
+            dim_feedforward = d_model * 4 # backwards compatibility
 
         self.d_model = d_model
         self._num_layers_in_stack = num_layers
@@ -38,7 +42,7 @@ class SelfAttentionStackWithBuiltins(SelfAttentionStack):
         self_attention_block = TransformerEncoderLayer(
             d_model=d_model,
             nhead=nhead,
-            dim_feedforward=d_model * 4,
+            dim_feedforward=dim_feedforward,
             dropout=dropout,
             batch_first=True,
         )
@@ -80,6 +84,7 @@ class SelfAttentionStackWithInitialProjection(SelfAttentionStack):
         embedding_dim: int,
         d_model: int,
         nhead: int,
+        dim_feedforward: Optional[int] = None,
         dropout: float = 0.1,
     ) -> None:
         super().__init__()
@@ -90,7 +95,7 @@ class SelfAttentionStackWithInitialProjection(SelfAttentionStack):
             in_features=embedding_dim, out_features=d_model, bias=False
         )
         self._standard_stack = SelfAttentionStackWithBuiltins(
-            num_layers=num_layers, d_model=d_model, nhead=nhead, dropout=dropout
+            num_layers=num_layers, d_model=d_model, nhead=nhead, dim_feedforward=dim_feedforward, dropout=dropout
         )
 
     def forward(self, token_embeddings: Tensor, padding_mask: Tensor) -> Tensor:
