@@ -1,6 +1,7 @@
 from .token_embedder import TokenEmbedder
 
 from .beta_cdr3_simple_embedder import BetaCdr3SimpleEmbedder
+from .cdr3_simple_embedder import Cdr3SimpleEmbedder
 from .cdr3_embedder import Cdr3Embedder, Cdr3EmbedderWithRelativePositions
 
 from .beta_cdr_embedder import BetaCdrEmbedder, BetaCdrEmbedderWithRelativePositions
