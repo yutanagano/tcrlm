@@ -1,4 +1,5 @@
 import json
+from libtcrlm.bert import Bert
 import os
 import pandas as pd
 from pathlib import Path
@@ -10,7 +11,6 @@ from torch import multiprocessing
 from typing import Optional
 
 from src.config_reader import ConfigReader
-from src.nn.bert import Bert
 from src.config_reader.training_object_collection import TrainingObjectCollection
 
 
