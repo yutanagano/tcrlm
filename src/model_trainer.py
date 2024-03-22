@@ -10,13 +10,13 @@ from torch import distributed
 from torch import multiprocessing
 from typing import Optional
 
-from src.config_reader import ConfigReader
+from src.config_reader import TrainingConfigReader
 from src.config_reader.training_object_collection import TrainingObjectCollection
 
 
 class ModelTrainer:
     def __init__(self, config: dict) -> None:
-        self._config_reader = ConfigReader(config)
+        self._config_reader = TrainingConfigReader(config)
         self._training_delegate = self._config_reader.get_training_delegate()
         self._num_gpus_available = torch.cuda.device_count()
 

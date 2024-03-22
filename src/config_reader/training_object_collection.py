@@ -1,16 +1,15 @@
 import torch
 from torch.nn.parallel import DistributedDataParallel
-
-from src.nn.data.tcr_dataloader import SingleDatasetDataLoader
-from src.nn.optim import AdamWithScheduling
+from torch.utils.data import DataLoader
+from src.optim import AdamWithScheduling
 
 
 class TrainingObjectCollection:
     def __init__(
         self,
         model: DistributedDataParallel,
-        training_dataloader: SingleDatasetDataLoader,
-        validation_dataloader: SingleDatasetDataLoader,
+        training_dataloader: DataLoader,
+        validation_dataloader: DataLoader,
         loss_functions: dict,
         optimiser: AdamWithScheduling,
         device: torch.device,

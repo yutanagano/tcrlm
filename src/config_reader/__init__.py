@@ -1,1 +1,1 @@
-from .config_reader import ConfigReader
+from .config_reader import TrainingConfigReader
