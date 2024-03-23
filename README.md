@@ -1,9 +1,9 @@
-# TCR embedder
+# tcrlm
 
-This is a codebase containing useful modules and analysis notebooks for the
-TCR embedding/representation learning project.
+This is a codebase for developing and training TCR language models.
+This codebase contains code specific to the act of model training.
 
-## Prescribed data format (csv)
+## Prescribed TCR data format (csv)
 
 All TCR data concerned with this project should be saved as a csv file with
 the following columns, in this order, with the specified data:
