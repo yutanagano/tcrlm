@@ -1,7 +1,7 @@
 # tcrlm
 
 This is a codebase for developing and training TCR language models.
-This codebase contains code specific to the act of model training.
+This codebase contains code specifically around model training.
 
 ## Prescribed TCR data format (csv)
 
