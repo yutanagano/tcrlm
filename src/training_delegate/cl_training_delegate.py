@@ -5,10 +5,6 @@ from src import performance_measure
 
 
 class ClTrainingDelegate(TrainingDelegate):
-    def __init__(self, jointly_optimise_mlm: bool = True) -> None:
-        super().__init__()
-        self._jointly_optimise_mlm = jointly_optimise_mlm
-
     def run_training_epoch_and_return_metrics_for(
         self, training_object_collection: TrainingObjectCollection
     ) -> dict:
@@ -49,9 +45,9 @@ class ClTrainingDelegate(TrainingDelegate):
             )
 
             optimiser.zero_grad()
-            loss = contrastive_loss_fn(double_view_batch_embeddings, double_view_positives_mask)
-            if self._jointly_optimise_mlm:
-                loss += cross_entropy_loss_fn(mlm_logits.flatten(0, 1), mlm_targets.view(-1))
+            loss = contrastive_loss_fn(
+                double_view_batch_embeddings, double_view_positives_mask
+            ) + cross_entropy_loss_fn(mlm_logits.flatten(0, 1), mlm_targets.view(-1))
             loss.backward()
             optimiser.step()
 
