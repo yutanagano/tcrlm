@@ -10,13 +10,12 @@ from torch import BoolTensor, LongTensor, Tensor
 
 
 class ClBatchCollator(MlmBatchCollator):
-    PROPORTION_OF_TOKENS_TO_CENSOR = 0.2
-    PROB_DROP_CHAIN = 0.5
     PROB_DROP_ALPHA_GIVEN_DROP_CHAIN = 0.5
 
-    def __init__(self, tokeniser: Tokeniser, drop_chains: bool) -> None:
+    def __init__(self, tokeniser: Tokeniser, frac_dropped_tokens: float = 0.2, prob_drop_chain: float = 0.5) -> None:
         super().__init__(tokeniser)
-        self._drop_chains = drop_chains
+        self._frac_dropped_tokens = frac_dropped_tokens
+        self._prob_drop_chain = prob_drop_chain
 
     def collate_fn(self, tcr_pmhc_pairs: Iterable[TcrPmhcPair]) -> Tuple[Tensor]:
         double_view_batch = self._generate_double_view_batch(tcr_pmhc_pairs)
@@ -49,16 +48,16 @@ class ClBatchCollator(MlmBatchCollator):
         tokenised_tcrs = [
             self._tokeniser.tokenise(tcr) for tcr in tcrs_with_chains_maybe_dropped
         ]
-        censored_tcrs = self._randomly_censor(tokenised_tcrs)
+        censored_tcrs = self._randomly_drop_tokens(tokenised_tcrs)
         return censored_tcrs
 
     def _maybe_drop_chain(self, tcr: Tcr) -> Tcr:
-        if not tcr.both_chains_specified or not self._drop_chains:
+        if not tcr.both_chains_specified or self._prob_drop_chain == 0:
             return tcr
 
         new_tcr = tcr.copy()
 
-        will_drop_chain = random.random() < self.PROB_DROP_CHAIN
+        will_drop_chain = random.random() < self._prob_drop_chain
         if will_drop_chain:
             will_drop_alpha = random.random() < self.PROB_DROP_ALPHA_GIVEN_DROP_CHAIN
             if will_drop_alpha:
@@ -68,20 +67,23 @@ class ClBatchCollator(MlmBatchCollator):
 
         return new_tcr
 
-    def _randomly_censor(self, tokenised_tcrs: LongTensor) -> LongTensor:
+    def _randomly_drop_tokens(self, tokenised_tcrs: LongTensor) -> LongTensor:
+        if self._frac_dropped_tokens == 0:
+            return tokenised_tcrs
+
         indices_of_tokens_to_drop = [
             self._choose_random_subset_of_indices(
-                tcr, self.PROPORTION_OF_TOKENS_TO_CENSOR
+                tcr, self._frac_dropped_tokens
             )
             for tcr in tokenised_tcrs
         ]
         censored_tcrs = [
-            self._censor_tcr(tcr, indices_to_drop)
+            self._drop_tokens_at_indices(tcr, indices_to_drop)
             for tcr, indices_to_drop in zip(tokenised_tcrs, indices_of_tokens_to_drop)
         ]
         return censored_tcrs
 
-    def _censor_tcr(
+    def _drop_tokens_at_indices(
         self, tokenised_tcr: LongTensor, indices_to_drop: List[int]
     ) -> LongTensor:
         censored_tcr = tokenised_tcr.clone()

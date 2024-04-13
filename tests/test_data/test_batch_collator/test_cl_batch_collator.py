@@ -14,7 +14,7 @@ def test_collate_fn(
     expected_mlm_targets,
 ):
     tokeniser = CdrTokeniser()
-    batch_generator = ClBatchCollator(tokeniser, drop_chains=True)
+    batch_generator = ClBatchCollator(tokeniser)
 
     random.seed(420)
     (
