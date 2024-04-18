@@ -69,14 +69,14 @@ class ModelTrainer:
 
             metric_log[epoch] = {**train_metrics, **valid_metrics}
 
-        current_process_using_first_gpu = gpu_index == 0
-        if current_process_using_first_gpu:
-            print("Saving results...")
-            unwrapped_bert_model = training_object_collection.model.module.bert
-            unwrapped_bert_model.set_fine_tuning_mode(False)
-            self._save_training_results(
-                model=unwrapped_bert_model, metric_log=metric_log
-            )
+            current_process_using_first_gpu = gpu_index == 0
+            if current_process_using_first_gpu:
+                print(f"Saving results for epoch {epoch}...")
+                unwrapped_bert_model = training_object_collection.model.module.bert
+                unwrapped_bert_model.set_fine_tuning_mode(False)
+                self._save_training_results(
+                    model=unwrapped_bert_model, metric_log=metric_log
+                )
 
         self._clean_up_ddp()
         self._print_with_process_id("Done!", gpu_index)
