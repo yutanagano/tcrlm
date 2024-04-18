@@ -41,8 +41,10 @@ class ModelTrainer:
 
     def _training_process(self, gpu_index: int, port: int) -> None:
         self._setup_ddp(gpu_index, port)
+        current_process_using_first_gpu = gpu_index == 0
 
         training_object_collection = self._instantiate_training_objects(gpu_index)
+        model_save_dir = self._make_model_save_dir_and_return_path()
 
         self._print_with_process_id("Evaluating pre-trained model state...", gpu_index)
         valid_metrics = self._validate_and_return_metrics_for(
@@ -69,14 +71,18 @@ class ModelTrainer:
 
             metric_log[epoch] = {**train_metrics, **valid_metrics}
 
-            current_process_using_first_gpu = gpu_index == 0
             if current_process_using_first_gpu:
-                print(f"Saving results for epoch {epoch}...")
-                unwrapped_bert_model = training_object_collection.model.module.bert
-                unwrapped_bert_model.set_fine_tuning_mode(False)
-                self._save_training_results(
-                    model=unwrapped_bert_model, metric_log=metric_log
+                print(f"Saving model state for epoch {epoch}...")
+                self._save_model(
+                    model=training_object_collection.model.module.bert,
+                    epoch=epoch,
+                    model_save_dir=model_save_dir
                 )
+        
+        if current_process_using_first_gpu:
+            print("Saving training log and config...")
+            self._save_config(model_save_dir)
+            self._save_metric_log(metric_log, model_save_dir)
 
         self._clean_up_ddp()
         self._print_with_process_id("Done!", gpu_index)
@@ -100,13 +106,6 @@ class ModelTrainer:
         return self._training_delegate.validate_and_return_metrics_for(
             training_object_collection
         )
-
-    def _save_training_results(self, model: Bert, metric_log: dict) -> None:
-        model_save_dir = self._make_model_save_dir_and_return_path()
-
-        self._save_model(model, model_save_dir)
-        self._save_metric_log(metric_log, model_save_dir)
-        self._save_config(model_save_dir)
 
     def _make_model_save_dir_and_return_path(self) -> Path:
         model_saves_parent_dir = self._working_directory / "model_saves"
@@ -150,9 +149,9 @@ class ModelTrainer:
             except FileExistsError:
                 suffix_int += 1
 
-    def _save_model(self, model: Bert, model_save_dir: Path) -> None:
-        model_moved_to_cpu = model.cpu()
-        torch.save(model_moved_to_cpu.state_dict(), model_save_dir / "state_dict.pt")
+    def _save_model(self, model: Bert, epoch: int, model_save_dir: Path) -> None:
+        cpu_state_dict = {k: v.cpu() for k, v in model.state_dict().items()}
+        torch.save(cpu_state_dict, model_save_dir / f"state_dict_epoch_{epoch}.pt")
 
     def _save_metric_log(self, metric_log: dict, model_save_dir: Path) -> None:
         metric_log_as_dataframe = pd.DataFrame.from_dict(metric_log, orient="index")

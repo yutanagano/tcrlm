@@ -6,7 +6,7 @@ from torch.nn import Module
 
 
 def model_saved(save_path: Path, model_template: Module) -> bool:
-    result = torch.load(save_path / "state_dict.pt")
+    result = torch.load(save_path / "state_dict_epoch_3.pt")
     expected = model_template.state_dict()
 
     if len(result) != len(expected):
