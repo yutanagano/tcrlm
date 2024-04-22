@@ -27,8 +27,11 @@ class EpitopeBalancedTcrDataset(Dataset):
         )
         tcr_pmhc_df.columns = ["tcr", "pmhc"]
 
-        self._tcr_pmhc_df = tcr_pmhc_df
         self._pmhcs = tcr_pmhc_df.pmhc.unique()
+        self._tcrs_per_pmhc = {
+            pmhc: tcr_pmhc_df.tcr.loc[tcr_pmhc_df.pmhc == pmhc].reset_index(drop=True)
+            for pmhc in self._pmhcs
+        }
         self._num_samples_per_specificity_per_epoch = num_samples_per_pmhc_per_epoch
 
     def __len__(self) -> int:
@@ -36,8 +39,9 @@ class EpitopeBalancedTcrDataset(Dataset):
 
     def __getitem__(self, index: int) -> TcrPmhcPair:
         pmhc = self._pmhcs[index % len(self._pmhcs)]
-        tcrs_against_pmhc = self._tcr_pmhc_df.tcr[self._tcr_pmhc_df.pmhc == pmhc]
-        tcr = tcrs_against_pmhc.sample().item()
+        tcrs_against_pmhc = self._tcrs_per_pmhc[pmhc]
+        adjusted_index = index // len(self._pmhcs) % len(tcrs_against_pmhc)
+        tcr = tcrs_against_pmhc.iloc[adjusted_index]
 
         return TcrPmhcPair(tcr, pmhc)
     
@@ -53,11 +57,16 @@ class EpitopeBackgroundTcrDataset(Dataset):
         )
         tcr_pmhc_df.columns = ["tcr", "pmhc"]
         labelled_data_mask = tcr_pmhc_df.pmhc.map(lambda pmhc: pmhc.epitope_sequence is not None)
+        labelled_data = tcr_pmhc_df.loc[labelled_data_mask]
 
-        self._labelled_data = tcr_pmhc_df.loc[labelled_data_mask].reset_index(drop=True)
-        self._background_data = tcr_pmhc_df.loc[~labelled_data_mask].reset_index(drop=True)
+        self._pmhcs = labelled_data.pmhc.unique()
 
-        self._pmhcs = self._labelled_data.pmhc.unique()
+        self._labelled_data_per_pmhc = {
+            pmhc: labelled_data.tcr.loc[labelled_data.pmhc == pmhc].reset_index(drop=True)
+            for pmhc in self._pmhcs
+        }
+        self._background_data = tcr_pmhc_df.tcr.loc[~labelled_data_mask].reset_index(drop=True)
+
         self._num_samples_per_specificity_per_epoch = num_samples_per_pmhc_per_epoch
 
     def __len__(self) -> int:
@@ -69,10 +78,12 @@ class EpitopeBackgroundTcrDataset(Dataset):
 
         if return_labelled_sequence:
             pmhc = self._pmhcs[(index // 2) % len(self._pmhcs)]
-            tcrs_against_pmhc = self._labelled_data.tcr[self._labelled_data.pmhc == pmhc]
-            tcr = tcrs_against_pmhc.sample().item()
+            specific_tcrs = self._labelled_data_per_pmhc[pmhc]
+            adjusted_index = ((index // 2) // len(self._pmhcs)) % len(specific_tcrs)
+            tcr = specific_tcrs.iloc[adjusted_index]
             return TcrPmhcPair(tcr, pmhc)
         
-        tcr = self._background_data.tcr.sample().item()
+        adjusted_index = ((index - 1) // 2) % len(self._background_data)
+        tcr = self._background_data.iloc[adjusted_index]
         pmhc = schema.make_pmhc_from_components(None, None, None)
         return TcrPmhcPair(tcr, pmhc)
