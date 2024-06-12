@@ -3,6 +3,16 @@
 This repository contains code used to train the various SCEPTR variants published in this [preprint](https://arxiv.org/abs/2406.06397).
 The entry point for starting a training run is by running the `train.py` script as an executable.
 
+## Setting up an appropriate python environment
+
+I recommend first using `venv`, `conda`, or some other method to create a clean Python3 environment dedicated to running code in this repository.
+The dependencies you need to run the training code is listed in `requirements.txt`.
+You can install the dependencies listed there by running:
+
+```bash
+pip install -r requirements.txt
+```
+
 ## What's a training run config json file?
 
 > [!TIP]
