@@ -24,4 +24,4 @@ train.py <config_path>
   
 where `<config_path>` is just the location of where the json file is.
 
-An example of what a config should look like is given in `example_config.json`.
+An example of what a config should look like is given in the directory `example_configs`.
