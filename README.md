@@ -1,6 +1,8 @@
 # tcrlm
 
-This repository contains code used to train the various SCEPTR variants published in this [preprint](https://arxiv.org/abs/2406.06397).
+[![DOI](https://zenodo.org/badge/549598531.svg)](https://doi.org/10.5281/zenodo.14285950)
+
+This repository contains code used to train the various SCEPTR variants published in our manuscript ["Contrastive learning of T cell receptor representations"](https://arxiv.org/abs/2406.06397).
 The entry point for starting a training run is by running the `train.py` script as an executable.
 
 ## Setting up an appropriate python environment
